@@ -6,6 +6,8 @@ First off, thank you for considering contributing to Stellarcade! It's people li
 
 We are excited to have you here! Stellarcade is a community-driven project aiming to bring the best arcade experience to the Stellar blockchain. Whether you're a back-end wizard, a front-end artist, a smart contract expert, or a documentation enthusiast, there's a place for you.
 
+> For detailed technical guidelines, code review processes, and branch strategies, please check our [Extended Contribution Guide](docs/CONTRIBUTING_GUIDE.md).
+
 ## 🚀 How to Contribute
 
 1.  **Find an Issue**: Check out our [Issues](https://github.com/stellar/stellarcade/issues) page. Look for "good first issue" labels if you're new!

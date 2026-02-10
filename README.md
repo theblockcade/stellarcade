@@ -57,9 +57,13 @@
 Detailed documentation can be found in the [docs/](docs/) folder:
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [Project Structure](docs/PROJECT_STRUCTURE.md)
+- [Smart Contracts](docs/CONTRACTS.md)
+- [Backend Guide](docs/BACKEND.md)
 - [Game Rules](docs/GAME_RULES.md)
 - [API Reference](docs/API_DOCUMENTATION.md)
 - [Setup Guide](docs/SETUP.md)
+- [Environment Variables](docs/ENVIRONMENT.md)
 
 ## 🤝 Contributing
 
