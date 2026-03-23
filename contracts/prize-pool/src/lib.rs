@@ -4,7 +4,27 @@
 #![no_std]
 #![allow(unexpected_cfgs)]
 
-use soroban_sdk::{contract, contractimpl, Address, Env};
+use soroban_sdk::{contract, contractevent, contractimpl, Address, Env};
+
+/// Emitted when the contract is initialized with an admin address.
+#[contractevent]
+pub struct Initialized {
+    pub admin: Address,
+}
+
+/// Emitted when a user deposits tokens into the prize pool.
+#[contractevent]
+pub struct Deposited {
+    pub from: Address,
+    pub amount: i128,
+}
+
+/// Emitted when a user withdraws tokens from the prize pool.
+#[contractevent]
+pub struct Withdrawn {
+    pub to: Address,
+    pub amount: i128,
+}
 
 #[contract]
 pub struct PrizePool;
@@ -12,27 +32,38 @@ pub struct PrizePool;
 #[contractimpl]
 impl PrizePool {
     /// Initialize the contract with the platform admin.
-    pub fn initialize(_env: Env, _admin: Address) {
+    pub fn initialize(env: Env, admin: Address) {
         // TODO: Store admin address in storage
-        // TODO: Emit initialization event
+        Initialized {
+            admin: admin.clone(),
+        }
+        .publish(&env);
     }
 
     /// Deposit tokens into the prize pool.
-    pub fn deposit(_env: Env, from: Address, _amount: i128) {
+    pub fn deposit(env: Env, from: Address, amount: i128) {
         from.require_auth();
         // TODO: Validate amount > 0
         // TODO: Use token client to transfer tokens to this contract
         // TODO: Update user balance in storage
-        // TODO: Emit deposit event
+        Deposited {
+            from: from.clone(),
+            amount,
+        }
+        .publish(&env);
     }
 
     /// Withdraw tokens from the user's balance.
-    pub fn withdraw(_env: Env, to: Address, _amount: i128) {
+    pub fn withdraw(env: Env, to: Address, amount: i128) {
         to.require_auth();
         // TODO: Check user balance
         // TODO: Update user balance
         // TODO: Transfer tokens to user
-        // TODO: Emit withdrawal event
+        Withdrawn {
+            to: to.clone(),
+            amount,
+        }
+        .publish(&env);
     }
 
     /// Get the current balance of a user.
