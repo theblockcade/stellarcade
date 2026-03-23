@@ -26,16 +26,61 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
 
-      - name: Build Contracts
+      - name: Check formatting
+        run: |
+          cd contracts/shared && cargo fmt --all -- --check
+          cd ../access-control && cargo fmt --all -- --check
+          cd ../balance-management && cargo fmt --all -- --check
+          cd ../coin-flip && cargo fmt --all -- --check
+          cd ../emergency-pause && cargo fmt --all -- --check
+          cd ../higher-lower && cargo fmt --all -- --check
+          cd ../prize-pool && cargo fmt --all -- --check
+          cd ../random-generator && cargo fmt --all -- --check
+          cd ../trivia-game && cargo fmt --all -- --check
+
+      - name: Clippy (strict)
+        run: |
+          cd contracts/shared && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../access-control && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../balance-management && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../coin-flip && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../emergency-pause && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../higher-lower && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../prize-pool && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../random-generator && cargo clippy --all-targets --all-features -- -D warnings
+          cd ../trivia-game && cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Build Contracts (WASM)
         run: |
           cd contracts/shared && cargo build --release
+          cd ../access-control && cargo build --target wasm32-unknown-unknown --release
+          cd ../balance-management && cargo build --target wasm32-unknown-unknown --release
+          cd ../coin-flip && cargo build --target wasm32-unknown-unknown --release
+          cd ../emergency-pause && cargo build --target wasm32-unknown-unknown --release
+          cd ../higher-lower && cargo build --target wasm32-unknown-unknown --release
           cd ../prize-pool && cargo build --target wasm32-unknown-unknown --release
           cd ../random-generator && cargo build --target wasm32-unknown-unknown --release
-          cd ../coin-flip && cargo build --target wasm32-unknown-unknown --release
+          cd ../trivia-game && cargo build --target wasm32-unknown-unknown --release
 
       - name: Run Tests
         run: |
           cd contracts/shared && cargo test
+          cd ../access-control && cargo test
+          cd ../balance-management && cargo test
+          cd ../coin-flip && cargo test
+          cd ../emergency-pause && cargo test
+          cd ../higher-lower && cargo test
           cd ../prize-pool && cargo test
           cd ../random-generator && cargo test
-          cd ../coin-flip && cargo test
+          cd ../trivia-game && cargo test
+
+      - name: Contract doc sync check
+        run: |
+          CRATES=(access-control balance-management coin-flip emergency-pause higher-lower prize-pool random-generator shared trivia-game)
+          for crate in "${CRATES[@]}"; do
+            if ! grep -q "$crate" contracts/README.md; then
+              echo "❌ '$crate' missing from contracts/README.md"
+              exit 1
+            fi
+          done
+          echo "✅ Contract doc sync OK."
