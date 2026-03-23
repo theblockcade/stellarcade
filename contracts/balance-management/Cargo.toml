@@ -1,5 +1,5 @@
 [package]
-name = "stellarcade-prize-pool"
+name = "stellarcade-balance-management"
 version = "0.1.0"
 edition = "2021"
 publish = false
