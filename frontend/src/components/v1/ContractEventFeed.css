@@ -124,6 +124,12 @@
     cursor: not-allowed;
   }
   
+  .cef__toggle-btn:focus-visible,
+  .cef__clear-btn:focus-visible {
+    outline: 2px solid var(--cef-accent);
+    outline-offset: 2px;
+  }
+  
   /* ── Status Badge ────────────────────────────────────────────────────── */
   
   .cef-status-badge {
@@ -278,7 +284,7 @@
   .cef-event-row__time {
     color: var(--cef-text-muted);
     font-size: 11px;
-    tabular-nums;
+    font-variant-numeric: tabular-nums;
   }
   
   .cef-event-row__type {
