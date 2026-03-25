@@ -30,7 +30,8 @@
 #![allow(unexpected_cfgs)]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address, Bytes, BytesN, Env,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Bytes, BytesN,
+    Env, String,
 };
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,7 @@ pub enum DataKey {
     // --- instance() ---
     Admin,
     Oracle,
+    EntropyMetadata,
     // --- persistent() ---
     /// Presence flag for whitelisted game contract addresses.
     AuthorizedCaller(Address),
@@ -106,6 +108,23 @@ pub struct FulfilledEntry {
     pub server_seed: BytesN<32>,
     /// `sha256(server_seed || request_id_be)[0..8] % max`; always in `[0, max)`.
     pub result: u64,
+}
+
+/// Describes the entropy source used by this contract.
+///
+/// Stored in instance storage so it lives as long as the contract itself.
+/// Version metadata is informational — it does not alter randomness output.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EntropySourceMetadata {
+    /// Semantic version of the entropy source implementation (e.g. "1.0.0").
+    pub version: String,
+    /// Human-readable description of the entropy source type.
+    pub source_type: String,
+    /// Hash algorithm used to derive random output.
+    pub hash_algorithm: String,
+    /// Number of bytes from the hash digest used for the random value.
+    pub output_bytes: u32,
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +349,42 @@ impl RandomGenerator {
     // get_result
     // -----------------------------------------------------------------------
 
+    // -----------------------------------------------------------------------
+    // entropy metadata
+    // -----------------------------------------------------------------------
+
+    /// Set entropy source version metadata. Admin only.
+    ///
+    /// Metadata is informational and does not affect randomness output.
+    pub fn set_entropy_metadata(
+        env: Env,
+        admin: Address,
+        metadata: EntropySourceMetadata,
+    ) -> Result<(), Error> {
+        require_initialized(&env)?;
+        require_admin(&env, &admin)?;
+
+        env.storage()
+            .instance()
+            .set(&DataKey::EntropyMetadata, &metadata);
+
+        Ok(())
+    }
+
+    /// Read the current entropy source version metadata.
+    pub fn get_entropy_metadata(env: Env) -> Result<EntropySourceMetadata, Error> {
+        require_initialized(&env)?;
+
+        env.storage()
+            .instance()
+            .get(&DataKey::EntropyMetadata)
+            .ok_or(Error::NotInitialized)
+    }
+
+    // -----------------------------------------------------------------------
+    // get_result
+    // -----------------------------------------------------------------------
+
     /// Return the fulfilled result for a `request_id`.
     ///
     /// Returns `RequestNotFound` if the request is still pending or never existed.
@@ -413,7 +468,7 @@ fn derive_result(env: &Env, server_seed: &BytesN<32>, request_id: u64, max: u64)
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Bytes, BytesN, Env};
+    use soroban_sdk::{testutils::Address as _, Bytes, BytesN, Env, String};
 
     // ------------------------------------------------------------------
     // Test helpers
@@ -745,5 +800,143 @@ mod test {
         assert!(entry_b.result < max_b);
         assert_eq!(entry_a.result, expected_result(&env, &seed_a, 10, max_a));
         assert_eq!(entry_b.result, expected_result(&env, &seed_b, 20, max_b));
+    }
+
+    // ------------------------------------------------------------------
+    // 16. Set and get entropy metadata
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_set_and_get_entropy_metadata() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let metadata = EntropySourceMetadata {
+            version: String::from_str(&env, "1.0.0"),
+            source_type: String::from_str(&env, "oracle-committed-seed"),
+            hash_algorithm: String::from_str(&env, "sha256"),
+            output_bytes: 8,
+        };
+
+        client.set_entropy_metadata(&admin, &metadata);
+        let retrieved = client.get_entropy_metadata();
+
+        assert_eq!(retrieved.version, String::from_str(&env, "1.0.0"));
+        assert_eq!(
+            retrieved.source_type,
+            String::from_str(&env, "oracle-committed-seed")
+        );
+        assert_eq!(retrieved.hash_algorithm, String::from_str(&env, "sha256"));
+        assert_eq!(retrieved.output_bytes, 8);
+    }
+
+    // ------------------------------------------------------------------
+    // 17. Non-admin cannot set entropy metadata
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_non_admin_cannot_set_entropy_metadata() {
+        let env = Env::default();
+        let (client, _, _, game) = setup(&env);
+        env.mock_all_auths();
+
+        let metadata = EntropySourceMetadata {
+            version: String::from_str(&env, "1.0.0"),
+            source_type: String::from_str(&env, "oracle-committed-seed"),
+            hash_algorithm: String::from_str(&env, "sha256"),
+            output_bytes: 8,
+        };
+
+        let result = client.try_set_entropy_metadata(&game, &metadata);
+        assert!(result.is_err());
+    }
+
+    // ------------------------------------------------------------------
+    // 18. Get entropy metadata before set returns error
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_get_entropy_metadata_before_set_returns_error() {
+        let env = Env::default();
+        let (client, _, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let result = client.try_get_entropy_metadata();
+        assert!(result.is_err());
+    }
+
+    // ------------------------------------------------------------------
+    // 19. Metadata update does not affect existing randomness
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_metadata_does_not_affect_randomness() {
+        let env = Env::default();
+        let (client, admin, oracle, game) = setup(&env);
+        env.mock_all_auths();
+
+        // Fulfill a request before setting metadata
+        let max = 100u64;
+        let s = seed(&env, 0x42);
+        client.request_random(&game, &1u64, &max);
+        client.fulfill_random(&oracle, &1u64, &s);
+        let result_before = client.get_result(&1u64).result;
+
+        // Set metadata
+        let metadata = EntropySourceMetadata {
+            version: String::from_str(&env, "2.0.0"),
+            source_type: String::from_str(&env, "oracle-committed-seed"),
+            hash_algorithm: String::from_str(&env, "sha256"),
+            output_bytes: 8,
+        };
+        client.set_entropy_metadata(&admin, &metadata);
+
+        // Fulfill another request with same seed and max at a different ID
+        client.request_random(&game, &2u64, &max);
+        client.fulfill_random(&oracle, &2u64, &s);
+        let result_after = client.get_result(&2u64).result;
+
+        // Results differ because request_id differs, but both are valid
+        assert!(result_before < max);
+        assert!(result_after < max);
+
+        // The original result is unchanged
+        assert_eq!(client.get_result(&1u64).result, result_before);
+    }
+
+    // ------------------------------------------------------------------
+    // 20. Metadata can be updated by admin
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_metadata_can_be_updated() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let v1 = EntropySourceMetadata {
+            version: String::from_str(&env, "1.0.0"),
+            source_type: String::from_str(&env, "oracle-committed-seed"),
+            hash_algorithm: String::from_str(&env, "sha256"),
+            output_bytes: 8,
+        };
+        client.set_entropy_metadata(&admin, &v1);
+        assert_eq!(
+            client.get_entropy_metadata().version,
+            String::from_str(&env, "1.0.0")
+        );
+
+        let v2 = EntropySourceMetadata {
+            version: String::from_str(&env, "2.0.0"),
+            source_type: String::from_str(&env, "oracle-committed-seed-v2"),
+            hash_algorithm: String::from_str(&env, "sha256"),
+            output_bytes: 8,
+        };
+        client.set_entropy_metadata(&admin, &v2);
+        assert_eq!(
+            client.get_entropy_metadata().version,
+            String::from_str(&env, "2.0.0")
+        );
     }
 }

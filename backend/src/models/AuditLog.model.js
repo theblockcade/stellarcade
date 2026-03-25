@@ -1,0 +1,63 @@
+/**
+ * Model for audit log entries.
+ */
+const db = require('../config/database');
+const logger = require('../utils/logger');
+
+const AuditLog = {
+  /**
+   * Insert a new audit log entry.
+   * @param {object} entry
+   * @param {string} entry.actor - Who performed the action (user ID or system)
+   * @param {string} entry.action - What was done (e.g. 'wallet.deposit')
+   * @param {string} entry.target - What was acted upon (e.g. resource ID)
+   * @param {string} [entry.payload_hash] - SHA-256 hash of sensitive payload
+   * @param {string} [entry.outcome] - 'success' or 'failure'
+   * @param {object} [entry.metadata] - Additional non-sensitive context
+   */
+  async create(entry) {
+    try {
+      const rows = await db('audit_logs').insert(entry).returning('*');
+      return rows[0];
+    } catch (error) {
+      logger.error('Error in AuditLog.create:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Find audit log entries by actor.
+   * @param {string} actor
+   * @param {number} [limit=50]
+   */
+  async findByActor(actor, limit = 50) {
+    try {
+      return await db('audit_logs')
+        .where({ actor })
+        .orderBy('created_at', 'desc')
+        .limit(limit);
+    } catch (error) {
+      logger.error('Error in AuditLog.findByActor:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Find audit log entries by action type.
+   * @param {string} action
+   * @param {number} [limit=50]
+   */
+  async findByAction(action, limit = 50) {
+    try {
+      return await db('audit_logs')
+        .where({ action })
+        .orderBy('created_at', 'desc')
+        .limit(limit);
+    } catch (error) {
+      logger.error('Error in AuditLog.findByAction:', error);
+      throw error;
+    }
+  },
+};
+
+module.exports = AuditLog;

@@ -2,6 +2,7 @@ const express = require('express');
 const { deposit, withdraw } = require('../controllers/wallet.controller');
 const auth = require('../middleware/auth.middleware');
 const idempotency = require('../middleware/idempotency.middleware');
+const { rateLimit } = require('../middleware/rate-limit.middleware');
 
 const { body } = require('express-validator');
 const validate = require('../middleware/validation.middleware');
@@ -14,7 +15,7 @@ const amountValidation = [
     .withMessage('Amount must be positive and greater than 0'),
 ];
 
-router.post('/deposit', auth, idempotency, amountValidation, validate, deposit);
-router.post('/withdraw', auth, idempotency, amountValidation, validate, withdraw);
+router.post('/deposit', auth, rateLimit('wallet'), idempotency, amountValidation, validate, deposit);
+router.post('/withdraw', auth, rateLimit('wallet'), idempotency, amountValidation, validate, withdraw);
 
 module.exports = router;

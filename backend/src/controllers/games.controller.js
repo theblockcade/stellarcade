@@ -2,6 +2,7 @@
  * Controller for managing all game-related API requests.
  */
 const gameService = require('../services/game.service');
+const audit = require('../services/audit.service');
 
 const getGames = async (req, res, next) => {
   try {
@@ -41,7 +42,21 @@ const playSimpleGame = async (req, res, next) => {
       gameType,
     });
     res.status(200).json(result);
+    audit.log({
+      actor: req.user.id,
+      action: 'game.play',
+      target: gameType,
+      payload: { gameType },
+      outcome: 'success',
+    });
   } catch (error) {
+    audit.log({
+      actor: req.user?.id || 'anonymous',
+      action: 'game.play',
+      target: req.body?.gameType || 'unknown',
+      outcome: 'failure',
+      metadata: { error: error.message },
+    });
     next(error);
   }
 };

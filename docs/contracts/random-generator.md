@@ -101,6 +101,42 @@ pub fn fulfill_random(env: Env, oracle: Address, request_id: u64, server_seed: B
 
 `Result<(), Error>`
 
+### `set_entropy_metadata`
+Set entropy source version metadata. Admin only.  Metadata is informational and does not affect randomness output.
+
+```rust
+pub fn set_entropy_metadata(env: Env, admin: Address, metadata: EntropySourceMetadata) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `metadata` | `EntropySourceMetadata` |
+
+#### Return Type
+
+`Result<(), Error>`
+
+### `get_entropy_metadata`
+Read the current entropy source version metadata.
+
+```rust
+pub fn get_entropy_metadata(env: Env) -> Result<EntropySourceMetadata, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Result<EntropySourceMetadata, Error>`
+
 ### `get_result`
 Return the fulfilled result for a `request_id`.  Returns `RequestNotFound` if the request is still pending or never existed.
 
