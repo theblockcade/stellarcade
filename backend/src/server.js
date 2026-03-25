@@ -32,7 +32,13 @@ const app = express();
 app.use(correlationId); // Must be very early for full request-lifecycle coverage
 app.use(helmet()); // Basic security headers
 app.use(cors()); // Enable Cross-Origin Resource Sharing
-app.use(express.json()); // Body parser for JSON
+app.use(express.json({
+  verify: (req, res, buf) => {
+    if (buf && buf.length) {
+      req.rawBody = buf;
+    }
+  }
+})); // Body parser for JSON with rawBody capturing
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } })); // HTTP request logging
 
 /**
