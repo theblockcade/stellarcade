@@ -1,6 +1,13 @@
 import React from 'react';
 import './LoadingSkeletonSet.css';
 import { classNames, parseDimension } from '../../utils/v1/skeletonUtils';
+import {
+    SKELETON_PRESETS,
+    skRadiusSm,
+    skRadiusMd,
+    skRadiusLg,
+    type SkeletonPresetType,
+} from './skeleton.tokens';
 
 export interface SkeletonBaseProps extends React.HTMLAttributes<HTMLDivElement> {
     width?: string | number;
@@ -10,15 +17,31 @@ export interface SkeletonBaseProps extends React.HTMLAttributes<HTMLDivElement> 
     circle?: boolean;
 }
 
+/**
+ * Maps a token radius value to the corresponding utility class name.
+ * Falls back to inline style when the value doesn't match a known token.
+ */
+function radiusTokenClass(radius?: string | number): string | undefined {
+    if (radius === undefined) return undefined;
+    const str = typeof radius === 'number' ? `${radius}px` : radius;
+    if (str === '50%') return 'stellarcade-skeleton--radius-circle';
+    if (str === skRadiusSm) return 'stellarcade-skeleton--radius-sm';
+    if (str === skRadiusMd) return 'stellarcade-skeleton--radius-md';
+    if (str === skRadiusLg) return 'stellarcade-skeleton--radius-lg';
+    return undefined;
+}
+
 export function SkeletonBase({ width, height, borderRadius, className, circle, style, ...rest }: SkeletonBaseProps) {
-    const dynamicRadius = circle ? '50%' : parseDimension(borderRadius);
+    const resolvedRadius = circle ? '50%' : borderRadius;
+    const tokenCls = radiusTokenClass(circle ? '50%' : (typeof resolvedRadius === 'string' ? resolvedRadius : undefined));
+
     return (
         <div
-            className={classNames('stellarcade-skeleton', 'stellarcade-skeleton-base', className)}
+            className={classNames('stellarcade-skeleton', 'stellarcade-skeleton-base', tokenCls, className)}
             style={{
                 width: parseDimension(width),
                 height: parseDimension(height) || '1rem',
-                borderRadius: dynamicRadius,
+                borderRadius: tokenCls ? undefined : parseDimension(resolvedRadius),
                 ...style,
             }}
             data-testid="skeleton-base"
@@ -91,12 +114,63 @@ export function SkeletonList({ className, count = 3, type = 'row', ...rest }: Sk
     );
 }
 
+// ── SkeletonPreset ──────────────────────────────────────────────────
+
+export interface SkeletonPresetProps extends React.HTMLAttributes<HTMLDivElement> {
+    /** Which named preset to render. */
+    type: SkeletonPresetType;
+    className?: string;
+}
+
+/**
+ * Renders a named loading preset (`card`, `list`, or `detail`).
+ *
+ * Each preset is defined in `skeleton.tokens.ts` as an array of
+ * `SkeletonShape` objects that are mapped to `SkeletonBase` elements.
+ *
+ * @example
+ * ```tsx
+ * <SkeletonPreset type="card" />
+ * <SkeletonPreset type="detail" />
+ * ```
+ */
+export function SkeletonPreset({ type, className, ...rest }: SkeletonPresetProps) {
+    const shapes = SKELETON_PRESETS[type];
+
+    return (
+        <div
+            className={classNames(
+                'stellarcade-skeleton-preset',
+                `stellarcade-skeleton-preset--${type}`,
+                className,
+            )}
+            data-testid={`skeleton-preset-${type}`}
+            {...rest}
+        >
+            {shapes.map((shape, i) => (
+                <SkeletonBase
+                    key={`preset-${type}-${i}`}
+                    width={shape.width}
+                    height={shape.height}
+                    borderRadius={shape.borderRadius}
+                    circle={shape.circle}
+                />
+            ))}
+        </div>
+    );
+}
+
+// ── LoadingState ────────────────────────────────────────────────────
+
 export interface LoadingStateProps {
     isLoading: boolean;
     error?: Error | null;
     empty?: boolean;
     children: React.ReactNode;
+    /** Custom fallback element for the loading state. */
     fallback?: React.ReactNode;
+    /** Use a named preset as the loading fallback (ignored when `fallback` is set). */
+    preset?: SkeletonPresetType;
     errorFallback?: (error: Error) => React.ReactNode;
     emptyFallback?: React.ReactNode;
 }
@@ -106,7 +180,8 @@ export function LoadingState({
     error,
     empty,
     children,
-    fallback = <SkeletonList count={3} />,
+    fallback,
+    preset,
     errorFallback,
     emptyFallback
 }: LoadingStateProps) {
@@ -120,7 +195,9 @@ export function LoadingState({
     }
 
     if (isLoading) {
-        return <>{fallback}</>;
+        if (fallback) return <>{fallback}</>;
+        if (preset) return <SkeletonPreset type={preset} />;
+        return <SkeletonList count={3} />;
     }
 
     if (empty) {
