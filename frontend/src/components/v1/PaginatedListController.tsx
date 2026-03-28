@@ -19,8 +19,8 @@ export interface PaginatedListControllerProps {
     onPrev: () => void;
     /** Callback for when a specific page is requested */
     onPageChange: (page: number) => void;
-    /** Callback for when the page size is changed */
-    onPageSizeChange: (pageSize: number) => void;
+    /** Optional callback for when the page size is changed */
+    onPageSizeChange?: (pageSize: number) => void;
     /** Whether data is currently loading */
     isLoading?: boolean;
     /** Whether the controls should be disabled globally */
@@ -55,7 +55,7 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
     onPageSizeChange,
     isLoading = false,
     disabled = false,
-    pageSizeOptions = [10, 25, 50, 100],
+    pageSizeOptions,
     className = '',
     testId = 'paginated-list-controller',
     errorMessage = null,
@@ -98,6 +98,22 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
 
     const hasError = Boolean(errorMessage);
     const shouldShowEmpty = total === 0 && !isLoading && !hasError;
+    const shouldShowPageSizeControl = Boolean(onPageSizeChange) && Boolean(pageSizeOptions?.length);
+
+    const handlePageSizeChange = (nextPageSize: number) => {
+        if (!onPageSizeChange) {
+            return;
+        }
+
+        onPageSizeChange(nextPageSize);
+
+        // Preserve current page when possible, otherwise reset to the nearest valid page.
+        const nextTotalPages = Math.max(1, Math.ceil(total / nextPageSize));
+        const nextPage = Math.min(page, nextTotalPages);
+        if (nextPage !== page) {
+            onPageChange(nextPage);
+        }
+    };
 
     if (shouldShowEmpty) {
         return (
@@ -182,25 +198,27 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
                 </button>
             </div>
 
-            <div className="pagination-settings-section">
-                <label htmlFor="pagination-page-size" className="pagination-label">
-                    Show
-                </label>
-                <select
-                    id="pagination-page-size"
-                    className="pagination-select"
-                    value={pageSize}
-                    onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                    disabled={isControlsDisabled}
-                    aria-label="Items per page"
-                >
-                    {pageSizeOptions.map((opt) => (
-                        <option key={opt} value={opt}>
-                            {opt}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            {shouldShowPageSizeControl && (
+                <div className="pagination-settings-section">
+                    <label htmlFor="pagination-page-size" className="pagination-label">
+                        Items per page
+                    </label>
+                    <select
+                        id="pagination-page-size"
+                        className="pagination-select"
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                        disabled={isControlsDisabled}
+                        aria-label="Items per page"
+                    >
+                        {pageSizeOptions!.map((opt) => (
+                            <option key={opt} value={opt}>
+                                {opt}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
         </div>
     );
 };
