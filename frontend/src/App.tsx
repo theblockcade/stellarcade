@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import GameLobby from './pages/GameLobby';
+import PaginationDemoPage from './pages/PaginationDemoPage';
 import { I18nProvider, useI18n } from './i18n/provider';
 import LocaleSwitcher from './components/LocaleSwitcher';
 
@@ -63,6 +64,8 @@ class RouteErrorBoundary extends React.Component<
 
 const AppContent: React.FC = () => {
   const { t } = useI18n();
+  const searchParams = new URLSearchParams(window.location.search);
+  const isPaginationDemoRoute = searchParams.get('demo') === 'pagination';
 
   return (
     <div className="app-container">
@@ -70,7 +73,8 @@ const AppContent: React.FC = () => {
         <div className="logo">{t('app.title')}</div>
         <nav>
           <ul>
-            <li><a href="/" className="active">{t('nav.lobby')}</a></li>
+            <li><a href="/" className={!isPaginationDemoRoute ? 'active' : ''}>{t('nav.lobby')}</a></li>
+            <li><a href="/?demo=pagination" className={isPaginationDemoRoute ? 'active' : ''}>Pagination Demo</a></li>
             <li><a href="/games">{t('nav.games')}</a></li>
             <li><a href="/profile">{t('nav.profile')}</a></li>
           </ul>
@@ -80,7 +84,7 @@ const AppContent: React.FC = () => {
       
       <main className="app-content">
         <RouteErrorBoundary>
-          <GameLobby />
+          {isPaginationDemoRoute ? <PaginationDemoPage /> : <GameLobby />}
         </RouteErrorBoundary>
       </main>
 
