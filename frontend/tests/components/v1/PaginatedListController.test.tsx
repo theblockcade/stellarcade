@@ -56,7 +56,12 @@ describe('PaginatedListController', () => {
     });
 
     it('triggers onPageSizeChange when selection changes', () => {
-        render(<PaginatedListController {...defaultProps} />);
+        render(
+            <PaginatedListController
+                {...defaultProps}
+                pageSizeOptions={[10, 25, 50]}
+            />,
+        );
 
         fireEvent.change(screen.getByLabelText('Items per page'), {
             target: { value: '25' },
@@ -64,8 +69,52 @@ describe('PaginatedListController', () => {
         expect(defaultProps.onPageSizeChange).toHaveBeenCalledWith(25);
     });
 
+    it('preserves current page when page size change keeps page valid', () => {
+        render(
+            <PaginatedListController
+                {...defaultProps}
+                page={3}
+                total={100}
+                totalPages={10}
+                pageSizeOptions={[10, 20, 50]}
+            />,
+        );
+
+        fireEvent.change(screen.getByLabelText('Items per page'), {
+            target: { value: '20' },
+        });
+
+        expect(defaultProps.onPageSizeChange).toHaveBeenCalledWith(20);
+        expect(defaultProps.onPageChange).not.toHaveBeenCalled();
+    });
+
+    it('resets to the nearest valid page when page size change invalidates current page', () => {
+        render(
+            <PaginatedListController
+                {...defaultProps}
+                page={10}
+                total={100}
+                totalPages={10}
+                pageSizeOptions={[10, 50]}
+            />,
+        );
+
+        fireEvent.change(screen.getByLabelText('Items per page'), {
+            target: { value: '50' },
+        });
+
+        expect(defaultProps.onPageSizeChange).toHaveBeenCalledWith(50);
+        expect(defaultProps.onPageChange).toHaveBeenCalledWith(2);
+    });
+
     it('disables all controls when isLoading is true', () => {
-        render(<PaginatedListController {...defaultProps} isLoading={true} />);
+        render(
+            <PaginatedListController
+                {...defaultProps}
+                isLoading={true}
+                pageSizeOptions={[10, 25, 50]}
+            />,
+        );
 
         expect(screen.getByLabelText('Go to next page')).toBeDisabled();
         expect(screen.getByLabelText('Go to page 2')).toBeDisabled();
@@ -97,7 +146,12 @@ describe('PaginatedListController', () => {
     });
 
     it('keeps page controls keyboard focusable', () => {
-        render(<PaginatedListController {...defaultProps} />);
+        render(
+            <PaginatedListController
+                {...defaultProps}
+                pageSizeOptions={[10, 25, 50]}
+            />,
+        );
         const page2Button = screen.getByLabelText('Go to page 2');
         const pageSizeSelect = screen.getByLabelText('Items per page');
 
@@ -106,6 +160,12 @@ describe('PaginatedListController', () => {
 
         pageSizeSelect.focus();
         expect(pageSizeSelect).toHaveFocus();
+    });
+
+    it('does not render page-size selector when options are absent', () => {
+        render(<PaginatedListController {...defaultProps} pageSizeOptions={undefined} />);
+
+        expect(screen.queryByLabelText('Items per page')).not.toBeInTheDocument();
     });
 
     it('transitions from loading to empty state', () => {
