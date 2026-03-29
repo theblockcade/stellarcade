@@ -5,12 +5,15 @@
 The Multi-Player Room contract manages room lifecycle for multi-player game sessions on Stellarcade.
 It provides deterministic state transitions and consistent event emission for room creation,
 player enrollment, match start, and room closure.
+Each room now carries its own capacity, and the contract exposes a lobby-friendly snapshot
+accessor so UIs can render occupancy and host metadata without chaining multiple reads.
 
 ## Lifecycle
 
 `Open -> InMatch -> Closed`
 
 - `create_room` creates a room in `Open` state.
+- `create_room` configures the room capacity at creation time.
 - `join_room` is allowed only in `Open`.
 - `start_match` transitions `Open` to `InMatch` when minimum player count is met.
 - `close_room` transitions `Open` or `InMatch` to `Closed`.
@@ -40,6 +43,7 @@ Admin-only transition to `Closed`.
 ## Additional View Methods
 
 - `get_room(room_id) -> RoomData`
+- `room_snapshot(room_id) -> RoomSnapshot`
 - `get_players(room_id) -> Vec<Address>`
 - `get_fee_contract() -> Address`
 
@@ -65,12 +69,18 @@ Admin-only transition to `Closed`.
 - `RoomPlayers(room_id): Vec<Address>`
 - `PlayerInRoom(room_id, player): bool`
 
+## Room Snapshot
+
+`room_snapshot(room_id)` returns a compact view with `occupancy`, `capacity`, `remaining_slots`,
+`status`, `config_hash`, and `host` so lobbies can render a room card without extra reads.
+
 ## Validation and Security
 
 - Privileged methods require admin authorization (`create_room`, `start_match`, `close_room`).
 - `join_room` requires player authorization.
 - Duplicate joins and duplicate room IDs are rejected.
 - Invalid/zero `room_id` and zeroed `config_hash` are rejected.
+- `create_room` rejects a zero capacity and any capacity above the global limit.
 - State transitions are guarded and deterministic.
 - Arithmetic uses checked operations for player count updates.
 - Emergency pause guard exists via `Paused` instance flag.

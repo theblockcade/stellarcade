@@ -20,8 +20,10 @@ pub fn init(env: Env, admin: Address, fee_contract: Address) -> Result<(), Error
 `Result<(), Error>`
 
 ### `create_room`
+Create a new room with a fixed player capacity.
+
 ```rust
-pub fn create_room(env: Env, room_id: u64, config_hash: BytesN<32>) -> Result<(), Error>
+pub fn create_room(env: Env, room_id: u64, config_hash: BytesN<32>, capacity: u32) -> Result<(), Error>
 ```
 
 #### Parameters
@@ -31,12 +33,15 @@ pub fn create_room(env: Env, room_id: u64, config_hash: BytesN<32>) -> Result<()
 | `env` | `Env` |
 | `room_id` | `u64` |
 | `config_hash` | `BytesN<32>` |
+| `capacity` | `u32` |
 
 #### Return Type
 
 `Result<(), Error>`
 
 ### `join_room`
+Join an open room if capacity and authorization checks pass.
+
 ```rust
 pub fn join_room(env: Env, room_id: u64, player: Address) -> Result<(), Error>
 ```
@@ -86,6 +91,8 @@ pub fn close_room(env: Env, room_id: u64) -> Result<(), Error>
 `Result<(), Error>`
 
 ### `get_room`
+Read the full stored room record.
+
 ```rust
 pub fn get_room(env: Env, room_id: u64) -> Result<RoomData, Error>
 ```
@@ -100,6 +107,24 @@ pub fn get_room(env: Env, room_id: u64) -> Result<RoomData, Error>
 #### Return Type
 
 `Result<RoomData, Error>`
+
+### `room_snapshot`
+Return a lobby-friendly room snapshot with occupancy and host metadata.
+
+```rust
+pub fn room_snapshot(env: Env, room_id: u64) -> Result<RoomSnapshot, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `room_id` | `u64` |
+
+#### Return Type
+
+`Result<RoomSnapshot, Error>`
 
 ### `get_players`
 ```rust

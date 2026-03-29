@@ -12,8 +12,18 @@ import type {
   ProviderNetworkSnapshot,
 } from "../types/network-guard-middleware";
 import { NetworkGuardError } from "../types/network-guard-middleware";
+import { dispatchApiTrace } from "../types/api-trace";
 
 const inFlightOperations = new Set<string>();
+
+interface QueuedAction {
+  operation: () => Promise<unknown>;
+  input: NetworkGuardInput;
+  resolve: (value: unknown) => void;
+  reject: (error: unknown) => void;
+}
+
+let queuedActions: QueuedAction[] = [];
 
 function normalizeSupportedNetworks(input?: readonly string[]): readonly string[] {
   const source = input ?? ["TESTNET", "PUBLIC"];
@@ -180,13 +190,100 @@ export async function withNetworkGuard<T>(
   operation: () => Promise<T>,
 ): Promise<T> {
   const lock = assertOperationNotDuplicated(input);
+  const traceId = `guard-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const startTime = Date.now();
+
+  dispatchApiTrace({
+    traceId,
+    source: "NetworkGuard",
+    method: "GuardOperation",
+    url: lock ? `operation:${lock}` : "operation:anonymous",
+    startTime,
+    endTime: null,
+    durationMs: null,
+    status: "pending",
+  });
 
   try {
     await assertSupportedNetworkBeforeOperation(input);
-    return await operation();
+    const result = await operation();
+    
+    dispatchApiTrace({
+      traceId,
+      source: "NetworkGuard",
+      method: "GuardOperation",
+      url: lock ? `operation:${lock}` : "operation:anonymous",
+      startTime,
+      endTime: Date.now(),
+      durationMs: Date.now() - startTime,
+      status: "success",
+    });
+
+    return result;
+  } catch (err) {
+    const isQueueableError =
+      err instanceof NetworkGuardError &&
+      (err.code === "NETWORK_UNSUPPORTED" ||
+        err.code === "NETWORK_MISMATCH" ||
+        err.code === "NETWORK_MISSING");
+
+    if (isQueueableError && input.isIdempotent && input.resumeOnNetworkRecovery) {
+      dispatchApiTrace({
+        traceId,
+        source: "NetworkGuard",
+        method: "GuardOperation",
+        url: lock ? `operation:${lock}` : "operation:anonymous",
+        startTime,
+        endTime: Date.now(),
+        durationMs: Date.now() - startTime,
+        status: "cancelled", // Considered cancelled/queued
+        errorData: new Error("Queued waiting for network changes"),
+      });
+
+      return new Promise<T>((resolve, reject) => {
+        queuedActions.push({
+          operation,
+          input,
+          resolve: resolve as (v: unknown) => void,
+          reject,
+        });
+      });
+    }
+
+    dispatchApiTrace({
+      traceId,
+      source: "NetworkGuard",
+      method: "GuardOperation",
+      url: lock ? `operation:${lock}` : "operation:anonymous",
+      startTime,
+      endTime: Date.now(),
+      durationMs: Date.now() - startTime,
+      status: "error",
+      errorData: err,
+    });
+
+    throw err;
   } finally {
     if (lock) {
       inFlightOperations.delete(lock);
+    }
+  }
+}
+
+export function getQueuedNetworkActionsCount(): number {
+  return queuedActions.length;
+}
+
+export async function resumeQueuedNetworkActions(): Promise<void> {
+  const actions = [...queuedActions];
+  queuedActions = [];
+
+  for (const action of actions) {
+    try {
+      const result = await withNetworkGuard(action.input, action.operation);
+      action.resolve(result);
+    } catch (err) {
+      action.reject(err);
     }
   }
 }

@@ -24,12 +24,27 @@ pub enum UpgradeStatus {
     Cancelled,
 }
 
+/// Snapshot returned by `get_queued_upgrade`.
+/// `None` when no upgrade is queued (never queued or already cleared).
+/// When `Some`, `is_ready` is `true` iff the current ledger timestamp >= `eta`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueuedUpgradeView {
+    pub upgrade_id: u64,
+    pub target_contract: Address,
+    pub queued_at_ledger: u32,
+    pub eta: u64,
+    pub is_ready: bool,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UpgradeRecord {
     pub upgrade_id: u64,
     pub target_contract: Address,
     pub payload_hash: Symbol,
+    /// Ledger sequence number at which the upgrade was queued.
+    pub queued_at_ledger: u32,
     /// Earliest timestamp (in seconds) at which execute_upgrade may be called.
     pub eta: u64,
     pub status: UpgradeStatus,
@@ -105,6 +120,7 @@ impl ContractUpgradeTimelock {
             upgrade_id,
             target_contract: target_contract.clone(),
             payload_hash,
+            queued_at_ledger: env.ledger().sequence(),
             eta,
             status: UpgradeStatus::Queued,
         };
@@ -166,6 +182,35 @@ impl ContractUpgradeTimelock {
             .persistent()
             .get(&DataKey::Upgrade(upgrade_id))
             .expect("Upgrade not found")
+    }
+
+    /// Returns a single-read snapshot of the queued upgrade for `upgrade_id`.
+    ///
+    /// Returns `None` when no record exists or the upgrade is no longer in
+    /// `Queued` status (executed or cancelled).  When `Some`, `is_ready` is
+    /// `true` iff the current ledger timestamp has reached or passed `eta`.
+    pub fn get_queued_upgrade(env: Env, upgrade_id: u64) -> Option<QueuedUpgradeView> {
+        let record: UpgradeRecord = match env
+            .storage()
+            .persistent()
+            .get(&DataKey::Upgrade(upgrade_id))
+        {
+            Some(r) => r,
+            None => return None,
+        };
+
+        if record.status != UpgradeStatus::Queued {
+            return None;
+        }
+
+        let now = env.ledger().timestamp();
+        Some(QueuedUpgradeView {
+            upgrade_id: record.upgrade_id,
+            target_contract: record.target_contract,
+            queued_at_ledger: record.queued_at_ledger,
+            eta: record.eta,
+            is_ready: now >= record.eta,
+        })
     }
 
     // ── Internal ─────────────────────────────────────────────────
@@ -303,5 +348,85 @@ mod test {
         let client = ContractUpgradeTimelockClient::new(&env, &contract_id);
         client.init(&admin, &0u64);
         client.init(&admin, &0u64);
+    }
+
+    // ── get_queued_upgrade tests ──────────────────────────────────
+
+    #[test]
+    fn test_get_queued_upgrade_no_queue() {
+        let env = Env::default();
+        env.mock_all_auths();
+        set_time(&env, 1000);
+
+        let admin = Address::generate(&env);
+        let contract_id = env.register_contract(None, ContractUpgradeTimelock);
+        let client = ContractUpgradeTimelockClient::new(&env, &contract_id);
+        client.init(&admin, &3600u64);
+
+        // No upgrade queued — must return None
+        let view = client.get_queued_upgrade(&0u64);
+        assert!(view.is_none());
+    }
+
+    #[test]
+    fn test_get_queued_upgrade_not_ready() {
+        let env = Env::default();
+        env.mock_all_auths();
+        set_time(&env, 1000);
+
+        let admin = Address::generate(&env);
+        let target = Address::generate(&env);
+        let contract_id = env.register_contract(None, ContractUpgradeTimelock);
+        let client = ContractUpgradeTimelockClient::new(&env, &contract_id);
+        client.init(&admin, &3600u64);
+
+        let eta = 1000 + 3600 + 1;
+        let uid = client.queue_upgrade(&target, &Symbol::new(&env, "H5"), &eta);
+
+        // Still at t=1000, before eta
+        let view = client.get_queued_upgrade(&uid).unwrap();
+        assert_eq!(view.upgrade_id, uid);
+        assert_eq!(view.eta, eta);
+        assert!(!view.is_ready);
+    }
+
+    #[test]
+    fn test_get_queued_upgrade_returns_none_after_cancel() {
+        let env = Env::default();
+        env.mock_all_auths();
+        set_time(&env, 1000);
+
+        let admin = Address::generate(&env);
+        let target = Address::generate(&env);
+        let contract_id = env.register_contract(None, ContractUpgradeTimelock);
+        let client = ContractUpgradeTimelockClient::new(&env, &contract_id);
+        client.init(&admin, &3600u64);
+
+        let uid = client.queue_upgrade(&target, &Symbol::new(&env, "H7"), &(1000 + 3600 + 1));
+        client.cancel_upgrade(&uid);
+
+        assert!(client.get_queued_upgrade(&uid).is_none());
+    }
+
+    #[test]
+    fn test_get_queued_upgrade_ready() {
+        let env = Env::default();
+        env.mock_all_auths();
+        set_time(&env, 1000);
+
+        let admin = Address::generate(&env);
+        let target = Address::generate(&env);
+        let contract_id = env.register_contract(None, ContractUpgradeTimelock);
+        let client = ContractUpgradeTimelockClient::new(&env, &contract_id);
+        client.init(&admin, &3600u64);
+
+        let eta = 1000 + 3600 + 1;
+        let uid = client.queue_upgrade(&target, &Symbol::new(&env, "H6"), &eta);
+
+        // Advance past eta
+        set_time(&env, eta + 10);
+        let view = client.get_queued_upgrade(&uid).unwrap();
+        assert!(view.is_ready);
+        assert_eq!(view.target_contract, target);
     }
 }

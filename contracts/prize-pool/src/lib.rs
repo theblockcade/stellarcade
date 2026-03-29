@@ -112,6 +112,18 @@ pub struct PrizePoolMetrics {
     pub last_update_ledger: u32,
 }
 
+/// Stable snapshot of admin/token configuration and basic pool metadata.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrizePoolConfigSnapshot {
+    pub admin: Address,
+    pub token: Address,
+    pub available_balance: i128,
+    pub reserved_amount: i128,
+    pub payouts_count: u64,
+    pub last_update_ledger: u32,
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
@@ -144,6 +156,14 @@ pub struct PaidOut {
     #[topic]
     pub game_id: u64,
     pub amount: i128,
+}
+
+#[contractevent]
+pub struct Reconciled {
+    #[topic]
+    pub admin: Address,
+    pub amount: i128,
+    pub new_available: i128,
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +200,16 @@ impl PrizePool {
         set_persistent_u64(&env, DataKey::PayoutsCount, 0);
         set_persistent_u32(&env, DataKey::LastUpdateLedger, env.ledger().sequence());
 
+        Ok(())
+    }
+
+    /// Rotate the admin address. Only the current admin may perform this action.
+    pub fn rotate_admin(env: Env, admin: Address, new_admin: Address) -> Result<(), Error> {
+        require_initialized(&env)?;
+        require_admin(&env, &admin)?;
+        new_admin.require_auth();
+
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
         Ok(())
     }
 
@@ -405,6 +435,53 @@ impl PrizePool {
     }
 
     // -----------------------------------------------------------------------
+    // sync
+    // -----------------------------------------------------------------------
+
+    /// Reconcile the contract's accounting with its actual token balance.
+    ///
+    /// If tokens were sent directly to the contract address (bypassing `fund`),
+    /// this method allows an admin to sync the `available` balance upward
+    /// to restore the invariant: `available + total_reserved == balance`.
+    ///
+    /// This method only moves accounting UPWARD. It will not reduce `available`
+    /// or touch `total_reserved` or any active reservations.
+    pub fn sync(env: Env, admin: Address) -> Result<i128, Error> {
+        require_initialized(&env)?;
+        require_admin(&env, &admin)?;
+
+        let token = get_token(&env);
+        let actual_balance = TokenClient::new(&env, &token).balance(&env.current_contract_address());
+
+        let available = get_available(&env);
+        let reserved = get_total_reserved(&env);
+
+        // Invariant: available + reserved == actual_balance
+        // Delta = actual_balance - (available + reserved)
+        let tracked_total = available.checked_add(reserved).ok_or(Error::Overflow)?;
+        
+        if actual_balance > tracked_total {
+            let delta = actual_balance.checked_sub(tracked_total).ok_or(Error::Overflow)?;
+            let new_available = available.checked_add(delta).ok_or(Error::Overflow)?;
+
+            set_persistent_i128(&env, DataKey::Available, new_available);
+            update_markers(&env);
+
+            Reconciled {
+                admin: admin.clone(),
+                amount: delta,
+                new_available,
+            }.publish(&env);
+
+            Ok(delta)
+        } else {
+            // No-op if balance is already in sync or somehow lower (which shouldn't happen 
+            // unless tokens were burned/slashed externally, which we don't handle here).
+            Ok(0)
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Query Methods
     // -----------------------------------------------------------------------
 
@@ -428,6 +505,19 @@ impl PrizePool {
             last_update_ledger: get_last_update_ledger(&env),
         })
     }
+
+    /// Returns a stable configuration snapshot for backend consumers and operators.
+    pub fn get_config_snapshot(env: Env) -> Result<PrizePoolConfigSnapshot, Error> {
+        require_initialized(&env)?;
+        Ok(PrizePoolConfigSnapshot {
+            admin: get_admin(&env)?,
+            token: get_token(&env),
+            available_balance: get_available(&env),
+            reserved_amount: get_total_reserved(&env),
+            payouts_count: get_payouts_count(&env),
+            last_update_ledger: get_last_update_ledger(&env),
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -443,16 +533,19 @@ fn require_initialized(env: &Env) -> Result<(), Error> {
 
 /// Verify that `caller` is the stored admin and has signed the invocation.
 fn require_admin(env: &Env, caller: &Address) -> Result<(), Error> {
-    let admin: Address = env
-        .storage()
-        .instance()
-        .get(&DataKey::Admin)
-        .ok_or(Error::NotInitialized)?;
+    let admin = get_admin(env)?;
     caller.require_auth();
     if caller != &admin {
         return Err(Error::NotAuthorized);
     }
     Ok(())
+}
+
+fn get_admin(env: &Env) -> Result<Address, Error> {
+    env.storage()
+        .instance()
+        .get(&DataKey::Admin)
+        .ok_or(Error::NotInitialized)
 }
 
 fn get_token(env: &Env) -> Address {

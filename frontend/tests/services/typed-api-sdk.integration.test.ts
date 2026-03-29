@@ -29,8 +29,11 @@ interface MockRoute {
  * Unmatched requests return 501 Not Implemented.
  */
 function installMockServer(routes: MockRoute[]): void {
-  global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-    const method = (init?.method ?? 'GET').toUpperCase();
+  const mockFn = vi.fn((input, init) => {
+    const url = typeof input === 'string' ? input : (input as Request).url;
+    const method = (
+      (typeof input === 'string' ? init?.method : (input as Request).method) ?? 'GET'
+    ).toUpperCase();
     const match = routes.find(
       (r) => r.method.toUpperCase() === method && url.endsWith(r.path),
     );
@@ -47,6 +50,7 @@ function installMockServer(routes: MockRoute[]): void {
       json: async () => ({ message: `No mock for ${method} ${url}` }),
     } as Response);
   });
+  global.fetch = fetchSpy = mockFn as any;
 }
 
 function makeSessionStore(token: string | null = 'integration-token') {
@@ -61,8 +65,8 @@ function makeSessionStore(token: string | null = 'integration-token') {
 let fetchSpy: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
-  fetchSpy = vi.fn();
-  global.fetch = fetchSpy;
+  fetchSpy = vi.fn() as any;
+  global.fetch = fetchSpy as any;
   vi.clearAllMocks();
 });
 
@@ -171,7 +175,7 @@ describe('Integration — users domain', () => {
     if (!result.success) {
       expect(result.error.code).toBe('API_SERVER_ERROR');
     }
-  }, 20_000);
+  }, { timeout: 20_000 });
 });
 
 // ── Wallet domain ─────────────────────────────────────────────────────────────
@@ -292,6 +296,49 @@ describe('Integration — terminal vs retryable errors', () => {
     expect(spy).not.toHaveBeenCalled();
     if (!result.success) {
       expect(result.error.code).toBe('API_VALIDATION_ERROR');
+      expect(result.error.category).toBe('validation');
     }
   });
+
+  it('normalizes auth, network, server, and unknown failures into stable categories', async () => {
+    installMockServer([
+      { method: 'GET', path: '/users/profile', status: 401, body: { message: 'unauthorized' } },
+      { method: 'GET', path: '/games', status: 503, body: { message: 'unavailable' } },
+      { method: 'GET', path: '/games', status: 503, body: { message: 'unavailable' } },
+      { method: 'GET', path: '/games', status: 503, body: { message: 'unavailable' } },
+      { method: 'POST', path: '/users/create', status: 418, body: { message: 'teapot' } },
+    ]);
+
+    const authedClient = new ApiClient({ sessionStore: makeSessionStore() });
+
+    const authResult = await authedClient.getProfile();
+    expect(authResult.success).toBe(false);
+    if (!authResult.success) {
+      expect(authResult.error.category).toBe('auth');
+      expect(authResult.error.status).toBe(401);
+    }
+
+    const serverResult = await authedClient.getGames();
+    expect(serverResult.success).toBe(false);
+    if (!serverResult.success) {
+      expect(serverResult.error.category).toBe('server');
+      expect(serverResult.error.status).toBe(503);
+    }
+
+    const unknownResult = await authedClient.createProfile({ address: 'GUNKNOWN' });
+    expect(unknownResult.success).toBe(false);
+    if (!unknownResult.success) {
+      expect(unknownResult.error.category).toBe('unknown');
+      expect(unknownResult.error.status).toBe(418);
+    }
+
+    global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch')) as any;
+
+    const networkResult = await authedClient.getGames();
+    expect(networkResult.success).toBe(false);
+    if (!networkResult.success) {
+      expect(networkResult.error.category).toBe('network');
+      expect(networkResult.error.originalMessage).toBe('Failed to fetch');
+    }
+  }, 20_000);
 });

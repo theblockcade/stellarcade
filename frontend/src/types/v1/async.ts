@@ -20,6 +20,12 @@ export interface AsyncActionResult<T, E = Error> {
     isSuccess: boolean;
     isError: boolean;
     isIdle: boolean;
+    /**
+     * True while an action is in-flight and the duplicate-submit guard is active.
+     * Semantic alias for `isLoading` intended for form/button submission surfaces.
+     * Resets to false on both success and failure so legitimate retries are not blocked.
+     */
+    isPendingSubmit: boolean;
 }
 
 /**
@@ -56,10 +62,16 @@ export interface AsyncActionManager<T, E = Error, Args extends any[] = any[]> {
     /**
      * Executes the async action with the provided arguments
      */
-    run: (...args: Args) => Promise<T | undefined>;
+  run: (...args: Args) => Promise<T | undefined>;
 
-    /**
-     * Resets the state to idle
-     */
-    reset: () => void;
+  /**
+   * Resets the state to idle
+   */
+  reset: () => void;
+
+  /**
+   * Cancels the currently pending action lifecycle so late completion does not
+   * update consumers that no longer care about the result.
+   */
+  cancel: () => void;
 }

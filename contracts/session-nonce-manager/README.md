@@ -4,7 +4,7 @@ A foundational anti-replay primitive for StellarCade contracts and signature-bas
 
 ## Overview
 
-Each nonce is scoped to a `(account, purpose)` pair, ensuring that a given operation intent cannot be replayed across different contexts. Once consumed a nonce cannot be reused. The admin may revoke a nonce before it is consumed.
+Each nonce is scoped to a `(account, purpose)` pair, ensuring that a given operation intent cannot be replayed across different contexts. Once consumed a nonce cannot be reused. The admin may revoke a nonce before it is consumed, and callers can inspect the nonce lifecycle and TTL metadata without mutating state.
 
 ## Public Interface
 
@@ -13,17 +13,17 @@ Each nonce is scoped to a `(account, purpose)` pair, ensuring that a given opera
 | `init(admin)` | Admin | Initialise the contract once. |
 | `issue_nonce(account, purpose) -> u64` | Admin or account | Issue the next nonce for the pair and return its value. |
 | `consume_nonce(account, nonce, purpose)` | Account | Mark a nonce as used. Fails if already consumed or revoked. |
-| `is_nonce_valid(account, nonce, purpose) -> bool` | Anyone | Returns `true` if the nonce was issued and not yet consumed/revoked. |
-| `revoke_nonce(account, nonce)` | Admin | Administratively revoke a nonce before consumption. |
+| `nonce_status(account, nonce, purpose) -> NonceStatus` | Anyone | Returns the lifecycle state plus remaining TTL metadata. |
+| `is_nonce_valid(account, nonce, purpose) -> bool` | Anyone | Returns `true` if the nonce is still active. |
+| `revoke_nonce(account, purpose, nonce)` | Admin | Administratively revoke a nonce before consumption. |
 
 ## Storage Schema
 
 | Key | Type | Description |
 |---|---|---|
 | `Admin` | `Address` | Privileged administrator. |
-| `NextNonce(account, purpose)` | `u64` | Next nonce counter (persistent). |
-| `NonceUsed(account, purpose, nonce)` | `bool` | Consumed flag (persistent). |
-| `NonceRevoked(account, purpose, nonce)` | `bool` | Revoked flag (persistent). |
+| `NextNonce(account, purpose)` | `u64` | Next nonce counter (instance). |
+| `NonceRecord(account, purpose, nonce)` | `NonceRecord` | Lifecycle state plus explicit expiry ledger (persistent). |
 
 ## Events
 
@@ -32,19 +32,17 @@ Each nonce is scoped to a `(account, purpose)` pair, ensuring that a given opera
 | `init` | `(admin)` | Contract initialised. |
 | `issued` | `(account, purpose, nonce)` | Nonce issued. |
 | `consumed` | `(account, purpose, nonce)` | Nonce consumed. |
-| `revoked` | `(account, nonce)` | Nonce revoked by admin. |
+| `revoked` | `(account, purpose, nonce)` | Nonce revoked by admin. |
 
-## Error Codes
+## Nonce Lifecycle States
 
-| Code | Meaning |
-|---|---|
-| `NotInitialized` | `init` has not been called. |
-| `AlreadyInitialized` | Duplicate `init` attempt. |
-| `Unauthorized` | Caller lacks required privileges. |
-| `NonceAlreadyUsed` | Replay attempt detected. |
-| `NonceRevoked` | Nonce was administratively revoked. |
-| `NonceNotFound` | Nonce was never issued. |
-| `InvalidPurpose` | Empty purpose string. |
+- `Active`: the nonce record exists and can still be consumed.
+- `Consumed`: the nonce record exists but has already been used.
+- `Revoked`: the admin explicitly invalidated the nonce before use.
+- `Expired`: the record aged out of storage, but the nonce was previously issued.
+- `Missing`: the nonce was never issued for the `(account, purpose)` pair.
+
+`NonceStatus` returns `is_present` plus `remaining_ttl` for live records so callers can distinguish current storage presence from expired or missing entries.
 
 ## Invariants
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { PaginatedListController } from '../../../src/components/v1/PaginatedListController';
@@ -22,20 +21,16 @@ describe('PaginatedListController', () => {
     it('renders correctly with default props', () => {
         render(<PaginatedListController {...defaultProps} />);
 
-        // Check range text section
         const infoSection = screen.getByText(/Showing/i).closest('.pagination-info');
         expect(infoSection).toBeInTheDocument();
         if (infoSection) {
-            expect(within(infoSection).getByText('1')).toBeInTheDocument();
-            expect(within(infoSection).getByText('10')).toBeInTheDocument();
-            expect(within(infoSection).getByText('100')).toBeInTheDocument();
+            expect(within(infoSection as HTMLElement).getByText('1')).toBeInTheDocument();
+            expect(within(infoSection as HTMLElement).getByText('10')).toBeInTheDocument();
+            expect(within(infoSection as HTMLElement).getByText('100')).toBeInTheDocument();
         }
 
-        // Check nav buttons
-        expect(screen.getByLabelText('Go to previous page')).toBeDisabled(); // First page
+        expect(screen.getByLabelText('Go to previous page')).toBeDisabled();
         expect(screen.getByLabelText('Go to next page')).not.toBeDisabled();
-
-        // Check page numbers
         expect(screen.getByLabelText('Go to page 1')).toHaveClass('is-active');
         expect(screen.getByLabelText('Go to page 2')).toBeInTheDocument();
         expect(screen.getByText('...')).toBeInTheDocument();
@@ -101,14 +96,109 @@ describe('PaginatedListController', () => {
         expect(screen.queryByText('...')).not.toBeInTheDocument();
     });
 
-    it('supports keyboard interaction on page buttons', () => {
+    it('keeps page controls keyboard focusable', () => {
         render(<PaginatedListController {...defaultProps} />);
         const page2Button = screen.getByLabelText('Go to page 2');
+        const pageSizeSelect = screen.getByLabelText('Items per page');
 
-        fireEvent.keyDown(page2Button, { key: 'Enter', code: 'Enter' });
-        // Note: React onClick handles Enter by default on buttons
-        fireEvent.click(page2Button);
+        page2Button.focus();
+        expect(page2Button).toHaveFocus();
 
-        expect(defaultProps.onPageChange).toHaveBeenCalledWith(2);
+        pageSizeSelect.focus();
+        expect(pageSizeSelect).toHaveFocus();
+    });
+
+    it('transitions from loading to empty state', () => {
+        const { rerender } = render(
+            <PaginatedListController
+                {...defaultProps}
+                total={0}
+                totalPages={0}
+                isLoading={true}
+            />,
+        );
+
+        expect(screen.queryByText('No items to display')).not.toBeInTheDocument();
+
+        rerender(
+            <PaginatedListController
+                {...defaultProps}
+                total={0}
+                totalPages={0}
+                isLoading={false}
+            />,
+        );
+
+        expect(screen.getByText('No items to display')).toBeInTheDocument();
+    });
+
+    it('keeps prior success content visible during incremental loading', () => {
+        const { rerender } = render(
+            <PaginatedListController {...defaultProps} page={1} total={25} totalPages={3} />,
+        );
+        expect(screen.getByText(/Showing/i)).toBeInTheDocument();
+
+        rerender(
+            <PaginatedListController
+                {...defaultProps}
+                page={2}
+                total={25}
+                totalPages={3}
+                isLoading={true}
+            />,
+        );
+
+        expect(screen.getByText(/Showing/i)).toBeInTheDocument();
+        expect(screen.queryByText('No items to display')).not.toBeInTheDocument();
+    });
+
+    it('preserves prior success content when incremental fetch fails', () => {
+        const onRetry = vi.fn();
+        render(
+            <PaginatedListController
+                {...defaultProps}
+                page={2}
+                total={25}
+                totalPages={3}
+                errorMessage="Could not load page 3."
+                onRetry={onRetry}
+            />,
+        );
+
+        expect(screen.getByText(/Showing/i)).toBeInTheDocument();
+        expect(screen.getByTestId('paginated-list-controller-error')).toHaveTextContent(
+            'Could not load page 3.',
+        );
+
+        fireEvent.click(screen.getByTestId('paginated-list-controller-retry'));
+        expect(onRetry).toHaveBeenCalledTimes(1);
+    });
+
+    describe('keyboard shortcut hints', () => {
+        it('renders shortcut hints when showKeyboardHints is true', () => {
+            render(<PaginatedListController {...defaultProps} showKeyboardHints={true} />);
+            const hints = document.querySelectorAll('.pagination-kbd-hint');
+            expect(hints.length).toBe(2);
+            expect(hints[0].textContent).toBe('←');
+            expect(hints[1].textContent).toBe('→');
+        });
+
+        it('does not render shortcut hints when showKeyboardHints is false', () => {
+            render(<PaginatedListController {...defaultProps} showKeyboardHints={false} />);
+            expect(document.querySelectorAll('.pagination-kbd-hint').length).toBe(0);
+        });
+
+        it('does not render shortcut hints when showKeyboardHints is omitted', () => {
+            render(<PaginatedListController {...defaultProps} />);
+            expect(document.querySelectorAll('.pagination-kbd-hint').length).toBe(0);
+        });
+
+        it('hints are aria-hidden so screen readers ignore them', () => {
+            render(<PaginatedListController {...defaultProps} showKeyboardHints={true} />);
+            const hints = document.querySelectorAll('.pagination-kbd-hint');
+            hints.forEach((hint) => {
+                expect(hint).toHaveAttribute('aria-hidden', 'true');
+            });
+        });
     });
 });

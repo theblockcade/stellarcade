@@ -21,6 +21,7 @@ export const ErrorDomain = {
   API:      'api',
   WALLET:   'wallet',
   CONTRACT: 'contract',
+  UI:       'ui',
   UNKNOWN:  'unknown',
 } as const;
 
@@ -33,6 +34,7 @@ export const ErrorSeverity = {
   USER_ACTIONABLE: 'user_actionable',
   /** Non-recoverable — no retry or user action will resolve it. */
   TERMINAL: 'terminal',
+  FATAL: 'fatal',
 } as const;
 
 export type ErrorSeverity = (typeof ErrorSeverity)[keyof typeof ErrorSeverity];
@@ -87,15 +89,21 @@ export type ContractErrorCode =
   | 'CONTRACT_UNAUTHORIZED_CALLER'
   | 'CONTRACT_UNKNOWN';
 
+export type UiErrorCode =
+  | 'CLIPBOARD_NOT_SUPPORTED'
+  | 'CLIPBOARD_ERROR'
+  | 'UI_UNKNOWN';
+
 export type AppErrorCode =
   | RpcErrorCode
   | ApiErrorCode
   | WalletErrorCode
   | ContractErrorCode
+  | UiErrorCode
   | 'UNKNOWN';
 
 export interface AppError {
-  /** Structured code for programmatic branching — never parse `message` for logic. */
+  /** Structured code for programmatic branching - never parse `message` for logic. */
   code: AppErrorCode;
   domain: ErrorDomain;
   severity: ErrorSeverity;
@@ -110,6 +118,26 @@ export interface AppError {
   context?: Record<string, unknown>;
   /** For RETRYABLE errors: suggested minimum wait before retrying (ms). */
   retryAfterMs?: number;
+  /** Structured API error details for support/QA workflows. */
+  apiDetails?: ApiErrorDetails;
+  /** UI action associated with the error (e.g., 'Please try again') */
+  action?: string;
+  /** Diagnostic debug properties */
+  debug?: {
+    originalError?: unknown;
+    context?: Record<string, unknown>;
+    retryAfterMs?: number;
+  };
+}
+
+/** Structured error details returned by backend API responses. */
+export interface ApiErrorDetails {
+  /** Backend error code (e.g. "VALIDATION_FAILED", "RATE_LIMITED"). */
+  errorCode?: string;
+  /** Correlation/request ID for support tracing. */
+  requestId?: string;
+  /** Per-field validation errors. */
+  fieldErrors?: Array<{ field: string; message: string }>;
 }
 
 export type ErrorMappingHint = ErrorDomain;
@@ -238,6 +266,14 @@ export class SorobanClientError extends Error {
     return new SorobanClientError({
       code: SorobanErrorCode.ContractAddressNotFound,
       message: `Contract address for "${contractName}" is not set in the registry.`,
+      retryable: false,
+    });
+  }
+
+  static userRejected(): SorobanClientError {
+    return new SorobanClientError({
+      code: SorobanErrorCode.UserRejected,
+      message: "Transaction was rejected by the user.",
       retryable: false,
     });
   }

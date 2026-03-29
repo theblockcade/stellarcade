@@ -3,19 +3,33 @@ import type {
   GlobalAction,
   AuthState,
   WalletState,
+  PendingTransactionSnapshot,
 } from "../types/global-state";
 import { ValidationError } from "../types/global-state";
 import type { WalletSessionMeta } from "../types/wallet-session";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  type NotificationPreferences,
+} from "../types/notification";
 
 type Subscriber = (state: GlobalState) => void;
 
 const DEFAULT_KEY = "stc_global_state_v1";
+const BANNER_DISMISSALS_KEY = "stc_banner_dismissals_v1";
+const NOTIFICATION_PREFERENCES_KEY = "stc_notification_preferences_v1";
+const EVENT_FEED_FILTER_KEY_PREFIX = "stc_feed_filter_v1";
+
+export interface BannerDismissalEntry {
+  identity: string;
+  dismissedAt: number;
+}
 
 const initialState: GlobalState = {
   auth: { isAuthenticated: false },
   wallet: { connected: false },
   flags: {},
   optimisticPatches: {},
+  pendingTransaction: null,
 };
 
 export class GlobalStateStore {
@@ -96,6 +110,10 @@ export class GlobalStateStore {
       }
       case "OPTIMISTIC_CLEAR":
         return { ...state, optimisticPatches: {} };
+      case "PENDING_TX_SET":
+        return { ...state, pendingTransaction: action.payload.snapshot };
+      case "PENDING_TX_CLEAR":
+        return { ...state, pendingTransaction: null };
       case "RESET_ALL":
         return initialState;
       default:
@@ -146,6 +164,7 @@ export class GlobalStateStore {
       const payload = {
         auth: this.state.auth,
         flags: this.state.flags,
+        pendingTransaction: this.state.pendingTransaction,
         storedAt: Date.now(),
       };
       // optimisticPatches intentionally not persisted
@@ -162,15 +181,167 @@ export class GlobalStateStore {
       const parsed = JSON.parse(raw) as {
         auth?: AuthState;
         flags?: Record<string, boolean>;
+        pendingTransaction?: PendingTransactionSnapshot;
+        storedAt?: number;
       };
+
+      // Invalidate pending transaction if older than 30 minutes
+      let pendingTransaction = parsed.pendingTransaction ?? null;
+      if (pendingTransaction && parsed.storedAt) {
+        const ageMs = Date.now() - parsed.storedAt;
+        if (ageMs > 30 * 60 * 1000) {
+          pendingTransaction = null;
+        }
+      }
+
       return {
         ...initialState,
         auth: parsed.auth ?? initialState.auth,
         flags: parsed.flags ?? initialState.flags,
+        pendingTransaction,
       };
     } catch (e) {
       return null;
     }
+  }
+}
+
+function isStorageAvailable(): boolean {
+  return typeof window !== "undefined" && typeof localStorage !== "undefined";
+}
+
+export function getPersistedBannerDismissals(): Record<string, BannerDismissalEntry> {
+  if (!isStorageAvailable()) {
+    return {};
+  }
+  try {
+    const raw = localStorage.getItem(BANNER_DISMISSALS_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, BannerDismissalEntry>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function isBannerDismissed(key: string, identity: string): boolean {
+  if (!key || !identity) {
+    return false;
+  }
+  const dismissals = getPersistedBannerDismissals();
+  return dismissals[key]?.identity === identity;
+}
+
+export function persistBannerDismissal(
+  key: string,
+  identity: string,
+  dismissed: boolean
+): void {
+  if (!isStorageAvailable() || !key || !identity) {
+    return;
+  }
+  try {
+    const dismissals = getPersistedBannerDismissals();
+    if (dismissed) {
+      dismissals[key] = { identity, dismissedAt: Date.now() };
+    } else {
+      delete dismissals[key];
+    }
+    localStorage.setItem(BANNER_DISMISSALS_KEY, JSON.stringify(dismissals));
+  } catch {
+    // no-op
+  }
+}
+
+export function getNotificationPreferences(): NotificationPreferences {
+  if (!isStorageAvailable()) {
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  }
+  try {
+    const raw = localStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
+    if (!raw) {
+      return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+    }
+    const parsed = JSON.parse(raw) as Partial<NotificationPreferences>;
+    return {
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      ...parsed,
+    };
+  } catch {
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  }
+}
+
+export function persistNotificationPreferences(
+  preferences: NotificationPreferences
+): void {
+  if (!isStorageAvailable()) {
+    return;
+  }
+  try {
+    localStorage.setItem(
+      NOTIFICATION_PREFERENCES_KEY,
+      JSON.stringify(preferences)
+    );
+  } catch {
+    // no-op
+  }
+}
+
+export function resetNotificationPreferences(): NotificationPreferences {
+  const defaults = { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  persistNotificationPreferences(defaults);
+  return defaults;
+}
+
+// ── Event feed filter persistence (session-scoped) ─────────────────────────────
+
+function eventFeedFilterStorageKey(scope: string): string {
+  return `${EVENT_FEED_FILTER_KEY_PREFIX}_${scope}`;
+}
+
+/**
+ * Returns the persisted active filter values for a given feed scope.
+ * Uses sessionStorage so the state is cleared on tab close (session-scoped).
+ * Returns null when no persisted state exists (first visit / new scope).
+ */
+export function getPersistedEventFeedFilter(scope: string): string[] | null {
+  if (!isStorageAvailable() || !scope) return null;
+  try {
+    const raw = sessionStorage.getItem(eventFeedFilterStorageKey(scope));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as string[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persists the active filter values for a given feed scope.
+ * Pass an empty array to persist an explicit "no active filters" state.
+ */
+export function persistEventFeedFilter(scope: string, values: string[]): void {
+  if (!isStorageAvailable() || !scope) return;
+  try {
+    sessionStorage.setItem(eventFeedFilterStorageKey(scope), JSON.stringify(values));
+  } catch {
+    // no-op — storage quota exceeded or unavailable
+  }
+}
+
+/**
+ * Removes the persisted filter state for a given feed scope.
+ * Subsequent reads will return null (default filter behavior).
+ */
+export function clearEventFeedFilter(scope: string): void {
+  if (!isStorageAvailable() || !scope) return;
+  try {
+    sessionStorage.removeItem(eventFeedFilterStorageKey(scope));
+  } catch {
+    // no-op
   }
 }
 

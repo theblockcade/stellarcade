@@ -31,6 +31,17 @@ export interface PaginatedListControllerProps {
     className?: string;
     /** Data test ID for automation */
     testId?: string;
+    /** Optional user-visible error message for fetch failures */
+    errorMessage?: string | null;
+    /** Optional retry callback when an error is shown */
+    onRetry?: () => void;
+    /**
+     * When true, renders lightweight keyboard shortcut hints near the
+     * Previous / Next navigation buttons. Hints reflect real supported
+     * interactions (← / →) and are hidden on small screens via CSS.
+     * @default false
+     */
+    showKeyboardHints?: boolean;
 }
 
 /**
@@ -54,6 +65,9 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
     pageSizeOptions = [10, 25, 50, 100],
     className = '',
     testId = 'paginated-list-controller',
+    errorMessage = null,
+    onRetry,
+    showKeyboardHints = false,
 }) => {
     const isFirstPage = page <= 1;
     const isLastPage = page >= totalPages;
@@ -90,7 +104,10 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
         return pages.filter((v, i, a) => v !== '...' || a[i - 1] !== '...');
     };
 
-    if (total === 0 && !isLoading) {
+    const hasError = Boolean(errorMessage);
+    const shouldShowEmpty = total === 0 && !isLoading && !hasError;
+
+    if (shouldShowEmpty) {
         return (
             <div className={`paginated-list-empty ${className}`} data-testid={testId}>
                 <span className="pagination-info">No items to display</span>
@@ -105,6 +122,21 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
             role="navigation"
             aria-label="Pagination Navigation"
         >
+            {hasError && (
+                <div className="pagination-error" role="alert" data-testid={`${testId}-error`}>
+                    <span>{errorMessage}</span>
+                    {onRetry && (
+                        <button
+                            type="button"
+                            className="pagination-btn pagination-retry-btn"
+                            onClick={onRetry}
+                            data-testid={`${testId}-retry`}
+                        >
+                            Retry
+                        </button>
+                    )}
+                </div>
+            )}
             <div className="pagination-info-section">
                 <span className="pagination-info">
                     Showing <strong>{startItem}</strong> - <strong>{endItem}</strong> of <strong>{total}</strong>
@@ -122,6 +154,9 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
+                    {showKeyboardHints && (
+                        <span className="pagination-kbd-hint" aria-hidden="true">←</span>
+                    )}
                 </button>
 
                 <div className="pagination-pages">
@@ -152,6 +187,9 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
                     aria-label="Go to next page"
                     type="button"
                 >
+                    {showKeyboardHints && (
+                        <span className="pagination-kbd-hint" aria-hidden="true">→</span>
+                    )}
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -160,7 +198,7 @@ export const PaginatedListController: React.FC<PaginatedListControllerProps> = (
 
             <div className="pagination-settings-section">
                 <label htmlFor="pagination-page-size" className="pagination-label">
-                    Show
+                   Items per page
                 </label>
                 <select
                     id="pagination-page-size"

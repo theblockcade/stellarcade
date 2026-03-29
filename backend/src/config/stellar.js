@@ -6,6 +6,11 @@ const logger = require('./logger');
  */
 const network = process.env.STELLAR_NETWORK || 'testnet';
 const horizonUrl = process.env.HORIZON_URL || 'https://horizon-testnet.stellar.org';
+const isLikelyUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
+
+if (!isLikelyUrl(horizonUrl)) {
+  throw new Error('Invalid startup configuration: HORIZON_URL must be a valid http(s) URL');
+}
 
 /**
  * Resolve the network passphrase from env or derive from known network name.
@@ -33,9 +38,23 @@ const resolvePassphrase = () => {
 };
 
 const passphrase = resolvePassphrase();
-const server = new StellarSdk.Horizon.Server(horizonUrl);
 
-logger.info(`Stellar SDK initialized for ${network} at ${horizonUrl}`);
+/**
+ * Resilience configuration for Stellar requests.
+ */
+const requestTimeout = parseInt(process.env.STELLAR_REQUEST_TIMEOUT || '30000', 10);
+const maxRetries = parseInt(process.env.STELLAR_MAX_RETRIES || '3', 10);
+const retryInterval = parseInt(process.env.STELLAR_RETRY_INTERVAL || '1000', 10);
+
+const server = new StellarSdk.Horizon.Server(horizonUrl, {
+  opts: {
+    timeout: requestTimeout,
+  },
+});
+
+logger.info(
+  `Stellar SDK initialized for ${network} at ${horizonUrl} (timeout=${requestTimeout}ms, maxRetries=${maxRetries})`
+);
 
 /**
  * Helper to get Contract Client (Skeleton)
@@ -57,5 +76,8 @@ module.exports = {
   network,
   passphrase,
   horizonUrl,
+  requestTimeout,
+  maxRetries,
+  retryInterval,
   getContractClient,
 };

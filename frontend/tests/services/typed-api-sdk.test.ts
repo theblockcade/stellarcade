@@ -32,10 +32,17 @@ function mockFetchSequence(responses: Array<{ status: number; body: unknown }>):
   global.fetch = mock;
 }
 
-function mockFetchNetworkError(times = 1): void {
-  let mock = vi.fn();
+function mockFetchNetworkError(times = 1, successBody?: unknown): void {
+  const mock = vi.fn();
   for (let i = 0; i < times; i++) {
-    mock = mock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    mock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  }
+  if (successBody !== undefined) {
+    mock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => successBody,
+    } as Response);
   }
   global.fetch = mock;
 }
@@ -58,6 +65,7 @@ afterEach(() => {
 
 describe('ApiClient — happy path', () => {
   it('getGames returns typed game list', async () => {
+    mockFetchNetworkError(0); // initialize global.fetch
     const games = [{ id: '1', name: 'Coin Flip', status: 'active' }];
     mockFetch(200, games);
 
@@ -143,7 +151,7 @@ describe('ApiClient — auth propagation', () => {
     const client = new ApiClient({ sessionStore: makeSessionStore('my-token') });
     await client.playGame({ gameId: 'game-1' });
 
-    const calledHeaders = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1]?.headers as Record<string, string>;
+    const calledHeaders = (global.fetch as any).mock.calls[0][1]?.headers as Record<string, string>;
     expect(calledHeaders['Authorization']).toBe('Bearer my-token');
   });
 
@@ -267,6 +275,9 @@ describe('ApiClient — error mapping', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe('API_VALIDATION_ERROR');
+      expect(result.error.category).toBe('validation');
+      expect(result.error.status).toBe(400);
+      expect(result.error.originalMessage).toBe('invalid input');
     }
   });
 
@@ -279,6 +290,8 @@ describe('ApiClient — error mapping', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe('API_UNAUTHORIZED');
+      expect(result.error.category).toBe('auth');
+      expect(result.error.status).toBe(401);
     }
   });
 
@@ -291,6 +304,8 @@ describe('ApiClient — error mapping', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe('API_FORBIDDEN');
+      expect(result.error.category).toBe('auth');
+      expect(result.error.status).toBe(403);
     }
   });
 
@@ -336,8 +351,38 @@ describe('ApiClient — error mapping', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe('API_SERVER_ERROR');
+      expect(result.error.category).toBe('server');
+      expect(result.error.status).toBe(500);
     }
   }, 20_000);
+
+  it('maps network failures to the network category', async () => {
+    mockFetchNetworkError(3);
+
+    const client = new ApiClient();
+    const result = await client.getGames();
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.category).toBe('network');
+      expect(result.error.originalMessage).toBe('Failed to fetch');
+    }
+  }, 20_000);
+
+  it('falls back to the unknown category for unclassified API responses', async () => {
+    mockFetch(418, { message: 'teapot' });
+
+    const client = new ApiClient();
+    const result = await client.getGames();
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('API_UNKNOWN');
+      expect(result.error.category).toBe('unknown');
+      expect(result.error.status).toBe(418);
+      expect(result.error.originalMessage).toBe('teapot');
+    }
+  });
 });
 
 // ── Input validation ──────────────────────────────────────────────────────────

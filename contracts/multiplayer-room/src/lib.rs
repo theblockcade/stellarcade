@@ -26,6 +26,7 @@ pub enum Error {
     NotEnoughPlayers = 11,
     ContractPaused = 12,
     Overflow = 13,
+    InvalidCapacity = 14,
 }
 
 #[contracttype]
@@ -43,7 +44,20 @@ pub struct RoomData {
     pub config_hash: BytesN<32>,
     pub status: RoomStatus,
     pub player_count: u32,
+    pub capacity: u32,
     pub created_by: Address,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoomSnapshot {
+    pub room_id: u64,
+    pub config_hash: BytesN<32>,
+    pub status: RoomStatus,
+    pub occupancy: u32,
+    pub capacity: u32,
+    pub remaining_slots: u32,
+    pub host: Address,
 }
 
 #[contracttype]
@@ -121,7 +135,13 @@ impl MultiplayerRoom {
         Ok(())
     }
 
-    pub fn create_room(env: Env, room_id: u64, config_hash: BytesN<32>) -> Result<(), Error> {
+    /// Create a new room with a fixed player capacity.
+    pub fn create_room(
+        env: Env,
+        room_id: u64,
+        config_hash: BytesN<32>,
+        capacity: u32,
+    ) -> Result<(), Error> {
         require_initialized(&env)?;
         ensure_not_paused(&env)?;
         require_admin_auth(&env)?;
@@ -133,6 +153,9 @@ impl MultiplayerRoom {
         let zero_hash = BytesN::from_array(&env, &[0u8; 32]);
         if config_hash == zero_hash {
             return Err(Error::InvalidConfigHash);
+        }
+        if capacity == 0 || capacity > MAX_PLAYERS_PER_ROOM {
+            return Err(Error::InvalidCapacity);
         }
 
         let room_key = DataKey::Room(room_id);
@@ -146,6 +169,7 @@ impl MultiplayerRoom {
             config_hash: config_hash.clone(),
             status: RoomStatus::Open,
             player_count: 0,
+            capacity,
             created_by: admin.clone(),
         };
 
@@ -166,6 +190,7 @@ impl MultiplayerRoom {
         Ok(())
     }
 
+    /// Join an open room if capacity and authorization checks pass.
     pub fn join_room(env: Env, room_id: u64, player: Address) -> Result<(), Error> {
         require_initialized(&env)?;
         ensure_not_paused(&env)?;
@@ -186,7 +211,7 @@ impl MultiplayerRoom {
             return Err(Error::DuplicatePlayer);
         }
 
-        if room.player_count >= MAX_PLAYERS_PER_ROOM {
+        if room.player_count >= room.capacity {
             return Err(Error::RoomFull);
         }
 
@@ -270,9 +295,26 @@ impl MultiplayerRoom {
         Ok(())
     }
 
+    /// Read the full stored room record.
     pub fn get_room(env: Env, room_id: u64) -> Result<RoomData, Error> {
         require_initialized(&env)?;
         get_room(&env, room_id)
+    }
+
+    /// Return a lobby-friendly room snapshot with occupancy and host metadata.
+    pub fn room_snapshot(env: Env, room_id: u64) -> Result<RoomSnapshot, Error> {
+        require_initialized(&env)?;
+
+        let room = get_room(&env, room_id)?;
+        Ok(RoomSnapshot {
+            room_id: room.room_id,
+            config_hash: room.config_hash,
+            status: room.status,
+            occupancy: room.player_count,
+            capacity: room.capacity,
+            remaining_slots: room.capacity.saturating_sub(room.player_count),
+            host: room.created_by,
+        })
     }
 
     pub fn get_players(env: Env, room_id: u64) -> Result<Vec<Address>, Error> {
@@ -410,7 +452,7 @@ mod test {
         let room_id = 7u64;
         let hash = BytesN::from_array(&env, &[7u8; 32]);
 
-        client.mock_all_auths().create_room(&room_id, &hash);
+        client.mock_all_auths().create_room(&room_id, &hash, &2u32);
         client.mock_all_auths().join_room(&room_id, &p1);
         client.mock_all_auths().join_room(&room_id, &p2);
         client.mock_all_auths().start_match(&room_id);
@@ -419,6 +461,7 @@ mod test {
         let room = client.get_room(&room_id);
         assert_eq!(room.status, RoomStatus::Closed);
         assert_eq!(room.player_count, 2);
+        assert_eq!(room.capacity, 2);
 
         let players = client.get_players(&room_id);
         assert_eq!(players, vec![&env, p1, p2]);
@@ -434,10 +477,10 @@ mod test {
         let room_id = 9u64;
         let hash = BytesN::from_array(&env, &[9u8; 32]);
 
-        let create_result = client.try_create_room(&room_id, &hash);
+        let create_result = client.try_create_room(&room_id, &hash, &3u32);
         assert!(create_result.is_err());
 
-        client.mock_all_auths().create_room(&room_id, &hash);
+        client.mock_all_auths().create_room(&room_id, &hash, &3u32);
 
         let start_result = client.try_start_match(&room_id);
         assert!(start_result.is_err());
@@ -455,13 +498,15 @@ mod test {
         let hash = BytesN::from_array(&env, &[12u8; 32]);
         let player = Address::generate(&env);
 
-        client.mock_all_auths().create_room(&room_id, &hash);
+        client.mock_all_auths().create_room(&room_id, &hash, &3u32);
         client.mock_all_auths().join_room(&room_id, &player);
 
         let dup_join = client.mock_all_auths().try_join_room(&room_id, &player);
         assert_eq!(dup_join, Err(Ok(Error::DuplicatePlayer)));
 
-        let dup_room = client.mock_all_auths().try_create_room(&room_id, &hash);
+        let dup_room = client
+            .mock_all_auths()
+            .try_create_room(&room_id, &hash, &3u32);
         assert_eq!(dup_room, Err(Ok(Error::RoomAlreadyExists)));
     }
 
@@ -474,7 +519,7 @@ mod test {
         let hash = BytesN::from_array(&env, &[13u8; 32]);
         let player = Address::generate(&env);
 
-        client.mock_all_auths().create_room(&room_id, &hash);
+        client.mock_all_auths().create_room(&room_id, &hash, &3u32);
 
         let early_start = client.try_start_match(&room_id);
         assert!(early_start.is_err());
@@ -495,12 +540,68 @@ mod test {
     }
 
     #[test]
+    fn test_room_snapshot_tracks_capacity_and_occupancy() {
+        let env = Env::default();
+        let (client, _, _) = setup(&env);
+
+        let room_id = 21u64;
+        let hash = BytesN::from_array(&env, &[21u8; 32]);
+        let p1 = Address::generate(&env);
+        let p2 = Address::generate(&env);
+
+        client.mock_all_auths().create_room(&room_id, &hash, &3u32);
+
+        let initial = client.room_snapshot(&room_id);
+        assert_eq!(initial.room_id, room_id);
+        assert_eq!(initial.status, RoomStatus::Open);
+        assert_eq!(initial.occupancy, 0);
+        assert_eq!(initial.capacity, 3);
+        assert_eq!(initial.remaining_slots, 3);
+        assert_eq!(initial.host, client.get_room(&room_id).created_by);
+
+        client.mock_all_auths().join_room(&room_id, &p1);
+        let after_one = client.room_snapshot(&room_id);
+        assert_eq!(after_one.occupancy, 1);
+        assert_eq!(after_one.remaining_slots, 2);
+        assert_eq!(after_one.status, RoomStatus::Open);
+
+        client.mock_all_auths().join_room(&room_id, &p2);
+        let after_two = client.room_snapshot(&room_id);
+        assert_eq!(after_two.occupancy, 2);
+        assert_eq!(after_two.remaining_slots, 1);
+        assert_eq!(after_two.capacity, 3);
+        assert_eq!(after_two.status, RoomStatus::Open);
+    }
+
+    #[test]
+    fn test_join_rejected_when_room_full() {
+        let env = Env::default();
+        let (client, _, _) = setup(&env);
+
+        let room_id = 22u64;
+        let hash = BytesN::from_array(&env, &[22u8; 32]);
+        let p1 = Address::generate(&env);
+        let p2 = Address::generate(&env);
+        let p3 = Address::generate(&env);
+
+        client.mock_all_auths().create_room(&room_id, &hash, &2u32);
+        client.mock_all_auths().join_room(&room_id, &p1);
+        client.mock_all_auths().join_room(&room_id, &p2);
+
+        let full_join = client.mock_all_auths().try_join_room(&room_id, &p3);
+        assert_eq!(full_join, Err(Ok(Error::RoomFull)));
+    }
+
+    #[test]
     fn test_invalid_room_id_rejected() {
         let env = Env::default();
         let (client, _, _) = setup(&env);
 
         let valid_hash = BytesN::from_array(&env, &[1u8; 32]);
-        let invalid_room_result = client.mock_all_auths().try_create_room(&0u64, &valid_hash);
+        let invalid_room_result =
+            client
+                .mock_all_auths()
+                .try_create_room(&0u64, &valid_hash, &2u32);
         assert_eq!(invalid_room_result, Err(Ok(Error::InvalidRoomId)));
 
         let bad_join = client.try_join_room(&0u64, &Address::generate(&env));
@@ -516,8 +617,22 @@ mod test {
         let zero_hash = BytesN::from_array(&env, &[0u8; 32]);
         let invalid_hash_result = client
             .mock_all_auths()
-            .try_create_room(&room_id, &zero_hash);
+            .try_create_room(&room_id, &zero_hash, &2u32);
         assert_eq!(invalid_hash_result, Err(Ok(Error::InvalidConfigHash)));
+    }
+
+    #[test]
+    fn test_invalid_capacity_rejected() {
+        let env = Env::default();
+        let (client, _, _) = setup(&env);
+
+        let room_id = 101u64;
+        let hash = BytesN::from_array(&env, &[101u8; 32]);
+
+        let zero_capacity = client
+            .mock_all_auths()
+            .try_create_room(&room_id, &hash, &0u32);
+        assert_eq!(zero_capacity, Err(Ok(Error::InvalidCapacity)));
     }
 
     #[test]
@@ -533,7 +648,7 @@ mod test {
         let hash = BytesN::from_array(&env, &[7u8; 32]);
         let player = Address::generate(&env);
 
-        assert!(client.try_create_room(&room_id, &hash).is_err());
+        assert!(client.try_create_room(&room_id, &hash, &2u32).is_err());
         assert!(client.try_join_room(&room_id, &player).is_err());
         assert!(client.try_start_match(&room_id).is_err());
         assert!(client.try_close_room(&room_id).is_err());

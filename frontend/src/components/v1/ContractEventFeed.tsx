@@ -1,20 +1,9 @@
 /**
- * ContractEventFeed Component — v1
+ * ContractEventFeed Component - v1
  *
  * Renders a live, ordered, deduplicated stream of Soroban contract events.
- * Supports filter props (event type, contract source, time window), handles
- * disconnected/reconnecting states, and surfaces errors via ErrorNotice.
- *
- * @example
- * ```tsx
- * <ContractEventFeed
- *   contractId="CXXX..."
- *   eventTypeFilter="coin_flip"
- *   timeWindowMs={60_000}
- *   maxEvents={50}
- *   onEventClick={(event) => console.log(event)}
- * />
- * ```
+ * Supports optional virtualization for larger feeds while preserving the
+ * existing small-list behavior and interactions.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -26,76 +15,90 @@ import {
   generateIdempotencyKey,
   InFlightRequestDedupe,
 } from '../../utils/v1/idempotency';
+import {
+  getPersistedEventFeedFilter,
+  persistEventFeedFilter,
+  clearEventFeedFilter,
+} from '../../services/global-state-store';
 import type { ContractEvent } from '../../types/contracts/events';
 import './ContractEventFeed.css';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export type EventSeverity = 'info' | 'warning' | 'error' | 'success';
 
-export interface ContractEventFeedProps {
-  /**
-   * The Soroban contract ID to subscribe to.
-   * Must be a valid Stellar contract address (C... or G...).
-   */
-  contractId: string;
-
-  /**
-   * Optional filter: only show events matching this type string.
-   * Compared case-insensitively against `event.type`.
-   */
-  eventTypeFilter?: string;
-
-  /**
-   * Optional filter: only show events from this contract source address.
-   * When omitted, events from all contracts in the stream are shown.
-   */
-  contractSourceFilter?: string;
-
-  /**
-   * Optional filter: only show events newer than this many milliseconds ago.
-   * @default undefined (no time filtering)
-   */
-  timeWindowMs?: number;
-
-  /**
-   * Maximum number of events to display (most recent first).
-   * @default 100
-   */
-  maxEvents?: number;
-
-  /**
-   * How often to poll for new events, in milliseconds.
-   * @default 5000
-   */
-  pollInterval?: number;
-
-  /**
-   * Whether to start listening immediately on mount.
-   * @default true
-   */
-  autoStart?: boolean;
-
-  /**
-   * Callback fired when the user clicks an event row.
-   */
-  onEventClick?: (event: ContractEvent) => void;
-
-  /**
-   * Callback fired when the feed emits a new event.
-   */
-  onNewEvent?: (event: ContractEvent) => void;
-
-  /** Custom className applied to the root element. */
-  className?: string;
-
-  /** test ID prefix for targeted assertions. */
-  testId?: string;
+export interface SeverityMapping {
+  [eventType: string]: EventSeverity;
 }
 
-// ---------------------------------------------------------------------------
-// Connection status badge
-// ---------------------------------------------------------------------------
+export interface FilterChipConfig {
+  label: string;
+  value: string;
+  active: boolean;
+  count?: number;
+}
+
+export const DEFAULT_SEVERITY_MAPPING: SeverityMapping = {
+  game_start: 'info',
+  game_end: 'success',
+  bet_placed: 'info',
+  win: 'success',
+  loss: 'error',
+  error: 'error',
+  warning: 'warning',
+  transfer: 'info',
+  mint: 'success',
+  burn: 'warning',
+};
+
+const DEFAULT_LIST_HEIGHT_PX = 480;
+const DEFAULT_VIRTUALIZATION_THRESHOLD = 120;
+const DEFAULT_VIRTUAL_ITEM_HEIGHT_PX = 42;
+const DEFAULT_VIRTUAL_OVERSCAN = 6;
+
+export function getEventSeverity(
+  eventType: string | undefined,
+  mapping: SeverityMapping = DEFAULT_SEVERITY_MAPPING,
+): EventSeverity {
+  if (!eventType) return 'info';
+  const normalizedType = eventType.toLowerCase().replace(/[-_]/g, '_');
+  for (const [key, severity] of Object.entries(mapping)) {
+    if (normalizedType.includes(key.toLowerCase().replace(/[-_]/g, '_'))) {
+      return severity;
+    }
+  }
+  return 'info';
+}
+
+export interface ContractEventFeedProps {
+  contractId: string;
+  eventTypeFilter?: string;
+  contractSourceFilter?: string;
+  timeWindowMs?: number;
+  maxEvents?: number;
+  pollInterval?: number;
+  autoStart?: boolean;
+  onEventClick?: (event: ContractEvent) => void;
+  onNewEvent?: (event: ContractEvent) => void;
+  eventTypeFilters?: FilterChipConfig[];
+  onEventTypeFilterToggle?: (value: string) => void;
+  severityMapping?: SeverityMapping;
+  className?: string;
+  testId?: string;
+  virtualizationThreshold?: number;
+  virtualizedItemHeight?: number;
+  virtualizedOverscan?: number;
+  /**
+   * When true, the component persists the active event-type filter selection
+   * to sessionStorage and restores it on remount.
+   * @default false
+   */
+  persistFilters?: boolean;
+  /**
+   * Stable scope key used to isolate persisted filter state.
+   * Defaults to `contractId` when not provided.
+   * Use a custom value when multiple feeds share the same contractId.
+   */
+  feedScope?: string;
+}
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting' | 'idle';
 
@@ -108,7 +111,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, testId }) => {
   const labels: Record<ConnectionStatus, string> = {
     connected: 'Live',
     disconnected: 'Disconnected',
-    reconnecting: 'Reconnecting…',
+    reconnecting: 'Reconnecting...',
     idle: 'Idle',
   };
 
@@ -125,17 +128,14 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, testId }) => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// Single event row
-// ---------------------------------------------------------------------------
-
 interface EventRowProps {
   event: ContractEvent;
   onClick?: (event: ContractEvent) => void;
+  severity?: EventSeverity;
   testId?: string;
 }
 
-const EventRow: React.FC<EventRowProps> = ({ event, onClick, testId }) => {
+const EventRow: React.FC<EventRowProps> = ({ event, onClick, severity, testId }) => {
   const handleClick = useCallback(() => {
     onClick?.(event);
   }, [event, onClick]);
@@ -150,13 +150,9 @@ const EventRow: React.FC<EventRowProps> = ({ event, onClick, testId }) => {
     [event, onClick],
   );
 
-  const timestamp =
-    event.timestamp instanceof Date
-      ? event.timestamp
-      : new Date(event.timestamp);
-
-  const timeLabel = isNaN(timestamp.getTime())
-    ? '—'
+  const timestamp = new Date(event.timestamp);
+  const timeLabel = Number.isNaN(timestamp.getTime())
+    ? '--'
     : timestamp.toLocaleTimeString(undefined, {
         hour: '2-digit',
         minute: '2-digit',
@@ -167,10 +163,11 @@ const EventRow: React.FC<EventRowProps> = ({ event, onClick, testId }) => {
 
   return (
     <li
-      className={`cef-event-row${isClickable ? ' cef-event-row--clickable' : ''}`}
+      className={`cef-event-row${isClickable ? ' cef-event-row--clickable' : ''}${severity ? ` cef-event-row--${severity}` : ''}`}
       data-testid={testId ? `${testId}-row-${event.id}` : `cef-row-${event.id}`}
       data-event-id={event.id}
       data-event-type={event.type ?? 'unknown'}
+      data-event-severity={severity ?? 'info'}
       onClick={isClickable ? handleClick : undefined}
       onKeyDown={isClickable ? handleKeyDown : undefined}
       tabIndex={isClickable ? 0 : undefined}
@@ -180,33 +177,24 @@ const EventRow: React.FC<EventRowProps> = ({ event, onClick, testId }) => {
       <span className="cef-event-row__time" aria-label={`Event time: ${timeLabel}`}>
         {timeLabel}
       </span>
-
       <span className="cef-event-row__type" aria-label={`Event type: ${event.type ?? 'unknown'}`}>
         {event.type ?? 'unknown'}
       </span>
-
       <span className="cef-event-row__id" title={event.id} aria-label={`Event ID: ${event.id}`}>
-        {event.id.slice(0, 12)}…
+        {event.id.slice(0, 12)}...
       </span>
-
       {event.contractId && (
         <span
           className="cef-event-row__contract"
           title={event.contractId}
           aria-label={`Contract: ${event.contractId}`}
         >
-          {event.contractId.slice(0, 8)}…
+          {event.contractId.slice(0, 8)}...
         </span>
       )}
     </li>
   );
 };
-
-// (dedupe instance is created per-component mount — see useRef below)
-
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
 
 export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
   contractId,
@@ -218,14 +206,28 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
   autoStart = true,
   onEventClick,
   onNewEvent,
+  eventTypeFilters,
+  onEventTypeFilterToggle,
+  severityMapping = DEFAULT_SEVERITY_MAPPING,
   className = '',
   testId = 'contract-event-feed',
+  virtualizationThreshold = DEFAULT_VIRTUALIZATION_THRESHOLD,
+  virtualizedItemHeight = DEFAULT_VIRTUAL_ITEM_HEIGHT_PX,
+  virtualizedOverscan = DEFAULT_VIRTUAL_OVERSCAN,
+  persistFilters = false,
+  feedScope,
 }) => {
-  // ── Validation ────────────────────────────────────────────────────────────
+  // ── Filter persistence ─────────────────────────────────────────────────────
+  // Stable scope key isolates persisted state so different feeds don't collide.
+  const resolvedScope = feedScope ?? contractId;
+
+  // Internal active-filter state used when persistFilters=true.
+  // Null means "not yet initialised" (restored from storage on first render).
+  const [persistedActiveFilters, setPersistedActiveFilters] = useState<string[] | null>(null);
+  const filterInitialisedRef = useRef(false);
   const isContractIdValid =
     typeof contractId === 'string' && contractId.trim().length > 0;
 
-  // ── Hook ─────────────────────────────────────────────────────────────────
   const {
     events: rawEvents,
     isListening,
@@ -239,21 +241,34 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     pollInterval,
   });
 
-  // ── Connection status ────────────────────────────────────────────────────
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>('idle');
   const prevListeningRef = useRef<boolean | null>(null);
-  const reconnectAttemptsRef = useRef(0);
+  const feedDedupeRef = useRef(new InFlightRequestDedupe());
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const prevEventCountRef = useRef(0);
+  const listRef = useRef<HTMLOListElement | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(DEFAULT_LIST_HEIGHT_PX);
+
+  // Restore persisted filter state on mount (or when scope changes).
+  useEffect(() => {
+    if (!persistFilters) {
+      filterInitialisedRef.current = true;
+      return;
+    }
+    const restored = getPersistedEventFeedFilter(resolvedScope);
+    setPersistedActiveFilters(restored ?? []);
+    filterInitialisedRef.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistFilters, resolvedScope]);
 
   useEffect(() => {
     const prev = prevListeningRef.current;
 
     if (isListening) {
-      reconnectAttemptsRef.current = 0;
       setConnectionStatus('connected');
     } else if (hookError && prev === true) {
-      // Was connected, now errored — show reconnecting briefly
-      reconnectAttemptsRef.current += 1;
       setConnectionStatus('reconnecting');
     } else if (!isListening && prev === null) {
       setConnectionStatus('idle');
@@ -264,24 +279,15 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     prevListeningRef.current = isListening;
   }, [isListening, hookError]);
 
-  // ── Deduplicated + filtered events ───────────────────────────────────────
-  // Per-instance dedupe — reset on unmount, not shared across tests/mounts
-  const feedDedupeRef = useRef(new InFlightRequestDedupe());
-  const seenIdsRef = useRef<Set<string>>(new Set());
-
   const filteredEvents = useMemo(() => {
     if (!Array.isArray(rawEvents)) return [];
 
     const now = Date.now();
     const dedupe = feedDedupeRef.current;
-
-    // Step 1: deduplicate — use a local Set to catch same-batch duplicates,
-    // then idempotency key for cross-render dedup
     const batchSeen = new Set<string>();
+
     const uniqueEvents = rawEvents.filter((event): event is ContractEvent => {
       if (!event || typeof event.id !== 'string') return false;
-
-      // Reject if already seen in this same batch
       if (batchSeen.has(event.id)) return false;
       batchSeen.add(event.id);
 
@@ -293,17 +299,15 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
 
       if (!keyResult.success || !keyResult.key) return false;
 
-      const reg = dedupe.register(keyResult.key, { ttlMs: 60_000 });
-      if (!reg.accepted && !seenIdsRef.current.has(event.id)) return false;
+      const registration = dedupe.register(keyResult.key, { ttlMs: 60_000 });
+      if (!registration.accepted && !seenIdsRef.current.has(event.id)) return false;
 
       seenIdsRef.current.add(event.id);
       return true;
     });
 
-    // Step 2: apply filters on the already-deduplicated list
     return uniqueEvents
       .filter((event) => {
-        // Event type filter
         if (
           eventTypeFilter !== undefined &&
           eventTypeFilter.trim() !== '' &&
@@ -313,7 +317,6 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
           return false;
         }
 
-        // Contract source filter
         if (
           contractSourceFilter !== undefined &&
           contractSourceFilter.trim() !== '' &&
@@ -322,67 +325,159 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
           return false;
         }
 
-        // Time window filter
         if (timeWindowMs !== undefined && timeWindowMs > 0) {
           const ts =
-            event.timestamp instanceof Date
-              ? event.timestamp.getTime()
-              : typeof event.timestamp === 'string' ||
-                  typeof event.timestamp === 'number'
-                ? new Date(event.timestamp).getTime()
-                : NaN;
+            typeof event.timestamp === 'string' || typeof event.timestamp === 'number'
+              ? new Date(event.timestamp).getTime()
+              : Number.NaN;
 
-          if (isNaN(ts) || now - ts > timeWindowMs) return false;
+          if (Number.isNaN(ts) || now - ts > timeWindowMs) return false;
         }
 
         return true;
       })
       .slice(0, maxEvents);
-  }, [rawEvents, contractId, eventTypeFilter, contractSourceFilter, timeWindowMs, maxEvents]);
-
-  // ── Fire onNewEvent for newly seen events ────────────────────────────────
-  const prevEventCountRef = useRef(0);
+  }, [
+    rawEvents,
+    contractId,
+    eventTypeFilter,
+    contractSourceFilter,
+    timeWindowMs,
+    maxEvents,
+  ]);
 
   useEffect(() => {
     if (!onNewEvent) return;
     const newCount = filteredEvents.length - prevEventCountRef.current;
     if (newCount > 0) {
-      filteredEvents.slice(0, newCount).forEach((ev) => onNewEvent(ev));
+      filteredEvents.slice(0, newCount).forEach((event) => onNewEvent(event));
     }
     prevEventCountRef.current = filteredEvents.length;
   }, [filteredEvents, onNewEvent]);
 
-  // ── Error mapping ────────────────────────────────────────────────────────
   const mappedError = useMemo(() => {
     if (!hookError) return null;
-    return toAppError(hookError, 'rpc' as const);
+    return toAppError(hookError, 'rpc');
   }, [hookError]);
 
-  // ── Toggle handler ────────────────────────────────────────────────────────
   const handleToggle = useCallback(() => {
     if (isListening) {
       stop();
-    } else {
-      start();
+      return;
     }
+    start();
   }, [isListening, start, stop]);
 
   const handleClear = useCallback(() => {
     seenIdsRef.current.clear();
     feedDedupeRef.current = new InFlightRequestDedupe();
     prevEventCountRef.current = 0;
+    setScrollTop(0);
+    if (persistFilters) {
+      clearEventFeedFilter(resolvedScope);
+      setPersistedActiveFilters([]);
+    }
     clear();
-  }, [clear]);
+  }, [clear, persistFilters, resolvedScope]);
 
-  // ── Guard: invalid contractId ─────────────────────────────────────────────
+  /**
+   * Persistence-aware filter toggle handler.
+   * When persistFilters=true, updates internal persisted state and writes to
+   * sessionStorage before forwarding the call to the external callback.
+   */
+  const handleFilterToggle = useCallback(
+    (value: string) => {
+      if (persistFilters) {
+        setPersistedActiveFilters((prev) => {
+          const current = prev ?? [];
+          const next = current.includes(value)
+            ? current.filter((v) => v !== value)
+            : [...current, value];
+          persistEventFeedFilter(resolvedScope, next);
+          return next;
+        });
+      }
+      onEventTypeFilterToggle?.(value);
+    },
+    [persistFilters, resolvedScope, onEventTypeFilterToggle],
+  );
+
+  const shouldVirtualize =
+    filteredEvents.length >= virtualizationThreshold &&
+    virtualizedItemHeight > 0;
+
+  useEffect(() => {
+    const listNode = listRef.current;
+    if (!listNode) return;
+    setViewportHeight(listNode.clientHeight || DEFAULT_LIST_HEIGHT_PX);
+  }, [shouldVirtualize, filteredEvents.length]);
+
+  useEffect(() => {
+    if (!shouldVirtualize) {
+      setScrollTop(0);
+    }
+  }, [shouldVirtualize]);
+
+  const virtualizationWindow = useMemo(() => {
+    if (!shouldVirtualize) {
+      return {
+        startIndex: 0,
+        endIndex: filteredEvents.length,
+        topSpacerHeight: 0,
+        bottomSpacerHeight: 0,
+      };
+    }
+
+    const visibleCount = Math.max(
+      1,
+      Math.ceil(viewportHeight / virtualizedItemHeight),
+    );
+    const startIndex = Math.max(
+      0,
+      Math.floor(scrollTop / virtualizedItemHeight) - virtualizedOverscan,
+    );
+    const endIndex = Math.min(
+      filteredEvents.length,
+      startIndex + visibleCount + virtualizedOverscan * 2,
+    );
+
+    return {
+      startIndex,
+      endIndex,
+      topSpacerHeight: startIndex * virtualizedItemHeight,
+      bottomSpacerHeight:
+        Math.max(0, filteredEvents.length - endIndex) * virtualizedItemHeight,
+    };
+  }, [
+    filteredEvents.length,
+    scrollTop,
+    shouldVirtualize,
+    viewportHeight,
+    virtualizedItemHeight,
+    virtualizedOverscan,
+  ]);
+
+  const visibleEvents = shouldVirtualize
+    ? filteredEvents.slice(
+        virtualizationWindow.startIndex,
+        virtualizationWindow.endIndex,
+      )
+    : filteredEvents;
+
+  const handleListScroll = useCallback(
+    (event: React.UIEvent<HTMLOListElement>) => {
+      if (!shouldVirtualize) return;
+      setScrollTop(event.currentTarget.scrollTop);
+      setViewportHeight(event.currentTarget.clientHeight || DEFAULT_LIST_HEIGHT_PX);
+    },
+    [shouldVirtualize],
+  );
+
   if (!isContractIdValid) {
     return (
-      <div
-        className={`cef cef--invalid ${className}`.trim()}
-        data-testid={testId}
-      >
+      <div className={`cef cef--invalid ${className}`.trim()} data-testid={testId}>
         <EmptyStateBlock
-          icon="⚠️"
+          icon="!"
           title="Invalid Contract"
           description="A valid contract ID is required to subscribe to events."
           testId={`${testId}-invalid`}
@@ -391,7 +486,6 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     );
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   const rootClasses = [
     'cef',
     isListening ? 'cef--listening' : 'cef--paused',
@@ -406,7 +500,6 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
       data-testid={testId}
       aria-label="Contract Event Feed"
     >
-      {/* ── Header ── */}
       <header className="cef__header">
         <div className="cef__header-left">
           <h2 className="cef__title">Contract Events</h2>
@@ -427,7 +520,7 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
             aria-label={isListening ? 'Pause event feed' : 'Resume event feed'}
             data-testid={`${testId}-toggle`}
           >
-            {isListening ? '⏸ Pause' : '▶ Resume'}
+            {isListening ? 'Pause' : 'Resume'}
           </button>
 
           <button
@@ -443,17 +536,48 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
         </div>
       </header>
 
-      {/* ── Active filters strip ── */}
-      {(eventTypeFilter || contractSourceFilter || timeWindowMs) && (
-        <div className="cef__filters" aria-label="Active filters" data-testid={`${testId}-filters`}>
-          {eventTypeFilter && (
+      {(eventTypeFilter ||
+        contractSourceFilter ||
+        timeWindowMs ||
+        (eventTypeFilters && eventTypeFilters.length > 0)) && (
+        <div
+          className="cef__filters"
+          aria-label="Active filters"
+          data-testid={`${testId}-filters`}
+        >
+          {eventTypeFilters &&
+            eventTypeFilters.length > 0 &&
+            eventTypeFilters.map((filter) => {
+              // When persistFilters=true, derive active state from internal
+              // persisted storage instead of the external prop, so filter
+              // selections survive remounts and refreshes within the session.
+              const isActive = persistFilters && persistedActiveFilters !== null
+                ? persistedActiveFilters.includes(filter.value)
+                : filter.active;
+              return (
+                <button
+                  key={filter.value}
+                  type="button"
+                  className={`cef__filter-chip cef__filter-chip--toggle${isActive ? ' cef__filter-chip--active' : ''}`}
+                  onClick={() => handleFilterToggle(filter.value)}
+                  aria-pressed={isActive}
+                  data-testid={`${testId}-filter-${filter.value}`}
+                >
+                  {filter.label}
+                  {filter.count !== undefined && (
+                    <span className="cef__filter-chip__count">{filter.count}</span>
+                  )}
+                </button>
+              );
+            })}
+          {eventTypeFilter && !eventTypeFilters && (
             <span className="cef__filter-chip">
               type: <strong>{eventTypeFilter}</strong>
             </span>
           )}
           {contractSourceFilter && (
             <span className="cef__filter-chip">
-              source: <strong>{contractSourceFilter.slice(0, 10)}…</strong>
+              source: <strong>{contractSourceFilter.slice(0, 10)}...</strong>
             </span>
           )}
           {timeWindowMs && (
@@ -464,7 +588,6 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
         </div>
       )}
 
-      {/* ── Error notice ── */}
       {mappedError && (
         <ErrorNotice
           error={mappedError}
@@ -475,28 +598,54 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
         />
       )}
 
-      {/* ── Event list ── */}
       {filteredEvents.length > 0 ? (
-        <ol
-          className="cef__event-list"
-          aria-label={`${filteredEvents.length} contract events`}
-          data-testid={`${testId}-list`}
-          reversed
-        >
-          {filteredEvents.map((event) => (
-            <EventRow
-              key={event.id}
-              event={event}
-              onClick={onEventClick}
-              testId={testId}
-            />
-          ))}
-        </ol>
+        <>
+          <span className="cef__sr-only" aria-live="polite" data-testid={`${testId}-virtualization`}>
+            {shouldVirtualize
+              ? `Virtualized list showing ${visibleEvents.length} rows out of ${filteredEvents.length}.`
+              : 'Standard list rendering active.'}
+          </span>
+          <ol
+            ref={listRef}
+            className={`cef__event-list${shouldVirtualize ? ' cef__event-list--virtualized' : ''}`}
+            aria-label={`${filteredEvents.length} contract events`}
+            data-testid={`${testId}-list`}
+            data-virtualized={shouldVirtualize ? 'true' : 'false'}
+            reversed={!shouldVirtualize}
+            onScroll={handleListScroll}
+          >
+            {shouldVirtualize && virtualizationWindow.topSpacerHeight > 0 && (
+              <li
+                className="cef__virtual-spacer"
+                aria-hidden="true"
+                style={{ height: `${virtualizationWindow.topSpacerHeight}px` }}
+              />
+            )}
+
+            {visibleEvents.map((event) => (
+              <EventRow
+                key={event.id}
+                event={event}
+                onClick={onEventClick}
+                severity={getEventSeverity(event.type, severityMapping)}
+                testId={testId}
+              />
+            ))}
+
+            {shouldVirtualize && virtualizationWindow.bottomSpacerHeight > 0 && (
+              <li
+                className="cef__virtual-spacer"
+                aria-hidden="true"
+                style={{ height: `${virtualizationWindow.bottomSpacerHeight}px` }}
+              />
+            )}
+          </ol>
+        </>
       ) : (
         !mappedError && (
           <EmptyStateBlock
-            icon={isListening ? '📡' : '⏸'}
-            title={isListening ? 'Listening for events…' : 'Feed paused'}
+            icon={isListening ? 'radio' : 'pause'}
+            title={isListening ? 'Listening for events...' : 'Feed paused'}
             description={
               isListening
                 ? 'Events will appear here as they are emitted by the contract.'

@@ -1,5 +1,6 @@
 .paginated-list-controller {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     padding: 1rem;
@@ -9,6 +10,25 @@
     user-select: none;
     border: 1px solid var(--v1-border-subtle, rgba(255, 255, 255, 0.1));
     transition: all 0.2s ease-in-out;
+}
+
+.pagination-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fecaca;
+    font-size: 0.85rem;
+}
+
+.pagination-retry-btn {
+    margin-left: auto;
+    height: 28px;
+    min-width: 60px;
 }
 
 .paginated-list-controller.is-loading {
@@ -63,6 +83,13 @@
     color: var(--v1-text-primary, #ffffff);
 }
 
+.pagination-btn:focus-visible,
+.pagination-select:focus-visible {
+    outline: 2px solid var(--v1-primary-main, #3b82f6);
+    outline-offset: 2px;
+    border-color: var(--v1-primary-main, #3b82f6);
+}
+
 .pagination-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
@@ -103,10 +130,6 @@
     outline: none;
 }
 
-.pagination-select:focus {
-    border-color: var(--v1-primary-main, #3b82f6);
-}
-
 /* Empty State */
 .paginated-list-empty {
     display: flex;
@@ -136,5 +159,29 @@
 
     .pagination-settings-section {
         order: 3;
+    }
+}
+
+/* Keyboard shortcut hints */
+.pagination-kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-family: 'SFMono-Regular', 'Consolas', monospace;
+    color: var(--v1-text-muted, #6b7280);
+    background: var(--v1-surface-secondary, #1a1b1e);
+    border: 1px solid var(--v1-border-subtle, rgba(255, 255, 255, 0.1));
+    border-radius: 3px;
+    padding: 1px 4px;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Hide hints on small screens to keep the layout uncluttered */
+@media (max-width: 768px) {
+    .pagination-kbd-hint {
+        display: none;
     }
 }

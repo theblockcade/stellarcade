@@ -7,8 +7,16 @@
  *
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import type { ReactNode } from "react";
+import {
+  isBannerDismissed,
+  persistBannerDismissal,
+} from "../../services/global-state-store";
+import {
+  resumeQueuedNetworkActions,
+  getQueuedNetworkActionsCount,
+} from "../../services/network-guard-middleware";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -28,6 +36,9 @@ export interface NetworkGuardBannerProps {
   /** Optional callback when user clicks action button */
   onSwitchNetwork?: () => void | Promise<void>;
 
+  /** Optional callback to retry current network detection */
+  onRetryNetworkCheck?: () => void | Promise<void>;
+
   /** Whether banner can be dismissed by user (default: true) */
   dismissible?: boolean;
 
@@ -37,11 +48,26 @@ export interface NetworkGuardBannerProps {
   /** Custom action button label (default: "Switch Network") */
   actionLabel?: string;
 
+  /** Optional retry button label (default: "Retry Check") */
+  retryLabel?: string;
+
   /** Whether to show the banner at all (default: true) */
   show?: boolean;
 
   /** Optional custom content renderer */
   children?: ReactNode;
+  /** Persist dismissals across reloads for this banner (default: false). */
+  persistDismissal?: boolean;
+  /** Stable key used to store dismissal state (required when persistDismissal=true). */
+  dismissalKey?: string;
+  /** Versioned identity of the current banner message to prevent carryover. */
+  dismissalIdentity?: string;
+  /**
+   * When true, the banner is suppressed because a dropped-session reconnect
+   * banner has higher priority. Keeps the two states visually distinct.
+   * @default false
+   */
+  isDroppedSession?: boolean;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -53,19 +79,48 @@ export const NetworkGuardBanner = React.memo(
     supportedNetworks,
     isSupported,
     onSwitchNetwork,
+    onRetryNetworkCheck,
     dismissible = true,
     errorMessage,
     actionLabel = "Switch Network",
+    retryLabel = "Retry Check",
     show = true,
     children,
+    persistDismissal = false,
+    dismissalKey = "network-guard-banner",
+    dismissalIdentity,
+    isDroppedSession = false,
   }: NetworkGuardBannerProps) => {
     const [isDismissed, setIsDismissed] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const resolvedIdentity = useMemo(
+      () =>
+        dismissalIdentity ??
+        `${network ?? "unknown"}:${normalizedNetwork}:${supportedNetworks.join("|")}`,
+      [dismissalIdentity, network, normalizedNetwork, supportedNetworks],
+    );
+
+    useEffect(() => {
+      if (!persistDismissal || !dismissible) {
+        setIsDismissed(false);
+        return;
+      }
+      setIsDismissed(isBannerDismissed(dismissalKey, resolvedIdentity));
+    }, [persistDismissal, dismissible, dismissalKey, resolvedIdentity]);
+
+    useEffect(() => {
+      if (isSupported) {
+        resumeQueuedNetworkActions().catch((err) => {
+          console.error("[NetworkGuardBanner] Error resuming queued actions:", err);
+        });
+      }
+    }, [isSupported]);
 
     // Determine if banner should be visible
     const shouldShow = useMemo(() => {
-      return show && !isSupported && !isDismissed;
-    }, [show, isSupported, isDismissed]);
+      // Suppress this banner when a dropped-session banner has higher priority
+      return show && !isSupported && !isDismissed && !isDroppedSession;
+    }, [show, isSupported, isDismissed, isDroppedSession]);
 
     // Validate that network data is available when unsupported
     const hasValidData = useMemo(() => {
@@ -92,8 +147,11 @@ export const NetworkGuardBanner = React.memo(
     const handleDismiss = useCallback(() => {
       if (dismissible) {
         setIsDismissed(true);
+        if (persistDismissal) {
+          persistBannerDismissal(dismissalKey, resolvedIdentity, true);
+        }
       }
-    }, [dismissible]);
+    }, [dismissible, persistDismissal, dismissalKey, resolvedIdentity]);
 
     // Handle network switch action
     const handleSwitchNetwork = useCallback(async () => {
@@ -108,6 +166,19 @@ export const NetworkGuardBanner = React.memo(
         setIsLoading(false);
       }
     }, [onSwitchNetwork, isLoading]);
+
+    const handleRetryNetworkCheck = useCallback(async () => {
+      if (!onRetryNetworkCheck || isLoading) return;
+
+      setIsLoading(true);
+      try {
+        await Promise.resolve(onRetryNetworkCheck());
+      } catch (error) {
+        console.error("[NetworkGuardBanner] Error retrying network check:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }, [onRetryNetworkCheck, isLoading]);
 
     // Render nothing if banner shouldn't show
     if (!shouldShow) {
@@ -155,6 +226,12 @@ export const NetworkGuardBanner = React.memo(
                 Unsupported Network
               </h3>
               <p className="text-sm text-yellow-700 mt-1">{displayMessage}</p>
+              {getQueuedNetworkActionsCount() > 0 && (
+                <p className="text-xs text-yellow-600 mt-2 font-medium">
+                  {getQueuedNetworkActionsCount()} action(s) will resume
+                  automatically after network recovery.
+                </p>
+              )}
             </div>
           </div>
 
@@ -195,6 +272,18 @@ export const NetworkGuardBanner = React.memo(
                 ) : (
                   actionLabel
                 )}
+              </button>
+            )}
+
+            {onRetryNetworkCheck && (
+              <button
+                onClick={handleRetryNetworkCheck}
+                disabled={isLoading}
+                className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-white text-yellow-800 border border-yellow-300 hover:bg-yellow-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                data-testid="network-retry-button"
+                aria-busy={isLoading}
+              >
+                {retryLabel}
               </button>
             )}
 

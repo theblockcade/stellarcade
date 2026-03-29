@@ -93,3 +93,21 @@ pub fn vesting_state(env: Env, user: Address) -> Vec<VestingSchedule>
 
 `Vec<VestingSchedule>`
 
+### `get_vesting_summary`
+Return a vesting summary for `user` with allocation, claimed, claimable, and remaining amounts. Returns empty summary with zero values if user has no vesting schedules.
+
+```rust
+pub fn get_vesting_summary(env: Env, user: Address) -> VestingSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`VestingSummary`
+

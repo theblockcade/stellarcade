@@ -31,6 +31,7 @@ export function createInitialState<T, E = Error>(): AsyncActionResult<T, E> {
         isSuccess: false,
         isError: false,
         isIdle: true,
+        isPendingSubmit: false,
     };
 }
 
@@ -47,15 +48,37 @@ export function transitionState<T, E = Error>(
     data: T | null = null,
     error: E | null = null
 ): AsyncActionResult<T, E> {
+    const isLoading = status === "loading";
     return {
         status,
         data,
         error,
-        isLoading: status === "loading",
+        isLoading,
         isSuccess: status === "success",
         isError: status === "error",
         isIdle: status === "idle",
+        isPendingSubmit: isLoading,
     };
+}
+
+/**
+ * Returns true when a pending async execution is still allowed to update
+ * consumer state.
+ */
+export function canCommitAsyncAction(
+    executionId: number,
+    latestExecutionId: number,
+    isMounted: boolean,
+): boolean {
+    return isMounted && executionId === latestExecutionId;
+}
+
+/**
+ * Cancels in-flight lifecycle bookkeeping by advancing the execution cursor.
+ * The underlying async work is not aborted; only late UI updates are ignored.
+ */
+export function cancelAsyncAction(latestExecutionId: number): number {
+    return latestExecutionId + 1;
 }
 
 /**

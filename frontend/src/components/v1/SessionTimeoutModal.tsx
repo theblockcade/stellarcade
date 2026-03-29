@@ -39,9 +39,12 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
   testId = 'session-timeout-modal',
 }) => {
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  const [sessionExpiresAtMs, setSessionExpiresAtMs] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [phase, setPhase] = useState<'hidden' | 'warn' | 'expired'>('hidden');
   const [dismissed, setDismissed] = useState(false);
   const expiredHandled = useRef(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const tick = useCallback(() => {
     const state = sessionService.getState();
@@ -53,14 +56,17 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
       return;
     }
     const rem = sessionService.getRemainingPersistenceMs();
-    setRemainingMs(rem);
+    const expiresAt = sessionService.getSessionExpiryTimestampMs();
+    const syncedRemaining = expiresAt === null ? rem : Math.max(0, expiresAt - Date.now());
+    setSessionExpiresAtMs(expiresAt);
+    setRemainingMs(syncedRemaining);
 
-    if (rem === null) {
+    if (syncedRemaining === null) {
       setPhase('hidden');
       return;
     }
 
-    if (rem <= 0) {
+    if (syncedRemaining <= 0) {
       if (!expiredHandled.current) {
         expiredHandled.current = true;
         void sessionService.disconnect().finally(() => {
@@ -72,7 +78,7 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
       return;
     }
 
-    if (rem <= warnBeforeExpiryMs) {
+    if (syncedRemaining <= warnBeforeExpiryMs) {
       if (!dismissed) {
         setPhase('warn');
       } else {
@@ -97,8 +103,33 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     };
   }, [tick, pollIntervalMs, sessionService]);
 
-  const secondsLeft =
-    remainingMs === null ? 0 : Math.max(0, Math.ceil(remainingMs / 1000));
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (sessionExpiresAtMs === null) {
+      setRemainingMs(null);
+      return;
+    }
+    setRemainingMs(Math.max(0, sessionExpiresAtMs - nowMs));
+  }, [sessionExpiresAtMs, nowMs]);
+
+  useEffect(() => {
+    if (phase === 'hidden') {
+      return;
+    }
+
+    const firstInteractive = dialogRef.current?.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    firstInteractive?.focus();
+  }, [phase]);
+
+  const secondsLeft = remainingMs === null ? 0 : Math.max(0, Math.ceil(remainingMs / 1000));
 
   const handleExtend = useCallback(() => {
     sessionService.extendPersistedSession();
@@ -119,6 +150,41 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     setDismissed(false);
   }, [onReconnect]);
 
+  const handleDialogKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (phase === 'warn' && event.key === 'Escape') {
+        event.preventDefault();
+        handleDismiss();
+        return;
+      }
+
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (!focusable || focusable.length === 0) {
+        return;
+      }
+
+      const items = Array.from(focusable);
+      const first = items[0];
+      const last = items[items.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    },
+    [handleDismiss, phase],
+  );
+
   if (phase === 'hidden') {
     return null;
   }
@@ -135,6 +201,8 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
         aria-modal="true"
         aria-labelledby={`${testId}-title-${phase}`}
         aria-describedby={`${testId}-desc-${phase}`}
+        ref={dialogRef}
+        onKeyDown={handleDialogKeyDown}
       >
         {phase === 'warn' && (
           <>
@@ -147,9 +215,13 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
             <p
               id={`${testId}-desc-warn`}
               className="session-timeout-modal__body"
+              role="status"
+              aria-live="polite"
             >
               Your wallet session will expire in{' '}
-              <strong data-testid={`${testId}-countdown`}>{secondsLeft}</strong>{' '}
+              <strong className="session-timeout-modal__countdown" data-testid={`${testId}-countdown`}>
+                {secondsLeft}
+              </strong>{' '}
               second{secondsLeft === 1 ? '' : 's'}. Extend to stay signed in.
             </p>
             <div className="session-timeout-modal__actions">

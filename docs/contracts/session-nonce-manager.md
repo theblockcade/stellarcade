@@ -52,7 +52,7 @@ pub fn consume_nonce(env: Env, account: Address, nonce: u64, purpose: String)
 | `purpose` | `String` |
 
 ### `is_nonce_valid`
-Return `true` if `nonce` for `(account, purpose)` is valid.
+Return `true` if `nonce` for `(account, purpose)` is still active.
 
 ```rust
 pub fn is_nonce_valid(env: Env, account: Address, nonce: u64, purpose: String) -> bool
@@ -71,11 +71,11 @@ pub fn is_nonce_valid(env: Env, account: Address, nonce: u64, purpose: String) -
 
 `bool`
 
-### `revoke_nonce`
-Revoke `nonce` for `account`. Only the admin may revoke nonces.
+### `nonce_status`
+Return lifecycle and TTL metadata for `(account, purpose, nonce)`. The returned status distinguishes active, consumed, revoked, expired, and missing nonces.
 
 ```rust
-pub fn revoke_nonce(env: Env, account: Address, nonce: u64)
+pub fn nonce_status(env: Env, account: Address, nonce: u64, purpose: String) -> NonceStatus
 ```
 
 #### Parameters
@@ -84,5 +84,26 @@ pub fn revoke_nonce(env: Env, account: Address, nonce: u64)
 |------|------|
 | `env` | `Env` |
 | `account` | `Address` |
+| `nonce` | `u64` |
+| `purpose` | `String` |
+
+#### Return Type
+
+`NonceStatus`
+
+### `revoke_nonce`
+Revoke `nonce` for `(account, purpose)`. Only the admin may revoke nonces.
+
+```rust
+pub fn revoke_nonce(env: Env, account: Address, purpose: String, nonce: u64)
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `account` | `Address` |
+| `purpose` | `String` |
 | `nonce` | `u64` |
 

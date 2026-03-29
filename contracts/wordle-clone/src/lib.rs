@@ -136,6 +136,24 @@ pub struct Attempt {
     pub scores: Vec<u32>,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub enum PuzzleSnapshotState {
+    Missing = 0,
+    Active = 1,
+    Completed = 2,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct PuzzleSnapshot {
+    pub state: PuzzleSnapshotState,
+    pub guesses: Vec<Attempt>,
+    pub answer_revealed: bool,
+    pub answer: Bytes,
+    pub remaining_attempts: u32,
+}
+
 /// Storage key discriminants.
 ///
 /// Instance keys (Admin, PrizePoolContract, BalanceContract) live in a single
@@ -525,6 +543,43 @@ impl WordleClone {
             .persistent()
             .get(&DataKey::Winner(puzzle_id, player))
             .unwrap_or(false)
+    }
+
+    /// Return a compact puzzle snapshot for restoring in-progress or completed play.
+    pub fn get_puzzle_snapshot(env: Env, player: Address, puzzle_id: u64) -> PuzzleSnapshot {
+        let attempts: Vec<Attempt> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Attempts(puzzle_id, player))
+            .unwrap_or_else(|| Vec::new(&env));
+
+        let remaining_attempts = MAX_ATTEMPTS.saturating_sub(attempts.len());
+        let puzzle: Option<PuzzleData> =
+            env.storage().persistent().get(&DataKey::Puzzle(puzzle_id));
+
+        match puzzle {
+            Some(puzzle) if puzzle.status == PuzzleStatus::Finalized => PuzzleSnapshot {
+                state: PuzzleSnapshotState::Completed,
+                guesses: attempts,
+                answer_revealed: true,
+                answer: puzzle.answer,
+                remaining_attempts,
+            },
+            Some(puzzle) => PuzzleSnapshot {
+                state: PuzzleSnapshotState::Active,
+                guesses: attempts,
+                answer_revealed: puzzle.status == PuzzleStatus::Revealed,
+                answer: Bytes::new(&env),
+                remaining_attempts,
+            },
+            None => PuzzleSnapshot {
+                state: PuzzleSnapshotState::Missing,
+                guesses: Vec::new(&env),
+                answer_revealed: false,
+                answer: Bytes::new(&env),
+                remaining_attempts: MAX_ATTEMPTS,
+            },
+        }
     }
 }
 
@@ -1083,5 +1138,77 @@ mod test {
         assert!(client.is_winner(&16u64, &w1));
         assert!(client.is_winner(&16u64, &w2));
         assert!(!client.is_winner(&16u64, &loser));
+    }
+
+    #[test]
+    fn test_active_puzzle_snapshot() {
+        let env = Env::default();
+        let (client, _, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let commitment = sha256_of(&env, b"CRANE");
+        client.create_daily_puzzle(&17u64, &commitment);
+
+        let player = Address::generate(&env);
+        client.submit_attempt(&player, &17u64, &bytes5(&env, b"STALE"));
+        client.submit_attempt(&player, &17u64, &bytes5(&env, b"CRATE"));
+
+        let snapshot = client.get_puzzle_snapshot(&player, &17u64);
+        assert_eq!(snapshot.state, PuzzleSnapshotState::Active);
+        assert_eq!(snapshot.guesses.len(), 2);
+        assert_eq!(
+            snapshot.guesses.get(0).unwrap().guess,
+            bytes5(&env, b"STALE")
+        );
+        assert_eq!(
+            snapshot.guesses.get(1).unwrap().guess,
+            bytes5(&env, b"CRATE")
+        );
+        assert_eq!(snapshot.answer.len(), 0);
+        assert!(!snapshot.answer_revealed);
+        assert_eq!(snapshot.remaining_attempts, 4);
+    }
+
+    #[test]
+    fn test_completed_puzzle_snapshot() {
+        let env = Env::default();
+        let (client, _, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let commitment = sha256_of(&env, b"CRANE");
+        client.create_daily_puzzle(&18u64, &commitment);
+
+        let player = Address::generate(&env);
+        client.submit_attempt(&player, &18u64, &bytes5(&env, b"CRANE"));
+        client.reveal_answer(&18u64, &bytes5(&env, b"CRANE"));
+        client.finalize_result(&player, &18u64);
+
+        let snapshot = client.get_puzzle_snapshot(&player, &18u64);
+        assert_eq!(snapshot.state, PuzzleSnapshotState::Completed);
+        assert_eq!(snapshot.answer, bytes5(&env, b"CRANE"));
+        assert!(snapshot.answer_revealed);
+        assert_eq!(snapshot.guesses.len(), 1);
+        assert_eq!(snapshot.guesses.get(0).unwrap().scores.len(), WORD_LENGTH);
+    }
+
+    #[test]
+    fn test_snapshot_keeps_answer_secret_before_completion() {
+        let env = Env::default();
+        let (client, _, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let commitment = sha256_of(&env, b"CRANE");
+        client.create_daily_puzzle(&19u64, &commitment);
+
+        let player = Address::generate(&env);
+        client.submit_attempt(&player, &19u64, &bytes5(&env, b"STALE"));
+        client.reveal_answer(&19u64, &bytes5(&env, b"CRANE"));
+
+        let snapshot = client.get_puzzle_snapshot(&player, &19u64);
+        assert_eq!(snapshot.state, PuzzleSnapshotState::Active);
+        assert!(snapshot.answer_revealed);
+        assert_eq!(snapshot.answer.len(), 0);
+        assert_eq!(snapshot.guesses.len(), 1);
+        assert_eq!(snapshot.guesses.get(0).unwrap().scores.len(), 0);
     }
 }

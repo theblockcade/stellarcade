@@ -114,6 +114,12 @@
   justify-content: space-between;
 }
 
+.tx-status-panel__hash-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .tx-status-panel__meta-label {
   color: var(--text-muted, rgba(255, 255, 255, 0.5));
 }
@@ -121,6 +127,32 @@
 .tx-status-panel__hash {
   font-family: monospace;
   color: var(--primary-color, #3498db);
+}
+
+.tx-status-panel__copy-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.tx-status-panel__copy-btn:hover {
+  border-color: var(--primary-color, #3498db);
+  color: var(--primary-color, #3498db);
+}
+
+.tx-status-panel__copy-btn:focus-visible {
+  outline: 2px solid var(--primary-color, #3498db);
+  outline-offset: 2px;
+}
+
+.tx-status-panel__copy-btn--copied {
+  border-color: var(--success-color, #2ecc71);
+  color: var(--success-color, #2ecc71);
 }
 
 .tx-status-panel__explorer-link {

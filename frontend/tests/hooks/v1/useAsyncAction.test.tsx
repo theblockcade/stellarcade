@@ -140,4 +140,186 @@ describe("useAsyncAction Hook", () => {
     expect(result.current.status).toBe("idle");
     expect(result.current.data).toBeNull();
   });
+
+  it("does not update state after unmount while an action is pending", async () => {
+    let resolveAction!: (value: string) => void;
+    const action = vi.fn().mockImplementation(
+      () => new Promise<string>((resolve) => {
+        resolveAction = resolve;
+      }),
+    );
+    const onSuccess = vi.fn();
+
+    const { result, unmount } = renderHook(() =>
+      useAsyncAction(action, { onSuccess }),
+    );
+
+    let pendingPromise!: Promise<string | undefined>;
+    act(() => {
+      pendingPromise = result.current.run();
+    });
+    expect(result.current.status).toBe("loading");
+
+    unmount();
+    await act(async () => {
+      resolveAction("late success");
+      await pendingPromise;
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("supports explicit cancellation without swallowing the underlying result", async () => {
+    let resolveAction!: (value: string) => void;
+    const action = vi.fn().mockImplementation(
+      () => new Promise<string>((resolve) => {
+        resolveAction = resolve;
+      }),
+    );
+    const onSuccess = vi.fn();
+
+    const { result } = renderHook(() =>
+      useAsyncAction(action, { onSuccess }),
+    );
+
+    let pendingPromise!: Promise<string | undefined>;
+    act(() => {
+      pendingPromise = result.current.run();
+    });
+    expect(result.current.status).toBe("loading");
+
+    act(() => {
+      result.current.cancel();
+    });
+
+    expect(result.current.status).toBe("idle");
+
+    let resolvedValue: string | undefined;
+    await act(async () => {
+      resolveAction("completed after cancel");
+      resolvedValue = await pendingPromise;
+    });
+
+    expect(resolvedValue).toBe("completed after cancel");
+    expect(result.current.status).toBe("idle");
+    expect(result.current.data).toBeNull();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  // ── Duplicate-submit guard / pending-submit lock ─────────────────────────────
+
+  it("exposes isPendingSubmit flag that is true while loading", async () => {
+    let resolveAction: (val: string) => void;
+    const action = vi.fn().mockImplementation(
+      () => new Promise<string>((resolve) => { resolveAction = resolve; }),
+    );
+
+    const { result } = renderHook(() => useAsyncAction(action));
+
+    act(() => {
+      result.current.run();
+    });
+
+    expect(result.current.isPendingSubmit).toBe(true);
+    expect(result.current.isLoading).toBe(true);
+
+    await act(async () => {
+      resolveAction!("done");
+    });
+
+    expect(result.current.isPendingSubmit).toBe(false);
+  });
+
+  it("isPendingSubmit is false after action fails — guard does not block retry", async () => {
+    const error = new Error("submit error");
+    const action = vi.fn().mockRejectedValue(error);
+
+    const { result } = renderHook(() => useAsyncAction(action));
+
+    await act(async () => {
+      try { await result.current.run(); } catch { /* expected */ }
+    });
+
+    // After failure, isPendingSubmit resets so a retry can be submitted
+    expect(result.current.isPendingSubmit).toBe(false);
+    expect(result.current.isError).toBe(true);
+
+    // Second attempt should be allowed
+    action.mockResolvedValueOnce("retry success");
+    await act(async () => {
+      await result.current.run();
+    });
+    expect(result.current.isSuccess).toBe(true);
+  });
+
+  it("isPendingSubmit is false after successful completion — state resets cleanly", async () => {
+    const action = vi.fn().mockResolvedValue("clean result");
+    const { result } = renderHook(() => useAsyncAction(action));
+
+    await act(async () => {
+      await result.current.run();
+    });
+
+    expect(result.current.isPendingSubmit).toBe(false);
+    expect(result.current.isSuccess).toBe(true);
+    expect(result.current.data).toBe("clean result");
+  });
+
+  it("duplicate-click suppression: rapid clicks trigger action only once while pending", async () => {
+    let resolveAction: (val: string) => void;
+    const action = vi.fn().mockImplementation(
+      () => new Promise<string>((resolve) => { resolveAction = resolve; }),
+    );
+
+    const { result } = renderHook(() => useAsyncAction(action, { preventConcurrent: true }));
+
+    act(() => { result.current.run(); });
+    expect(result.current.isPendingSubmit).toBe(true);
+
+    // Rapid second click — should be suppressed
+    let secondResult: unknown;
+    await act(async () => {
+      secondResult = await result.current.run();
+    });
+    expect(secondResult).toBeUndefined();
+    expect(action).toHaveBeenCalledTimes(1);
+
+    // Resolve the original
+    await act(async () => { resolveAction!("done"); });
+    expect(result.current.isPendingSubmit).toBe(false);
+    expect(result.current.isSuccess).toBe(true);
+  });
+
+  it("reset after failure clears error and allows fresh submission", async () => {
+    const action = vi.fn().mockRejectedValue(new Error("oops"));
+    const { result } = renderHook(() => useAsyncAction(action));
+
+    await act(async () => {
+      try { await result.current.run(); } catch { /* expected */ }
+    });
+    expect(result.current.isError).toBe(true);
+
+    act(() => { result.current.reset(); });
+    expect(result.current.isIdle).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isPendingSubmit).toBe(false);
+  });
+
+  it("keeps normal success behavior unchanged when not cancelled", async () => {
+    const action = vi.fn().mockResolvedValue("steady success");
+    const onSuccess = vi.fn();
+    const { result } = renderHook(() =>
+      useAsyncAction(action, { onSuccess }),
+    );
+
+    let resolvedValue: string | undefined;
+    await act(async () => {
+      resolvedValue = await result.current.run();
+    });
+
+    expect(resolvedValue).toBe("steady success");
+    expect(result.current.status).toBe("success");
+    expect(result.current.data).toBe("steady success");
+    expect(onSuccess).toHaveBeenCalledWith("steady success");
+  });
 });

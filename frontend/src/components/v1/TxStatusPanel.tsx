@@ -1,23 +1,27 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { TxPhase, TxStatusMeta, TxStatusError } from '../../types/tx-status';
 import { formatAddress, formatDate } from '../../utils/v1/formatters';
 import './TxStatusPanel.css';
 
 export interface TxStatusPanelProps {
-    /** Current lifecycle phase of the transaction */
-    phase: TxPhase;
-    /** Metadata about the transaction (hash, timing, etc.) */
-    meta?: TxStatusMeta | null;
-    /** Structured error if the phase is FAILED */
-    error?: TxStatusError | null;
-    /** Whether to show a simplified compact view (true) or detailed expanded view (false) */
-    compact?: boolean;
-    /** Optional callback to open the transaction in an explorer */
-    onExplorerLink?: (hash: string) => void;
-    /** Optional additional CSS classes */
-    className?: string;
-    /** Test identifier for component queries */
-    testId?: string;
+  /** Current lifecycle phase of the transaction */
+  phase: TxPhase;
+  /** Metadata about the transaction (hash, timing, etc.) */
+  meta?: TxStatusMeta | null;
+  /** Structured error if the phase is FAILED */
+  error?: TxStatusError | null;
+  /** Whether to show a simplified compact view (true) or detailed expanded view (false) */
+  compact?: boolean;
+  /** Optional callback to open the transaction in an explorer */
+  onExplorerLink?: (hash: string) => void;
+  /** Optional explorer URL generator - receives hash, returns full URL */
+  explorerUrl?: (hash: string) => string;
+  /** Whether to show the copy button for transaction hash */
+  showCopyButton?: boolean;
+  /** Optional additional CSS classes */
+  className?: string;
+  /** Test identifier for component queries */
+  testId?: string;
 }
 
 /**
@@ -27,18 +31,41 @@ export interface TxStatusPanelProps {
  * Consume transaction state and metadata provided by application services.
  */
 export const TxStatusPanel: React.FC<TxStatusPanelProps> = ({
-    phase,
-    meta,
-    error,
-    compact = false,
-    onExplorerLink,
-    className = '',
-    testId = 'tx-status-panel'
+  phase,
+  meta,
+  error,
+  compact = false,
+  onExplorerLink,
+  explorerUrl,
+  showCopyButton = true,
+  className = '',
+  testId = 'tx-status-panel'
 }) => {
-    const isFailed = phase === TxPhase.FAILED;
-    const isConfirmed = phase === TxPhase.CONFIRMED;
-    const isPending = phase === TxPhase.PENDING || phase === TxPhase.SUBMITTED;
-    const isIdle = phase === TxPhase.IDLE;
+  const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
+
+  const isFailed = phase === TxPhase.FAILED;
+  const isPending = phase === TxPhase.PENDING || phase === TxPhase.SUBMITTED;
+  const isIdle = phase === TxPhase.IDLE;
+
+  const handleCopy = useCallback(async () => {
+    if (!meta?.hash) return;
+    try {
+      await navigator.clipboard.writeText(meta.hash);
+      setCopyState('copied');
+      setTimeout(() => setCopyState('idle'), 2000);
+    } catch {
+      console.error('Failed to copy transaction hash');
+    }
+  }, [meta?.hash]);
+
+  const handleExplorerClick = useCallback(() => {
+    if (!meta?.hash) return;
+    if (explorerUrl) {
+      const url = explorerUrl(meta.hash);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+    onExplorerLink?.(meta.hash);
+  }, [meta?.hash, explorerUrl, onExplorerLink]);
 
     const containerClasses = [
         'tx-status-panel',
@@ -98,53 +125,81 @@ export const TxStatusPanel: React.FC<TxStatusPanelProps> = ({
                 </div>
             )}
 
-            {!compact && meta && (
-                <div className="tx-status-panel__meta" data-testid={`${testId}-meta`}>
-                    <div className="tx-status-panel__meta-row">
-                        <span className="tx-status-panel__meta-label">Transaction Hash</span>
-                        <span className="tx-status-panel__hash" title={meta.hash}>
-                            {formatAddress(meta.hash, { startChars: 8, endChars: 8 })}
-                        </span>
-                    </div>
-
-                    <div className="tx-status-panel__meta-row">
-                        <span className="tx-status-panel__meta-label">Submitted</span>
-                        <span>{formatDate(meta.submittedAt, { timeStyle: 'short' })}</span>
-                    </div>
-
-                    {meta.settledAt && (
-                        <div className="tx-status-panel__meta-row">
-                            <span className="tx-status-panel__meta-label">Settled</span>
-                            <span>{formatDate(meta.settledAt, { timeStyle: 'short' })}</span>
-                        </div>
-                    )}
-
-                    {meta.confirmations > 0 && !isFailed && (
-                        <div className="tx-status-panel__meta-row">
-                            <span className="tx-status-panel__meta-label">Confirmations</span>
-                            <span data-testid={`${testId}-confirmations`}>{meta.confirmations}</span>
-                        </div>
-                    )}
-
-                    {onExplorerLink && (
-                        <button
-                            className="tx-status-panel__explorer-link"
-                            onClick={() => onExplorerLink(meta.hash)}
-                            data-testid={`${testId}-explorer-btn`}
-                        >
-                            View in Explorer &rarr;
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {isIdle && !compact && (
-                <div className="tx-status-panel__empty-state">
-                    Submit a transaction to track its progress in real-time.
-                </div>
-            )}
+  {!compact && meta && (
+    <div className="tx-status-panel__meta" data-testid={`${testId}-meta`}>
+      <div className="tx-status-panel__meta-row">
+        <span className="tx-status-panel__meta-label">Transaction Hash</span>
+        <div className="tx-status-panel__hash-row">
+          <span className="tx-status-panel__hash" title={meta.hash}>
+            {formatAddress(meta.hash, { startChars: 8, endChars: 8 })}
+          </span>
+          {showCopyButton && (
+            <button
+              type="button"
+              className={`tx-status-panel__copy-btn${copyState === 'copied' ? ' tx-status-panel__copy-btn--copied' : ''}`}
+              onClick={handleCopy}
+              aria-label={copyState === 'copied' ? 'Copied!' : 'Copy transaction hash'}
+              data-testid={`${testId}-copy-btn`}
+            >
+              {copyState === 'copied' ? '✓' : '📋'}
+            </button>
+          )}
         </div>
-    );
+      </div>
+
+      <div className="tx-status-panel__meta-row">
+        <span className="tx-status-panel__meta-label">Submitted</span>
+        <span>{formatDate(meta.submittedAt, { timeStyle: 'short' })}</span>
+      </div>
+
+      {meta.settledAt && (
+        <div className="tx-status-panel__meta-row">
+          <span className="tx-status-panel__meta-label">Settled</span>
+          <span>{formatDate(meta.settledAt, { timeStyle: 'short' })}</span>
+        </div>
+      )}
+
+      {meta.confirmations > 0 && !isFailed && (
+        <div className="tx-status-panel__meta-row">
+          <span className="tx-status-panel__meta-label">Confirmations</span>
+          <span data-testid={`${testId}-confirmations`}>{meta.confirmations}</span>
+        </div>
+      )}
+
+      {meta.retryCount != null && meta.retryCount > 0 && (
+        <div className="tx-status-panel__meta-row" data-testid={`${testId}-retry-count`}>
+          <span className="tx-status-panel__meta-label">Retries</span>
+          <span>{meta.retryCount}</span>
+        </div>
+      )}
+
+      {meta.lastAttemptAt != null && (
+        <div className="tx-status-panel__meta-row" data-testid={`${testId}-last-attempt`}>
+          <span className="tx-status-panel__meta-label">Last Attempt</span>
+          <span>{formatDate(meta.lastAttemptAt, { timeStyle: 'short' })}</span>
+        </div>
+      )}
+
+      {(onExplorerLink || explorerUrl) && (
+        <button
+          type="button"
+          className="tx-status-panel__explorer-link"
+          onClick={handleExplorerClick}
+      data-testid={`${testId}-explorer-btn`}
+        >
+          View in Explorer &rarr;
+        </button>
+      )}
+    </div>
+  )}
+
+  {isIdle && !compact && (
+    <div className="tx-status-panel__empty-state">
+      Submit a transaction to track its progress in real-time.
+    </div>
+  )}
+</div>
+);
 };
 
 TxStatusPanel.displayName = 'TxStatusPanel';

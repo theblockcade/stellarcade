@@ -10,6 +10,46 @@ import './ContractCallSimulatorPanel.css';
 
 const CONTRACT_ADDR_PLACEHOLDER = 'C…56 chars';
 
+interface SimulatorLogEntry {
+  id: number;
+  timestamp: string;
+  contractId: string;
+  method: string;
+  mode: 'success' | 'failure';
+  payload: string;
+  failureCode?: string;
+}
+
+interface ContractSimulatorPreset {
+  id: string;
+  label: string;
+  contractId: string;
+  method: string;
+  mode: 'success' | 'failure';
+  payload: string;
+  failureCode?: SorobanErrorCode;
+}
+
+const PRESETS: ContractSimulatorPreset[] = [
+  {
+    id: 'pool-state-success',
+    label: 'Pool state success',
+    contractId: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4',
+    method: 'get_pool_state',
+    mode: 'success',
+    payload: '{"available":"100","reserved":"20"}',
+  },
+  {
+    id: 'coin-flip-fail',
+    label: 'Coin flip simulation failed',
+    contractId: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4',
+    method: 'play_coin_flip',
+    mode: 'failure',
+    payload: 'Simulation failed due to temporary RPC issue',
+    failureCode: SorobanErrorCode.SimulationFailed,
+  },
+];
+
 /**
  * Collapsible dev-only UI to register mocked Soroban simulate / invoke outcomes.
  * Never rendered in production builds (parent should gate on `import.meta.env.DEV`).
@@ -24,6 +64,8 @@ export const ContractCallSimulatorPanel: React.FC = () => {
     SorobanErrorCode.RpcError,
   );
   const [status, setStatus] = useState<string | null>(null);
+  const [presetId, setPresetId] = useState('');
+  const [logEntries, setLogEntries] = useState<SimulatorLogEntry[]>([]);
 
   const keys = useMemo(
     () => (open ? devListContractSimKeys() : []),
@@ -42,12 +84,48 @@ export const ContractCallSimulatorPanel: React.FC = () => {
       return;
     }
     devRegisterContractSimResult(contractId.trim(), method.trim(), result);
+    setLogEntries((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        contractId: contractId.trim(),
+        method: method.trim(),
+        mode,
+        payload,
+        failureCode: mode === 'failure' ? failureCode : undefined,
+      },
+    ]);
     setStatus(`Registered mock for ${method.trim()}.`);
   };
 
   const onClear = () => {
     devClearContractSimResults();
     setStatus('Cleared all dev mocks.');
+  };
+
+  const applyPreset = (nextPresetId: string) => {
+    setPresetId(nextPresetId);
+    if (!nextPresetId) {
+      setContractId('');
+      setMethod('');
+      setMode('success');
+      setPayload('{}');
+      setFailureCode(SorobanErrorCode.RpcError);
+      setStatus('Cleared preset values.');
+      return;
+    }
+
+    const preset = PRESETS.find((entry) => entry.id === nextPresetId);
+    if (!preset) {
+      return;
+    }
+    setContractId(preset.contractId);
+    setMethod(preset.method);
+    setMode(preset.mode);
+    setPayload(preset.payload);
+    setFailureCode(preset.failureCode ?? SorobanErrorCode.RpcError);
+    setStatus(`Applied preset: ${preset.label}.`);
   };
 
   return (
@@ -70,6 +148,21 @@ export const ContractCallSimulatorPanel: React.FC = () => {
           <p className="contract-call-simulator__hint">
             Matches any <code>simulate</code> / <code>invoke</code> with the same contract id and method name.
           </p>
+          <label className="contract-call-simulator__field contract-call-simulator__preset-field">
+            <span>Preset scenario</span>
+            <select
+              value={presetId}
+              onChange={(e) => applyPreset(e.target.value)}
+              data-testid="contract-call-simulator-preset"
+            >
+              <option value="">Manual entry (no preset)</option>
+              {PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="contract-call-simulator__field">
             <span>Contract ID</span>
             <input
@@ -181,6 +274,51 @@ export const ContractCallSimulatorPanel: React.FC = () => {
               </ul>
             </div>
           )}
+
+          {/* Request-response log pane */}
+          <div className="contract-call-simulator__log" data-testid="contract-call-simulator-log">
+            <div className="contract-call-simulator__log-header">
+              <strong>Request Log ({logEntries.length})</strong>
+              {logEntries.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setLogEntries([])}
+                  className="contract-call-simulator__log-clear"
+                  data-testid="contract-call-simulator-log-clear"
+                >
+                  Clear log
+                </button>
+              )}
+            </div>
+            {logEntries.length === 0 ? (
+              <p
+                className="contract-call-simulator__log-empty"
+                data-testid="contract-call-simulator-log-empty"
+              >
+                No requests logged yet. Register a mock to see entries here.
+              </p>
+            ) : (
+              <ul className="contract-call-simulator__log-list">
+                {logEntries.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className={`contract-call-simulator__log-entry contract-call-simulator__log-entry--${entry.mode}`}
+                    data-testid="contract-call-simulator-log-entry"
+                  >
+                    <span className="contract-call-simulator__log-time">
+                      {entry.timestamp.slice(11, 19)}
+                    </span>
+                    <span className="contract-call-simulator__log-method">
+                      {entry.method}
+                    </span>
+                    <span className={`contract-call-simulator__log-badge contract-call-simulator__log-badge--${entry.mode}`}>
+                      {entry.mode}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
     </aside>

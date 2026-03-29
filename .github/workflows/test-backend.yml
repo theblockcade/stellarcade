@@ -25,5 +25,8 @@ jobs:
       - name: Run Linter
         run: cd backend && npm run lint
 
+      - name: Validate OpenAPI Spec
+        run: cd backend && npm run openapi:validate
+
       - name: Run Tests
         run: cd backend && npm test

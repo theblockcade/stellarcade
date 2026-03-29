@@ -8,6 +8,8 @@
 
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import React from "react";
+import { I18nProvider } from "../../../src/i18n/provider";
 import {
   useWagerValidation,
   useGameIdValidation,
@@ -16,12 +18,63 @@ import {
   useStringValidation,
   useNumberValidation,
   useFormValidation,
+  useFieldValidationHint,
+  getValidationMessageKey,
+  translateValidationError,
 } from "../../../src/hooks/v1/validation";
 import { ValidationErrorCode } from "../../../src/utils/v1/validation";
 
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <I18nProvider>{children}</I18nProvider>
+);
+
+describe("getValidationMessageKey", () => {
+  it("returns field-specific key when field is present", () => {
+    const error = {
+      code: ValidationErrorCode.Required,
+      message: "Required",
+      field: "wager",
+    };
+    expect(getValidationMessageKey(error)).toBe("validation.wager.required");
+  });
+
+  it("returns generic key when field is missing", () => {
+    const error = {
+      code: ValidationErrorCode.InvalidType,
+      message: "Invalid type",
+    };
+    expect(getValidationMessageKey(error)).toBe("validation.generic.invalid_type");
+  });
+});
+
+describe("translateValidationError", () => {
+  it("translates error using provided t function", () => {
+    const error = {
+      code: ValidationErrorCode.Required,
+      message: "Original Message",
+      field: "wager",
+    };
+    const t = (key: string, fallback?: string) => {
+      if (key === "validation.wager.required") return "Localized Wager Required";
+      return fallback || key;
+    };
+    expect(translateValidationError(error, t)).toBe("Localized Wager Required");
+  });
+
+  it("falls back to original message if key is missing", () => {
+    const error = {
+      code: ValidationErrorCode.Required,
+      message: "Original Message",
+      field: "nonexistent",
+    };
+    const t = (_key: string, fallback?: string) => fallback || "fallback";
+    expect(translateValidationError(error, t)).toBe("Original Message");
+  });
+});
+
 describe("useWagerValidation", () => {
   it("initializes with default values", () => {
-    const { result } = renderHook(() => useWagerValidation());
+    const { result } = renderHook(() => useWagerValidation(), { wrapper });
     
     expect(result.current.value).toBe("");
     expect(result.current.error).toBeNull();
@@ -30,13 +83,13 @@ describe("useWagerValidation", () => {
   });
 
   it("initializes with custom value", () => {
-    const { result } = renderHook(() => useWagerValidation("50000000"));
+    const { result } = renderHook(() => useWagerValidation("50000000"), { wrapper });
     
     expect(result.current.value).toBe("50000000");
   });
 
   it("updates value and marks as dirty", () => {
-    const { result } = renderHook(() => useWagerValidation());
+    const { result } = renderHook(() => useWagerValidation(), { wrapper });
     
     act(() => {
       result.current.setValue("100000000");
@@ -47,7 +100,7 @@ describe("useWagerValidation", () => {
   });
 
   it("validates on touch", () => {
-    const { result } = renderHook(() => useWagerValidation("invalid"));
+    const { result } = renderHook(() => useWagerValidation("invalid"), { wrapper });
     
     act(() => {
       result.current.touch();
@@ -59,7 +112,7 @@ describe("useWagerValidation", () => {
   });
 
   it("validates valid wager", () => {
-    const { result } = renderHook(() => useWagerValidation("50000000"));
+    const { result } = renderHook(() => useWagerValidation("50000000"), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -71,7 +124,7 @@ describe("useWagerValidation", () => {
   });
 
   it("validates invalid wager", () => {
-    const { result } = renderHook(() => useWagerValidation("100"));
+    const { result } = renderHook(() => useWagerValidation("100"), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -84,7 +137,7 @@ describe("useWagerValidation", () => {
   });
 
   it("clears error on value change", () => {
-    const { result } = renderHook(() => useWagerValidation("invalid"));
+    const { result } = renderHook(() => useWagerValidation("invalid"), { wrapper });
     
     act(() => {
       result.current.touch();
@@ -100,7 +153,7 @@ describe("useWagerValidation", () => {
   });
 
   it("resets to initial value", () => {
-    const { result } = renderHook(() => useWagerValidation("50000000"));
+    const { result } = renderHook(() => useWagerValidation("50000000"), { wrapper });
     
     act(() => {
       result.current.setValue("100000000");
@@ -120,7 +173,7 @@ describe("useWagerValidation", () => {
   });
 
   it("resets to new value", () => {
-    const { result } = renderHook(() => useWagerValidation("50000000"));
+    const { result } = renderHook(() => useWagerValidation("50000000"), { wrapper });
     
     act(() => {
       result.current.reset("200000000");
@@ -132,7 +185,7 @@ describe("useWagerValidation", () => {
 
   it("respects custom bounds", () => {
     const customBounds = { min: 1000n, max: 5000n };
-    const { result } = renderHook(() => useWagerValidation("3000", customBounds));
+    const { result } = renderHook(() => useWagerValidation("3000", customBounds), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -144,7 +197,7 @@ describe("useWagerValidation", () => {
 
   it("validates against custom bounds", () => {
     const customBounds = { min: 1000n, max: 5000n };
-    const { result } = renderHook(() => useWagerValidation("10000", customBounds));
+    const { result } = renderHook(() => useWagerValidation("10000", customBounds), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -158,7 +211,7 @@ describe("useWagerValidation", () => {
 
 describe("useGameIdValidation", () => {
   it("initializes with default values", () => {
-    const { result } = renderHook(() => useGameIdValidation());
+    const { result } = renderHook(() => useGameIdValidation(), { wrapper });
     
     expect(result.current.value).toBe("");
     expect(result.current.error).toBeNull();
@@ -166,7 +219,7 @@ describe("useGameIdValidation", () => {
   });
 
   it("validates valid game ID", () => {
-    const { result } = renderHook(() => useGameIdValidation("12345"));
+    const { result } = renderHook(() => useGameIdValidation("12345"), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -177,7 +230,7 @@ describe("useGameIdValidation", () => {
   });
 
   it("validates invalid game ID", () => {
-    const { result } = renderHook(() => useGameIdValidation("-1"));
+    const { result } = renderHook(() => useGameIdValidation("-1"), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -189,7 +242,7 @@ describe("useGameIdValidation", () => {
   });
 
   it("accepts zero as valid ID", () => {
-    const { result } = renderHook(() => useGameIdValidation("0"));
+    const { result } = renderHook(() => useGameIdValidation("0"), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -205,7 +258,8 @@ describe("useEnumValidation", () => {
 
   it("initializes with default values", () => {
     const { result } = renderHook(() => 
-      useEnumValidation<"heads" | "tails">("heads", allowedSides, "side")
+      useEnumValidation<"heads" | "tails">("heads", allowedSides, "side"),
+      { wrapper }
     );
     
     expect(result.current.value).toBe("heads");
@@ -214,7 +268,8 @@ describe("useEnumValidation", () => {
 
   it("validates valid enum value", () => {
     const { result } = renderHook(() => 
-      useEnumValidation<"heads" | "tails">("tails", allowedSides, "side")
+      useEnumValidation<"heads" | "tails">("tails", allowedSides, "side"),
+      { wrapper }
     );
     
     let isValid: boolean = false;
@@ -227,7 +282,8 @@ describe("useEnumValidation", () => {
 
   it("validates empty value as invalid", () => {
     const { result } = renderHook(() => 
-      useEnumValidation<"heads" | "tails">("", allowedSides, "side")
+      useEnumValidation<"heads" | "tails">("", allowedSides, "side"),
+      { wrapper }
     );
     
     let isValid: boolean = false;
@@ -241,7 +297,8 @@ describe("useEnumValidation", () => {
 
   it("updates value correctly", () => {
     const { result } = renderHook(() => 
-      useEnumValidation<"heads" | "tails">("heads", allowedSides, "side")
+      useEnumValidation<"heads" | "tails">("heads", allowedSides, "side"),
+      { wrapper }
     );
     
     act(() => {
@@ -257,14 +314,14 @@ describe("useAddressValidation", () => {
   const validAddress = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQRSTUVW";
 
   it("initializes with default values", () => {
-    const { result } = renderHook(() => useAddressValidation());
+    const { result } = renderHook(() => useAddressValidation(), { wrapper });
     
     expect(result.current.value).toBe("");
     expect(result.current.error).toBeNull();
   });
 
   it("validates valid address", () => {
-    const { result } = renderHook(() => useAddressValidation(validAddress));
+    const { result } = renderHook(() => useAddressValidation(validAddress), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -275,7 +332,7 @@ describe("useAddressValidation", () => {
   });
 
   it("validates invalid address", () => {
-    const { result } = renderHook(() => useAddressValidation("invalid"));
+    const { result } = renderHook(() => useAddressValidation("invalid"), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -289,7 +346,7 @@ describe("useAddressValidation", () => {
 
 describe("useStringValidation", () => {
   it("initializes with default values", () => {
-    const { result } = renderHook(() => useStringValidation("", "username"));
+    const { result } = renderHook(() => useStringValidation("", "username"), { wrapper });
     
     expect(result.current.value).toBe("");
     expect(result.current.error).toBeNull();
@@ -297,7 +354,8 @@ describe("useStringValidation", () => {
 
   it("validates valid string", () => {
     const { result } = renderHook(() => 
-      useStringValidation("john_doe", "username", { minLength: 3, maxLength: 20 })
+      useStringValidation("john_doe", "username", { minLength: 3, maxLength: 20 }),
+      { wrapper }
     );
     
     let isValid: boolean = false;
@@ -310,7 +368,8 @@ describe("useStringValidation", () => {
 
   it("validates string too short", () => {
     const { result } = renderHook(() => 
-      useStringValidation("ab", "username", { minLength: 3 })
+      useStringValidation("ab", "username", { minLength: 3 }),
+      { wrapper }
     );
     
     let isValid: boolean = false;
@@ -324,7 +383,8 @@ describe("useStringValidation", () => {
 
   it("validates string too long", () => {
     const { result } = renderHook(() => 
-      useStringValidation("verylongusername", "username", { maxLength: 10 })
+      useStringValidation("verylongusername", "username", { maxLength: 10 }),
+      { wrapper }
     );
     
     let isValid: boolean = false;
@@ -341,7 +401,8 @@ describe("useStringValidation", () => {
       useStringValidation("john!", "username", { 
         pattern: /^[a-z_]+$/,
         patternDescription: "lowercase letters and underscores"
-      })
+      }),
+      { wrapper }
     );
     
     let isValid: boolean = false;
@@ -356,14 +417,14 @@ describe("useStringValidation", () => {
 
 describe("useNumberValidation", () => {
   it("initializes with default values", () => {
-    const { result } = renderHook(() => useNumberValidation("", "age"));
+    const { result } = renderHook(() => useNumberValidation("", "age"), { wrapper });
     
     expect(result.current.value).toBe("");
     expect(result.current.error).toBeNull();
   });
 
   it("validates valid number", () => {
-    const { result } = renderHook(() => useNumberValidation("25", "age", { min: 18, max: 100 }));
+    const { result } = renderHook(() => useNumberValidation("25", "age", { min: 18, max: 100 }), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -374,7 +435,7 @@ describe("useNumberValidation", () => {
   });
 
   it("validates number below minimum", () => {
-    const { result } = renderHook(() => useNumberValidation("10", "age", { min: 18 }));
+    const { result } = renderHook(() => useNumberValidation("10", "age", { min: 18 }), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -386,7 +447,7 @@ describe("useNumberValidation", () => {
   });
 
   it("validates number above maximum", () => {
-    const { result } = renderHook(() => useNumberValidation("150", "age", { max: 100 }));
+    const { result } = renderHook(() => useNumberValidation("150", "age", { max: 100 }), { wrapper });
     
     let isValid: boolean = false;
     act(() => {
@@ -400,16 +461,18 @@ describe("useNumberValidation", () => {
 
 describe("useFormValidation", () => {
   it("validates all fields", () => {
-    const { result: wagerResult } = renderHook(() => useWagerValidation("50000000"));
+    const { result: wagerResult } = renderHook(() => useWagerValidation("50000000"), { wrapper });
     const { result: sideResult } = renderHook(() => 
-      useEnumValidation<"heads" | "tails">("heads", ["heads", "tails"], "side")
+      useEnumValidation<"heads" | "tails">("heads", ["heads", "tails"], "side"),
+      { wrapper }
     );
     
     const { result: formResult } = renderHook(() => 
       useFormValidation({
         wager: wagerResult.current,
         side: sideResult.current,
-      })
+      }),
+      { wrapper }
     );
     
     let allValid: boolean = false;
@@ -421,16 +484,18 @@ describe("useFormValidation", () => {
   });
 
   it("detects invalid fields", () => {
-    const { result: wagerResult } = renderHook(() => useWagerValidation("invalid"));
+    const { result: wagerResult } = renderHook(() => useWagerValidation("invalid"), { wrapper });
     const { result: sideResult } = renderHook(() => 
-      useEnumValidation<"heads" | "tails">("heads", ["heads", "tails"], "side")
+      useEnumValidation<"heads" | "tails">("heads", ["heads", "tails"], "side"),
+      { wrapper }
     );
     
     const { result: formResult } = renderHook(() => 
       useFormValidation({
         wager: wagerResult.current,
         side: sideResult.current,
-      })
+      }),
+      { wrapper }
     );
     
     let allValid: boolean = false;
@@ -442,16 +507,18 @@ describe("useFormValidation", () => {
   });
 
   it("touches all fields", () => {
-    const { result: wagerResult } = renderHook(() => useWagerValidation());
+    const { result: wagerResult } = renderHook(() => useWagerValidation(), { wrapper });
     const { result: sideResult } = renderHook(() => 
-      useEnumValidation<"heads" | "tails">("", ["heads", "tails"], "side")
+      useEnumValidation<"heads" | "tails">("", ["heads", "tails"], "side"),
+      { wrapper }
     );
     
     const { result: formResult } = renderHook(() => 
       useFormValidation({
         wager: wagerResult.current,
         side: sideResult.current,
-      })
+      }),
+      { wrapper }
     );
     
     expect(wagerResult.current.isDirty).toBe(false);
@@ -466,9 +533,70 @@ describe("useFormValidation", () => {
   });
 });
 
+describe("useFieldValidationHint", () => {
+  it("returns localized error message", async () => {
+    const error = {
+      code: ValidationErrorCode.Required,
+      message: "Original Required Message",
+      field: "wager",
+    };
+    
+    const { result } = renderHook(
+      () => useFieldValidationHint("wager", error),
+      { wrapper }
+    );
+    
+    // Fallback should be the original message before translations are loaded
+    expect(result.current?.message).toBe("Original Required Message");
+  });
+
+  it("translates error message using provided translation", () => {
+    const error = {
+      code: ValidationErrorCode.Required,
+      message: "Required",
+      field: "wager",
+    };
+    
+    const t = (key: string, fallback?: string) => {
+      if (key === "validation.wager.required") return "Localized Wager Required";
+      return fallback || key;
+    };
+    
+    const translated = translateValidationError(error, t);
+    expect(translated).toBe("Localized Wager Required");
+  });
+
+  it("handles mixed field validation scenarios", () => {
+    const wagerError = {
+      code: ValidationErrorCode.OutOfRange,
+      message: "Wager too small",
+      field: "wager",
+    };
+    const sideError = {
+      code: ValidationErrorCode.Required,
+      message: "Side required",
+      field: "side",
+    };
+    
+    const { result: wagerHint } = renderHook(
+      () => useFieldValidationHint("wager", wagerError),
+      { wrapper }
+    );
+    const { result: sideHint } = renderHook(
+      () => useFieldValidationHint("side", sideError),
+      { wrapper }
+    );
+    
+    expect(wagerHint.current?.message).toBe("Wager too small");
+    expect(sideHint.current?.message).toBe("Side required");
+    expect(wagerHint.current?.field).toBe("wager");
+    expect(sideHint.current?.field).toBe("side");
+  });
+});
+
 describe("Hook Stability", () => {
   it("maintains stable function references", () => {
-    const { result, rerender } = renderHook(() => useWagerValidation());
+    const { result, rerender } = renderHook(() => useWagerValidation(), { wrapper });
     
     const initialSetValue = result.current.setValue;
     const initialValidate = result.current.validate;
@@ -482,7 +610,7 @@ describe("Hook Stability", () => {
   });
 
   it("handles rapid value changes", () => {
-    const { result } = renderHook(() => useWagerValidation());
+    const { result } = renderHook(() => useWagerValidation(), { wrapper });
     
     act(() => {
       result.current.setValue("10000000");
@@ -495,7 +623,7 @@ describe("Hook Stability", () => {
   });
 
   it("handles validation during value change", () => {
-    const { result } = renderHook(() => useWagerValidation("invalid"));
+    const { result } = renderHook(() => useWagerValidation("invalid"), { wrapper });
     
     act(() => {
       result.current.validate();

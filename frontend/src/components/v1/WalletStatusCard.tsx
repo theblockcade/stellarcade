@@ -32,6 +32,19 @@ function truncateAddress(address: string): string {
 }
 
 /**
+ * Formats a timestamp into a human-readable "Updated X ago" string.
+ */
+function formatLastUpdated(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'Updated just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `Updated ${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  return `Updated ${diffHr}h ago`;
+}
+
+/**
  * Sanitizes a string by stripping HTML tags.
  * Guards against prop-injected markup.
  */
@@ -84,6 +97,84 @@ function safeCall(
 interface StatusBadgeProps {
   variant: WalletBadgeVariant;
   label: string;
+}
+
+interface NetworkRecoveryBannerProps {
+  onRecoverNetwork?: () => void | Promise<void>;
+  pending?: boolean;
+  label?: string;
+}
+
+function NetworkRecoveryBanner({
+  onRecoverNetwork,
+  pending = false,
+  label = 'Recover Network',
+}: NetworkRecoveryBannerProps): React.JSX.Element {
+  const onRecover = useCallback(() => safeCall(onRecoverNetwork, 'onRecoverNetwork'), [onRecoverNetwork]);
+
+  return (
+    <div className="wallet-status-card__network-mismatch" role="status" data-testid="wallet-network-mismatch">
+      <span className="wallet-status-card__network-mismatch-text">
+        Network mismatch detected. Switch back to a supported network to continue.
+      </span>
+      <button
+        className="wallet-status-card__btn wallet-status-card__btn--retry"
+        type="button"
+        onClick={onRecover}
+        disabled={pending || typeof onRecoverNetwork !== 'function'}
+        data-testid="wallet-network-recover-btn"
+      >
+        {pending ? 'Checking network...' : label}
+      </button>
+    </div>
+  );
+}
+
+// ── Dropped-session reconnect banner ───────────────────────────────────────────
+
+interface DroppedSessionBannerProps {
+  onReconnect?: () => void | Promise<void>;
+  pending?: boolean;
+  label?: string;
+}
+
+/**
+ * Renders a distinct reconnect-state banner when a wallet session has dropped
+ * unexpectedly. Intentionally styled differently from NetworkRecoveryBanner to
+ * keep the two states visually and semantically separate.
+ */
+function DroppedSessionBanner({
+  onReconnect,
+  pending = false,
+  label = 'Reconnect',
+}: DroppedSessionBannerProps): React.JSX.Element {
+  const handleReconnect = useCallback(
+    () => safeCall(onReconnect, 'onReconnect'),
+    [onReconnect],
+  );
+
+  return (
+    <div
+      className="wallet-status-card__dropped-session"
+      role="alert"
+      aria-live="assertive"
+      data-testid="wallet-dropped-session-banner"
+    >
+      <span className="wallet-status-card__dropped-session-text">
+        Your wallet session ended unexpectedly. Reconnect to continue.
+      </span>
+      <button
+        className="wallet-status-card__btn wallet-status-card__btn--reconnect"
+        type="button"
+        onClick={handleReconnect}
+        disabled={pending || typeof onReconnect !== 'function'}
+        aria-busy={pending}
+        data-testid="wallet-reconnect-btn"
+      >
+        {pending ? 'Reconnecting...' : label}
+      </button>
+    </div>
+  );
 }
 
 function StatusBadge({ variant, label }: StatusBadgeProps): React.JSX.Element {
@@ -154,17 +245,69 @@ function WalletStatusCardSkeleton({
         />
       </div>
 
-      {/* Action placeholder */}
+      {/* Action button */}
       <div className="wallet-status-card__actions">
-        <SkeletonBase
-          className="wallet-status-card__skeleton-btn"
-          height="34px"
-          width="90px"
-          borderRadius="0.375rem"
-        />
+        <SkeletonBase height="36px" width="100px" />
       </div>
     </div>
   );
+}
+
+function ActionButton({
+  status,
+  capabilities,
+  error,
+  onConnect,
+  onDisconnect,
+  onRetry,
+}: WalletStatusCardProps): React.JSX.Element | null {
+  const effectiveCapabilities = capabilities ?? deriveCapabilities(status ?? 'DISCONNECTED');
+
+  const handleConnect = useCallback(() => safeCall(onConnect, 'onConnect'), [onConnect]);
+  const handleDisconnect = useCallback(() => safeCall(onDisconnect, 'onDisconnect'), [onDisconnect]);
+  const handleRetry = useCallback(() => safeCall(onRetry, 'onRetry'), [onRetry]);
+
+  if (effectiveCapabilities.isConnected) {
+    return (
+      <button
+        className="wallet-status-card__btn wallet-status-card__btn--disconnect"
+        onClick={handleDisconnect}
+        data-testid="wallet-action-btn"
+        type="button"
+      >
+        Disconnect
+      </button>
+    );
+  }
+
+  if (error && error.recoverable) {
+    return (
+      <button
+        className="wallet-status-card__btn wallet-status-card__btn--retry"
+        onClick={handleRetry}
+        data-testid="wallet-action-btn"
+        type="button"
+      >
+        Retry
+      </button>
+    );
+  }
+
+  if (effectiveCapabilities.canConnect) {
+    return (
+      <button
+        className="wallet-status-card__btn wallet-status-card__btn--connect"
+        onClick={handleConnect}
+        disabled={effectiveCapabilities.isConnecting || effectiveCapabilities.isReconnecting}
+        data-testid="wallet-action-btn"
+        type="button"
+      >
+        {effectiveCapabilities.isConnecting || effectiveCapabilities.isReconnecting ? 'Connecting...' : 'Connect'}
+      </button>
+    );
+  }
+
+  return null;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -208,6 +351,16 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
   onConnect,
   onDisconnect,
   onRetry,
+  onRecoverNetwork,
+  networkMismatch = false,
+  networkRecoveryPending = false,
+  networkRecoveryLabel,
+  droppedSession = false,
+  onReconnect,
+  reconnectPending = false,
+  reconnectLabel,
+  lastUpdatedAt = null,
+  isRefreshing = false,
   className,
   testId = 'wallet-status-card',
 }) => {
@@ -228,41 +381,10 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
   const sanitizedProviderName =
     provider?.name ? sanitize(provider.name) : null;
 
-  // ── Action guards ────────────────────────────────────────────────────────────
-  const canConnect =
-    capabilities.canConnect && typeof onConnect === 'function';
-  const canDisconnect =
-    capabilities.isConnected && typeof onDisconnect === 'function';
-  const canRetry =
-    error !== null &&
-    error.recoverable &&
-    typeof onRetry === 'function';
-
-  // ── Handlers ─────────────────────────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handleConnect = useCallback(() => {
-    if (!canConnect) return;
-    safeCall(onConnect, 'onConnect');
-  }, [canConnect, onConnect]);
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handleDisconnect = useCallback(() => {
-    if (!canDisconnect) return;
-    safeCall(onDisconnect, 'onDisconnect');
-  }, [canDisconnect, onDisconnect]);
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handleRetry = useCallback(() => {
-    if (!canRetry) return;
-    safeCall(onRetry, 'onRetry');
-  }, [canRetry, onRetry]);
-
   // ── Render ───────────────────────────────────────────────────────────────────
   const containerClass = ['wallet-status-card', className]
     .filter(Boolean)
     .join(' ');
-
-  const showActions = canConnect || canDisconnect || canRetry;
 
   return (
     <div
@@ -281,6 +403,30 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* ── Freshness row: last-updated + refresh indicator ── */}
+      {(lastUpdatedAt !== null || isRefreshing) && (
+        <div className="wallet-status-card__freshness" data-testid="wallet-freshness">
+          {isRefreshing ? (
+            <span
+              className="wallet-status-card__refresh-spinner"
+              aria-label="Refreshing balance"
+              data-testid="wallet-refresh-spinner"
+              role="status"
+            />
+          ) : (
+            lastUpdatedAt !== null && (
+              <span
+                className="wallet-status-card__last-updated"
+                data-testid="wallet-last-updated"
+                title={new Date(lastUpdatedAt).toLocaleString()}
+              >
+                {formatLastUpdated(lastUpdatedAt)}
+              </span>
+            )
+          )}
+        </div>
+      )}
 
       {/* ── Body: address + network ── */}
       <div className="wallet-status-card__body">
@@ -339,41 +485,33 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
       )}
 
       {/* ── Actions ── */}
-      {showActions && (
-        <div className="wallet-status-card__actions">
-          {canConnect && (
-            <button
-              type="button"
-              className="wallet-status-card__action-btn wallet-status-card__action-btn--connect"
-              onClick={handleConnect}
-              data-testid="wallet-connect-btn"
-            >
-              Connect
-            </button>
-          )}
+      <div className="wallet-status-card__actions">
+        <ActionButton
+          status={status}
+          capabilities={capabilities}
+          error={error}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onRetry={onRetry}
+        />
+      </div>
 
-          {canDisconnect && (
-            <button
-              type="button"
-              className="wallet-status-card__action-btn wallet-status-card__action-btn--disconnect"
-              onClick={handleDisconnect}
-              data-testid="wallet-disconnect-btn"
-            >
-              Disconnect
-            </button>
-          )}
+      {/* ── Dropped-session banner (distinct from network mismatch) ── */}
+      {droppedSession && status !== 'CONNECTED' && (
+        <DroppedSessionBanner
+          onReconnect={onReconnect}
+          pending={reconnectPending}
+          label={reconnectLabel}
+        />
+      )}
 
-          {canRetry && (
-            <button
-              type="button"
-              className="wallet-status-card__action-btn wallet-status-card__action-btn--retry"
-              onClick={handleRetry}
-              data-testid="wallet-retry-btn"
-            >
-              Retry
-            </button>
-          )}
-        </div>
+      {/* ── Network mismatch banner (only shown when NOT in a dropped-session state) ── */}
+      {networkMismatch && !droppedSession && (
+        <NetworkRecoveryBanner
+          onRecoverNetwork={onRecoverNetwork}
+          pending={networkRecoveryPending}
+          label={networkRecoveryLabel}
+        />
       )}
     </div>
   );

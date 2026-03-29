@@ -8,21 +8,19 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
+import { useI18n } from "../../i18n/provider";
 import type {
-  ValidationResult,
   ValidationError,
   WagerBounds,
   StringConstraints,
   NumericBounds,
 } from "../../utils/v1/validation";
 import {
+  ValidationErrorCode,
   validateWager,
   validateGameId,
-  validateBadgeId,
   validateEnum,
   validateStellarAddress,
-  validateContractAddress,
-  validateSha256Hash,
   validateString,
   validateNumber,
   DEFAULT_WAGER_BOUNDS,
@@ -46,6 +44,37 @@ export interface ValidationHookResult<T> {
   validate: () => boolean;
   reset: (newValue?: T) => void;
   touch: () => void;
+}
+
+/**
+ * Maps a validation error to a locale-aware message key.
+ * 
+ * @param error - The validation error object
+ * @returns The message key for the error
+ */
+export function getValidationMessageKey(error: ValidationError): string {
+  const code = error.code.toLowerCase();
+  const field = error.field?.toLowerCase();
+
+  // Prefer field-specific key, fall back to generic key
+  return field 
+    ? `validation.${field}.${code}` 
+    : `validation.generic.${code}`;
+}
+
+/**
+ * Translates a validation error using the provided translation function.
+ * 
+ * @param error - The validation error object
+ * @param t - The translation function from useI18n
+ * @returns The localized message or the original error message as fallback
+ */
+export function translateValidationError(
+  error: ValidationError, 
+  t: (key: string, fallback?: string) => string
+): string {
+  const key = getValidationMessageKey(error);
+  return t(key, error.message);
 }
 
 // ── Wager Validation Hook ──────────────────────────────────────────────────────
@@ -525,4 +554,46 @@ export function useFormValidation(fields: Record<string, FormField>) {
     touchAll,
     isValid,
   };
+}
+
+export type ValidationHintVariant = 'error' | 'warning' | 'info';
+
+export interface ValidationHint {
+  field: string;
+  message: string;
+  variant: ValidationHintVariant;
+}
+
+export function useFieldValidationHint(
+  field: string,
+  error: ValidationError | null,
+  warning?: string | null,
+  info?: string | null
+): ValidationHint | null {
+  const { t } = useI18n();
+
+  return useMemo(() => {
+    if (error) {
+      return {
+        field,
+        message: translateValidationError(error, t),
+        variant: 'error' as const,
+      };
+    }
+    if (warning) {
+      return {
+        field,
+        message: warning,
+        variant: 'warning' as const,
+      };
+    }
+    if (info) {
+      return {
+        field,
+        message: info,
+        variant: 'info' as const,
+      };
+    }
+    return null;
+  }, [field, error, warning, info, t]);
 }
