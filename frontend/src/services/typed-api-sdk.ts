@@ -442,6 +442,31 @@ export class ApiClient {
     );
   }
 
+  async updateProfile(
+    req: UpdateProfileRequest,
+  ): Promise<ApiResult<UpdateProfileResponse>> {
+    if (!req.address || req.address.trim() === "") {
+      return {
+        success: false,
+        error: makeValidationError("address is required and must be a non-empty string."),
+      };
+    }
+    if (!req.username || req.username.trim() === "") {
+      return {
+        success: false,
+        error: makeValidationError("username is required and must be a non-empty string."),
+      };
+    }
+
+    // Using /users/create as upsert-once works for this UI scenario.
+    return this._request<UpdateProfileResponse>(
+      "POST",
+      "/users/create",
+      req,
+      true,
+    );
+  }
+
   /**
    * Deposit funds into the user's wallet.
    * `POST /api/wallet/deposit` — auth required.

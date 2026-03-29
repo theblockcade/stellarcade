@@ -101,6 +101,13 @@ export interface CreateProfileRequest {
 /** Response shape for `POST /api/users/create`. */
 export type CreateProfileResponse = UserProfile;
 
+export interface UpdateProfileRequest {
+  address: string;
+  username: string;
+}
+
+export type UpdateProfileResponse = UserProfile;
+
 // ── POST /api/wallet/deposit & /api/wallet/withdraw ─────────────────────────
 
 /** Request body for deposit/withdraw endpoints. Requires auth. */

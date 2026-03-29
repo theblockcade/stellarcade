@@ -4,6 +4,7 @@ import type {
   AuthState,
   WalletState,
   PendingTransactionSnapshot,
+  SavedFilterPreset,
 } from "../types/global-state";
 import { ValidationError } from "../types/global-state";
 import type { WalletSessionMeta } from "../types/wallet-session";
@@ -18,6 +19,8 @@ const DEFAULT_KEY = "stc_global_state_v1";
 const BANNER_DISMISSALS_KEY = "stc_banner_dismissals_v1";
 const NOTIFICATION_PREFERENCES_KEY = "stc_notification_preferences_v1";
 const EVENT_FEED_FILTER_KEY_PREFIX = "stc_feed_filter_v1";
+const FILTER_PRESET_STORAGE_KEY = "stc_feed_filter_presets_v1";
+const FILTER_PRESET_VERSION = 1;
 
 export interface BannerDismissalEntry {
   identity: string;
@@ -28,6 +31,8 @@ const initialState: GlobalState = {
   auth: { isAuthenticated: false },
   wallet: { connected: false },
   flags: {},
+  profile: null,
+  commandPalette: { isOpen: false },
   optimisticPatches: {},
   pendingTransaction: null,
 };
@@ -114,6 +119,14 @@ export class GlobalStateStore {
         return { ...state, pendingTransaction: action.payload.snapshot };
       case "PENDING_TX_CLEAR":
         return { ...state, pendingTransaction: null };
+      case "PROFILE_SET":
+        return { ...state, profile: action.payload.profile };
+      case "PROFILE_CLEAR":
+        return { ...state, profile: null };
+      case "COMMAND_PALETTE_OPEN":
+        return { ...state, commandPalette: { isOpen: true } };
+      case "COMMAND_PALETTE_CLOSE":
+        return { ...state, commandPalette: { isOpen: false } };
       case "RESET_ALL":
         return initialState;
       default:
@@ -136,6 +149,16 @@ export class GlobalStateStore {
         throw new ValidationError("wallet meta.address required");
     }
 
+    if (action.type === "PROFILE_SET") {
+      if (
+        !action.payload.profile ||
+        !action.payload.profile.address ||
+        !action.payload.profile.createdAt
+      ) {
+        throw new ValidationError("profile address and createdAt required");
+      }
+    }
+
     const next = this.reducer(this.state, action);
     this.state = next;
     // persist durable parts only (auth and flags). wallet considered ephemeral.
@@ -155,6 +178,15 @@ export class GlobalStateStore {
   public selectWallet(): WalletState {
     return this.state.wallet;
   }
+
+  public selectProfile(): GlobalState['profile'] {
+    return this.state.profile;
+  }
+
+  public selectCommandPaletteOpen(): boolean {
+    return this.state.commandPalette.isOpen;
+  }
+
   public selectFlag(key: string): boolean | undefined {
     return this.state.flags[key];
   }
@@ -164,6 +196,7 @@ export class GlobalStateStore {
       const payload = {
         auth: this.state.auth,
         flags: this.state.flags,
+        profile: this.state.profile,
         pendingTransaction: this.state.pendingTransaction,
         storedAt: Date.now(),
       };
@@ -181,6 +214,7 @@ export class GlobalStateStore {
       const parsed = JSON.parse(raw) as {
         auth?: AuthState;
         flags?: Record<string, boolean>;
+        profile?: GlobalState['profile'];
         pendingTransaction?: PendingTransactionSnapshot;
         storedAt?: number;
       };
@@ -198,6 +232,7 @@ export class GlobalStateStore {
         ...initialState,
         auth: parsed.auth ?? initialState.auth,
         flags: parsed.flags ?? initialState.flags,
+        profile: parsed.profile ?? initialState.profile,
         pendingTransaction,
       };
     } catch (e) {
@@ -302,6 +337,95 @@ function eventFeedFilterStorageKey(scope: string): string {
   return `${EVENT_FEED_FILTER_KEY_PREFIX}_${scope}`;
 }
 
+function normalizePresetScope(scope: string): string {
+  return scope.trim();
+}
+
+function normalizePresetName(name: string): string {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+function createPresetId(scope: string, name: string): string {
+  const normalizedName = normalizePresetName(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${scope}::${normalizedName || "preset"}`;
+}
+
+function sanitizePreset(candidate: unknown): SavedFilterPreset | null {
+  if (!candidate || typeof candidate !== "object") {
+    return null;
+  }
+
+  const preset = candidate as Partial<SavedFilterPreset>;
+  const scope =
+    typeof preset.scope === "string" ? normalizePresetScope(preset.scope) : "";
+  const name =
+    typeof preset.name === "string" ? normalizePresetName(preset.name) : "";
+  const values = Array.isArray(preset.values)
+    ? preset.values.filter((value): value is string => typeof value === "string")
+    : [];
+
+  if (!scope || !name) {
+    return null;
+  }
+
+  return {
+    id:
+      typeof preset.id === "string" && preset.id.trim()
+        ? preset.id
+        : createPresetId(scope, name),
+    name,
+    scope,
+    values,
+    version:
+      typeof preset.version === "number" && Number.isFinite(preset.version)
+        ? preset.version
+        : FILTER_PRESET_VERSION,
+    updatedAt:
+      typeof preset.updatedAt === "number" && Number.isFinite(preset.updatedAt)
+        ? preset.updatedAt
+        : Date.now(),
+  };
+}
+
+function getAllSavedFilterPresets(): SavedFilterPreset[] {
+  if (!isStorageAvailable()) {
+    return [];
+  }
+
+  try {
+    const raw = localStorage.getItem(FILTER_PRESET_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((entry) => sanitizePreset(entry))
+      .filter((preset): preset is SavedFilterPreset => preset !== null);
+  } catch {
+    return [];
+  }
+}
+
+function persistAllSavedFilterPresets(presets: SavedFilterPreset[]): void {
+  if (!isStorageAvailable()) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(FILTER_PRESET_STORAGE_KEY, JSON.stringify(presets));
+  } catch {
+    // no-op
+  }
+}
+
 /**
  * Returns the persisted active filter values for a given feed scope.
  * Uses sessionStorage so the state is cleared on tab close (session-scoped).
@@ -343,6 +467,56 @@ export function clearEventFeedFilter(scope: string): void {
   } catch {
     // no-op
   }
+}
+
+export function getSavedFilterPresets(scope: string): SavedFilterPreset[] {
+  const normalizedScope = normalizePresetScope(scope);
+  if (!normalizedScope) {
+    return [];
+  }
+
+  return getAllSavedFilterPresets()
+    .filter((preset) => preset.scope === normalizedScope)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function saveFilterPreset(
+  scope: string,
+  name: string,
+  values: string[],
+): SavedFilterPreset | null {
+  const normalizedScope = normalizePresetScope(scope);
+  const normalizedName = normalizePresetName(name);
+  if (!normalizedScope || !normalizedName) {
+    return null;
+  }
+
+  const preset: SavedFilterPreset = {
+    id: createPresetId(normalizedScope, normalizedName),
+    name: normalizedName,
+    scope: normalizedScope,
+    values: values.filter((value): value is string => typeof value === "string"),
+    version: FILTER_PRESET_VERSION,
+    updatedAt: Date.now(),
+  };
+
+  const existing = getAllSavedFilterPresets().filter(
+    (entry) => !(entry.scope === normalizedScope && entry.id === preset.id),
+  );
+  persistAllSavedFilterPresets([...existing, preset]);
+  return preset;
+}
+
+export function deleteSavedFilterPreset(scope: string, presetId: string): void {
+  const normalizedScope = normalizePresetScope(scope);
+  if (!normalizedScope || !presetId) {
+    return;
+  }
+
+  const next = getAllSavedFilterPresets().filter(
+    (preset) => !(preset.scope === normalizedScope && preset.id === presetId),
+  );
+  persistAllSavedFilterPresets(next);
 }
 
 export default GlobalStateStore;

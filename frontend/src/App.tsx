@@ -1,9 +1,14 @@
 import React, { Suspense, lazy } from 'react';
 import GameLobby from './pages/GameLobby';
 import PaginationDemoPage from './pages/PaginationDemoPage';
+import ProfileSettings from './pages/ProfileSettings';
+import { RouteErrorBoundary } from './components/v1/RouteErrorBoundary';
 import { I18nProvider, useI18n } from './i18n/provider';
 import LocaleSwitcher from './components/LocaleSwitcher';
 import AppSidebar, { type SidebarRouteKey } from './components/v1/AppSidebar';
+import { ModalStackProvider } from './components/v1/modal-stack';
+import { FeatureFlagsProvider } from './services/feature-flags';
+import CommandPalette, { type Command } from './components/v1/CommandPalette';
 
 const DevContractCallSimulatorPanel = import.meta.env.DEV
   ? lazy(() =>
@@ -13,92 +18,49 @@ const DevContractCallSimulatorPanel = import.meta.env.DEV
     )
   : undefined;
 
-interface RouteErrorBoundaryProps {
-  children: React.ReactNode;
-}
-
-interface RouteErrorBoundaryState {
-  hasError: boolean;
-}
-
-class RouteErrorBoundary extends React.Component<
-  RouteErrorBoundaryProps,
-  RouteErrorBoundaryState
-> {
-  state: RouteErrorBoundaryState = {
-    hasError: false,
-  };
-
-  static getDerivedStateFromError(): RouteErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  private handleRetry = () => {
-    this.setState({ hasError: false });
-  };
-
-  private handleReload = () => {
-    window.location.reload();
-  };
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <section className="route-fallback" role="alert" aria-live="assertive">
-          <h2>Lobby temporarily unavailable</h2>
-          <p>Reload the route to try fetching the latest game state again.</p>
-          <div className="route-fallback-actions">
-            <button type="button" onClick={this.handleRetry}>
-              Try Again
-            </button>
-            <button type="button" onClick={this.handleReload}>
-              Reload
-            </button>
-          </div>
-        </section>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 const AppContent: React.FC = () => {
   const { t } = useI18n();
+
   const searchParams = new URLSearchParams(window.location.search);
   const isPaginationDemoRoute = searchParams.get('demo') === 'pagination';
 
+  const [route, setRoute] = React.useState<'lobby' | 'profile' | 'games'>('lobby');
+
+  const commands: Command[] = [
+    {
+      id: 'go-lobby',
+      label: 'Go to Lobby',
+      description: 'Open the game lobby',
+      action: () => setRoute('lobby'),
+    },
+    {
+      id: 'go-profile',
+      label: 'Go to Profile Settings',
+      description: 'Open profile settings',
+      action: () => setRoute('profile'),
+    },
+  ];
+
   const getActiveRoute = (): SidebarRouteKey => {
-    const { pathname } = window.location;
-
-    if (isPaginationDemoRoute) {
-      return 'pagination-demo';
-    }
-
-    if (pathname.startsWith('/games')) {
-      return 'games';
-    }
-
-    if (pathname.startsWith('/profile')) {
-      return 'profile';
-    }
-
+    if (isPaginationDemoRoute) return 'pagination-demo';
+    if (route === 'games') return 'games';
+    if (route === 'profile') return 'profile';
     return 'lobby';
   };
 
   return (
     <div className="app-container">
-      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <CommandPalette commands={commands} />
 
       <header className="app-header" role="banner">
         <div className="logo">{t('app.title')}</div>
-        <nav aria-label="Main navigation">
-          <ul>
-            <li className={window.location.pathname === '/' ? 'active' : ''}>{t('nav.lobby')}</li>
-            <li className={window.location.pathname.startsWith('/games') ? 'active' : ''}>{t('nav.games')}</li>
-            <li className={window.location.pathname.startsWith('/profile') ? 'active' : ''}>{t('nav.profile')}</li>
-          </ul>
+
+        <nav>
+          <button onClick={() => setRoute('lobby')}>{t('nav.lobby')}</button>
+          <button onClick={() => setRoute('games')}>{t('nav.games')}</button>
+          <button onClick={() => setRoute('profile')}>{t('nav.profile')}</button>
         </nav>
+
         <LocaleSwitcher />
       </header>
 
@@ -107,19 +69,19 @@ const AppContent: React.FC = () => {
 
         <main className="app-content" id="main-content">
           <RouteErrorBoundary>
-            {isPaginationDemoRoute ? <PaginationDemoPage /> : <GameLobby />}
+            {isPaginationDemoRoute ? (
+              <PaginationDemoPage />
+            ) : route === 'profile' ? (
+              <ProfileSettings />
+            ) : (
+              <GameLobby />
+            )}
           </RouteErrorBoundary>
         </main>
       </div>
 
-      <footer className="app-footer" role="contentinfo">
-        <div className="footer-content">
-          <p>{t('footer.copyright')}</p>
-          <div className="footer-links">
-            <a href="/terms">{t('footer.terms')}</a>
-            <a href="/privacy">{t('footer.privacy')}</a>
-          </div>
-        </div>
+      <footer className="app-footer">
+        <p>{t('footer.copyright')}</p>
       </footer>
 
       {import.meta.env.DEV && DevContractCallSimulatorPanel ? (
@@ -133,9 +95,13 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <I18nProvider>
-      <AppContent />
-    </I18nProvider>
+    <FeatureFlagsProvider>
+      <I18nProvider>
+        <ModalStackProvider>
+          <AppContent />
+        </ModalStackProvider>
+      </I18nProvider>
+    </FeatureFlagsProvider>
   );
 };
 
