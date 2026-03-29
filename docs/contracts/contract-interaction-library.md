@@ -136,3 +136,40 @@ pub fn get_call_log(env: Env, log_id: u64) -> CallRecord
 
 `CallRecord`
 
+### `read_prize_pool_config`
+Resolve `prize-pool` from the address registry and return a typed config snapshot.
+
+```rust
+pub fn read_prize_pool_config(env: Env, address_registry: Address) -> Result<PrizePoolConfigSnapshot, CoreReadError>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `address_registry` | `Address` |
+
+#### Return Type
+
+`Result<PrizePoolConfigSnapshot, CoreReadError>`
+
+### `read_balance_account_summary`
+Resolve `balance-management` from the address registry and return a stable user snapshot.
+
+```rust
+pub fn read_balance_account_summary(env: Env, address_registry: Address, user: Address) -> Result<AccountSummary, CoreReadError>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `address_registry` | `Address` |
+| `user` | `Address` |
+
+#### Return Type
+
+`Result<AccountSummary, CoreReadError>`
+
