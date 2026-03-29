@@ -3,6 +3,7 @@ import GameLobby from './pages/GameLobby';
 import PaginationDemoPage from './pages/PaginationDemoPage';
 import { I18nProvider, useI18n } from './i18n/provider';
 import LocaleSwitcher from './components/LocaleSwitcher';
+import AppSidebar, { type SidebarRouteKey } from './components/v1/AppSidebar';
 
 const DevContractCallSimulatorPanel = import.meta.env.DEV
   ? lazy(() =>
@@ -67,26 +68,40 @@ const AppContent: React.FC = () => {
   const searchParams = new URLSearchParams(window.location.search);
   const isPaginationDemoRoute = searchParams.get('demo') === 'pagination';
 
+  const getActiveRoute = (): SidebarRouteKey => {
+    const { pathname } = window.location;
+
+    if (isPaginationDemoRoute) {
+      return 'pagination-demo';
+    }
+
+    if (pathname.startsWith('/games')) {
+      return 'games';
+    }
+
+    if (pathname.startsWith('/profile')) {
+      return 'profile';
+    }
+
+    return 'lobby';
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
         <div className="logo">{t('app.title')}</div>
-        <nav>
-          <ul>
-            <li><a href="/" className={!isPaginationDemoRoute ? 'active' : ''}>{t('nav.lobby')}</a></li>
-            <li><a href="/?demo=pagination" className={isPaginationDemoRoute ? 'active' : ''}>Pagination Demo</a></li>
-            <li><a href="/games">{t('nav.games')}</a></li>
-            <li><a href="/profile">{t('nav.profile')}</a></li>
-          </ul>
-        </nav>
         <LocaleSwitcher />
       </header>
-      
-      <main className="app-content">
-        <RouteErrorBoundary>
-          {isPaginationDemoRoute ? <PaginationDemoPage /> : <GameLobby />}
-        </RouteErrorBoundary>
-      </main>
+
+      <div className="app-shell">
+        <AppSidebar activeRoute={getActiveRoute()} />
+
+        <main className="app-content">
+          <RouteErrorBoundary>
+            {isPaginationDemoRoute ? <PaginationDemoPage /> : <GameLobby />}
+          </RouteErrorBoundary>
+        </main>
+      </div>
 
       <footer className="app-footer">
         <div className="footer-content">

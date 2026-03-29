@@ -29,6 +29,12 @@ body {
   flex-direction: column;
 }
 
+.app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
 .app-header {
   padding: 1.5rem 2rem;
   display: flex;
@@ -70,10 +76,9 @@ nav a:hover, nav a.active {
 
 .app-content {
   flex: 1;
-  padding: 4rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 2.5rem 2rem;
   width: 100%;
+  overflow-x: auto;
 }
 
 .hero {
@@ -282,4 +287,15 @@ nav a:hover, nav a.active {
 .empty-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
+}
+
+
+@media (max-width: 900px) {
+  .app-shell {
+    display: block;
+  }
+
+  .app-content {
+    padding-top: 1rem;
+  }
 }
