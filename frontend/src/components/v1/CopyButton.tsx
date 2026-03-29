@@ -7,16 +7,16 @@ import { useErrorStore } from '../../store/errorStore';
 type CopyButtonStatus = 'idle' | 'copying' | 'copied';
 
 export interface CopyButtonProps
-  extends Omit<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    'children' | 'onClick'
-  > {
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
   text: string;
+  children?: React.ReactNode;
   idleLabel?: React.ReactNode;
   copyingLabel?: React.ReactNode;
   copiedLabel?: React.ReactNode;
   feedbackDurationMs?: number;
+  variant?: 'icon' | 'text' | 'both';
   onCopy?: () => void | Promise<void>;
+  onCopySuccess?: () => void | Promise<void>;
   onCopyError?: (error: AppError) => void | Promise<void>;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   testId?: string;
@@ -24,11 +24,14 @@ export interface CopyButtonProps
 
 export function CopyButton({
   text,
-  idleLabel = 'Copy',
-  copyingLabel = 'Copying...',
-  copiedLabel = 'Copied',
+  children,
+  idleLabel,
+  copyingLabel,
+  copiedLabel,
   feedbackDurationMs = 2000,
+  variant = 'icon',
   onCopy,
+  onCopySuccess,
   onCopyError,
   onClick,
   className = '',
@@ -52,20 +55,32 @@ export function CopyButton({
 
   const isBusy = status === 'copying';
   const isDisabled = disabled || isBusy;
+  const showIcon = variant === 'icon' || variant === 'both';
+  const showText = variant === 'text' || variant === 'both';
 
-  const buttonLabel = useMemo(() => {
+  const resolvedIdleLabel = idleLabel ?? children ?? 'Copy';
+  const resolvedCopyingLabel = copyingLabel ?? 'Copying...';
+  const resolvedCopiedLabel = copiedLabel ?? 'Copied!';
+
+  const textLabel = useMemo(() => {
     if (status === 'copying') {
-      return copyingLabel;
+      return resolvedCopyingLabel;
     }
 
     if (status === 'copied') {
-      return copiedLabel;
+      return resolvedCopiedLabel;
     }
 
-    return idleLabel;
-  }, [copiedLabel, copyingLabel, idleLabel, status]);
+    return resolvedIdleLabel;
+  }, [
+    resolvedCopiedLabel,
+    resolvedCopyingLabel,
+    resolvedIdleLabel,
+    status,
+  ]);
 
   const statusMessage = status === 'copied' ? 'Copied to clipboard.' : '';
+  const iconName = status === 'copied' ? 'check-circle' : 'copy';
 
   const scheduleReset = () => {
     if (timeoutRef.current !== null) {
@@ -94,6 +109,7 @@ export function CopyButton({
 
     if (result.ok) {
       await onCopy?.();
+      await onCopySuccess?.();
       setStatus('copied');
       scheduleReset();
       return;
@@ -114,16 +130,23 @@ export function CopyButton({
         onClick={handleCopy}
         aria-busy={isBusy}
         aria-disabled={isDisabled}
+        aria-label={status === 'copied' ? 'Copied to clipboard' : 'Copy to clipboard'}
         data-testid={testId}
       >
-        {buttonLabel}
+        {showIcon ? (
+          <span
+            className={`icon icon--${iconName}`}
+            aria-hidden="true"
+            data-testid={`${testId}-icon`}
+          />
+        ) : null}
+
+        {showText ? (
+          <span data-testid={`${testId}-text`}>{textLabel}</span>
+        ) : null}
       </button>
 
-      <span
-        role="status"
-        aria-live="polite"
-        data-testid={`${testId}-status`}
-      >
+      <span role="status" aria-live="polite" data-testid={`${testId}-status`}>
         {statusMessage}
       </span>
 
@@ -137,116 +160,5 @@ export function CopyButton({
     </div>
   );
 }
-import React, { useState, useEffect, useCallback } from 'react';
-import { copyToClipboard } from '../../utils/v1/clipboard';
-import { useErrorStore } from '../../store/errorStore';
-
-export interface CopyButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  /** The text to copy to the clipboard when clicked. */
-  text: string;
-  /** Custom label when the button is in default state. */
-  children?: React.ReactNode;
-  /** Custom test ID for testing. */
-  testId?: string;
-  /** How long to show the success state before reverting back to default (ms). Default 2000ms. */
-  feedbackDurationMs?: number;
-  /** Optional callback to notify parent when text is successfully copied */
-  onCopySuccess?: () => void;
-  /** Display format: 'icon' strictly, 'text', or 'both'. Default is 'icon' */
-  variant?: 'icon' | 'text' | 'both';
-}
-
-/**
- * CopyButton Component - v1
- * 
- * Reusable button to copy text to the clipboard with inline success feedback
- * and global error fallback if copy fails unsupported environment.
- */
-export const CopyButton: React.FC<CopyButtonProps> = ({
-  text,
-  children,
-  testId = 'copy-button',
-  feedbackDurationMs = 2000,
-  onCopySuccess,
-  variant = 'icon',
-  className = '',
-  ...rest
-}) => {
-  const [copied, setCopied] = useState(false);
-  const setError = useErrorStore((state) => state.setError);
-
-  const handleCopy = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
-    // Prevent event bubbling if the button is within another interactive element
-    e.stopPropagation();
-
-    // Reset state before copy attempt
-    setCopied(false);
-
-    try {
-      const result = await copyToClipboard(text);
-      if (result.success) {
-        setCopied(true);
-        onCopySuccess?.();
-      } else {
-        setError({
-          code: 'CLIPBOARD_NOT_SUPPORTED',
-          domain: 'ui',
-          severity: 'user_actionable',
-          message: 'Unable to copy text to clipboard.',
-          action: 'Please select and copy the text manually.',
-        });
-      }
-    } catch (error) {
-       setError({
-          code: 'CLIPBOARD_ERROR',
-          domain: 'ui',
-          severity: 'terminal',
-          message: 'An unexpected error occurred while trying to copy text.',
-          debug: { originalError: error }
-        });
-    }
-  }, [text, onCopySuccess, setError]);
-
-  // Handle automatic timeout for success feedback
-  useEffect(() => {
-    if (!copied) return;
-
-    const timeout = setTimeout(() => {
-      setCopied(false);
-    }, feedbackDurationMs);
-
-    return () => clearTimeout(timeout);
-  }, [copied, feedbackDurationMs]);
-
-  const baseClass = `copy-button copy-button--${variant} ${className}`.trim();
-
-  return (
-    <button
-      type="button"
-      className={baseClass}
-      onClick={handleCopy}
-      data-testid={testId}
-      aria-label={copied ? 'Copied to clipboard' : 'Copy to clipboard'}
-      aria-live="polite"
-      {...rest}
-    >
-      <span className="copy-button__content">
-        {(variant === 'icon' || variant === 'both') && (
-          <span 
-            className={`icon icon--${copied ? 'check-circle' : 'copy'}`} 
-            aria-hidden="true" 
-            data-testid={`${testId}-icon`}
-          />
-        )}
-        
-        {(variant === 'text' || variant === 'both') && (
-          <span className="copy-button__text" data-testid={`${testId}-text`}>
-            {copied ? 'Copied!' : (children || 'Copy')}
-          </span>
-        )}
-      </span>
-    </button>
-  );
-};
 
 export default CopyButton;

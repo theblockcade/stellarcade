@@ -66,8 +66,6 @@ export type { CopyButtonProps } from './CopyButton';
 
 export { ContractActionButton } from './ContractActionButton';
 export type { ContractActionButtonProps } from './ContractActionButton';
-export { ContractActionButton } from "./ContractActionButton";
-export type { ContractActionButtonProps } from "./ContractActionButton";
 
 export {
   SessionTimeoutModal,
