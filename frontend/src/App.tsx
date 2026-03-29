@@ -88,22 +88,31 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="app-container">
-      <header className="app-header">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+
+      <header className="app-header" role="banner">
         <div className="logo">{t('app.title')}</div>
+        <nav aria-label="Main navigation">
+          <ul>
+            <li className={window.location.pathname === '/' ? 'active' : ''}>{t('nav.lobby')}</li>
+            <li className={window.location.pathname.startsWith('/games') ? 'active' : ''}>{t('nav.games')}</li>
+            <li className={window.location.pathname.startsWith('/profile') ? 'active' : ''}>{t('nav.profile')}</li>
+          </ul>
+        </nav>
         <LocaleSwitcher />
       </header>
 
       <div className="app-shell">
         <AppSidebar activeRoute={getActiveRoute()} />
 
-        <main className="app-content">
+        <main className="app-content" id="main-content">
           <RouteErrorBoundary>
             {isPaginationDemoRoute ? <PaginationDemoPage /> : <GameLobby />}
           </RouteErrorBoundary>
         </main>
       </div>
 
-      <footer className="app-footer">
+      <footer className="app-footer" role="contentinfo">
         <div className="footer-content">
           <p>{t('footer.copyright')}</p>
           <div className="footer-links">

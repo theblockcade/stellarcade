@@ -8,6 +8,7 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
+import { useI18n } from "../../i18n/provider";
 import type {
   ValidationError,
   WagerBounds,
@@ -15,6 +16,7 @@ import type {
   NumericBounds,
 } from "../../utils/v1/validation";
 import {
+  ValidationErrorCode,
   validateWager,
   validateGameId,
   validateEnum,
@@ -42,6 +44,37 @@ export interface ValidationHookResult<T> {
   validate: () => boolean;
   reset: (newValue?: T) => void;
   touch: () => void;
+}
+
+/**
+ * Maps a validation error to a locale-aware message key.
+ * 
+ * @param error - The validation error object
+ * @returns The message key for the error
+ */
+export function getValidationMessageKey(error: ValidationError): string {
+  const code = error.code.toLowerCase();
+  const field = error.field?.toLowerCase();
+
+  // Prefer field-specific key, fall back to generic key
+  return field 
+    ? `validation.${field}.${code}` 
+    : `validation.generic.${code}`;
+}
+
+/**
+ * Translates a validation error using the provided translation function.
+ * 
+ * @param error - The validation error object
+ * @param t - The translation function from useI18n
+ * @returns The localized message or the original error message as fallback
+ */
+export function translateValidationError(
+  error: ValidationError, 
+  t: (key: string, fallback?: string) => string
+): string {
+  const key = getValidationMessageKey(error);
+  return t(key, error.message);
 }
 
 // ── Wager Validation Hook ──────────────────────────────────────────────────────
@@ -537,11 +570,13 @@ export function useFieldValidationHint(
   warning?: string | null,
   info?: string | null
 ): ValidationHint | null {
+  const { t } = useI18n();
+
   return useMemo(() => {
     if (error) {
       return {
         field,
-        message: error.message,
+        message: translateValidationError(error, t),
         variant: 'error' as const,
       };
     }
@@ -560,5 +595,5 @@ export function useFieldValidationHint(
       };
     }
     return null;
-  }, [field, error, warning, info]);
+  }, [field, error, warning, info, t]);
 }

@@ -12,6 +12,7 @@ import type {
   ProviderNetworkSnapshot,
 } from "../types/network-guard-middleware";
 import { NetworkGuardError } from "../types/network-guard-middleware";
+import { dispatchApiTrace } from "../types/api-trace";
 
 const inFlightOperations = new Set<string>();
 
@@ -189,10 +190,36 @@ export async function withNetworkGuard<T>(
   operation: () => Promise<T>,
 ): Promise<T> {
   const lock = assertOperationNotDuplicated(input);
+  const traceId = `guard-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const startTime = Date.now();
+
+  dispatchApiTrace({
+    traceId,
+    source: "NetworkGuard",
+    method: "GuardOperation",
+    url: lock ? `operation:${lock}` : "operation:anonymous",
+    startTime,
+    endTime: null,
+    durationMs: null,
+    status: "pending",
+  });
 
   try {
     await assertSupportedNetworkBeforeOperation(input);
-    return await operation();
+    const result = await operation();
+    
+    dispatchApiTrace({
+      traceId,
+      source: "NetworkGuard",
+      method: "GuardOperation",
+      url: lock ? `operation:${lock}` : "operation:anonymous",
+      startTime,
+      endTime: Date.now(),
+      durationMs: Date.now() - startTime,
+      status: "success",
+    });
+
+    return result;
   } catch (err) {
     const isQueueableError =
       err instanceof NetworkGuardError &&
@@ -201,6 +228,18 @@ export async function withNetworkGuard<T>(
         err.code === "NETWORK_MISSING");
 
     if (isQueueableError && input.isIdempotent && input.resumeOnNetworkRecovery) {
+      dispatchApiTrace({
+        traceId,
+        source: "NetworkGuard",
+        method: "GuardOperation",
+        url: lock ? `operation:${lock}` : "operation:anonymous",
+        startTime,
+        endTime: Date.now(),
+        durationMs: Date.now() - startTime,
+        status: "cancelled", // Considered cancelled/queued
+        errorData: new Error("Queued waiting for network changes"),
+      });
+
       return new Promise<T>((resolve, reject) => {
         queuedActions.push({
           operation,
@@ -210,6 +249,19 @@ export async function withNetworkGuard<T>(
         });
       });
     }
+
+    dispatchApiTrace({
+      traceId,
+      source: "NetworkGuard",
+      method: "GuardOperation",
+      url: lock ? `operation:${lock}` : "operation:anonymous",
+      startTime,
+      endTime: Date.now(),
+      durationMs: Date.now() - startTime,
+      status: "error",
+      errorData: err,
+    });
+
     throw err;
   } finally {
     if (lock) {

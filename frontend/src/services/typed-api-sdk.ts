@@ -36,6 +36,7 @@ import type {
   WithdrawResponse,
   WalletAmountRequest,
 } from "../types/api-client";
+import { dispatchApiTrace } from "../types/api-trace";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -235,6 +236,9 @@ export class ApiClient {
 
     const url = `${this._baseUrl}${path}`;
 
+    // Generate unique trace ID for this request
+    const traceId = `api-req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
     // ── Retry loop ───────────────────────────────────────────────────────────
     let lastError: ApiClientError | undefined;
 
@@ -242,6 +246,18 @@ export class ApiClient {
       if (attempt > 0) {
         await sleep(INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1));
       }
+
+      const startTime = Date.now();
+      dispatchApiTrace({
+        traceId: attempt > 0 ? `${traceId}-retry-${attempt}` : traceId,
+        source: "ApiClient",
+        method,
+        url,
+        startTime,
+        endTime: null,
+        durationMs: null,
+        status: "pending",
+      });
 
       let response: Response;
       try {
@@ -260,6 +276,19 @@ export class ApiClient {
               networkErr instanceof Error ? networkErr.message : String(networkErr),
           },
         );
+
+        dispatchApiTrace({
+          traceId: attempt > 0 ? `${traceId}-retry-${attempt}` : traceId,
+          source: "ApiClient",
+          method,
+          url,
+          startTime,
+          endTime: Date.now(),
+          durationMs: Date.now() - startTime,
+          status: "error",
+          errorData: mappedNetErr,
+        });
+
         lastError = mappedNetErr;
         if (mappedNetErr.severity === ErrorSeverity.RETRYABLE) continue;
         return { success: false, error: mappedNetErr };
@@ -267,6 +296,17 @@ export class ApiClient {
 
       if (response.ok) {
         const data = (await response.json()) as T;
+        dispatchApiTrace({
+          traceId: attempt > 0 ? `${traceId}-retry-${attempt}` : traceId,
+          source: "ApiClient",
+          method,
+          url,
+          startTime,
+          endTime: Date.now(),
+          durationMs: Date.now() - startTime,
+          status: "success",
+          statusCode: response.status,
+        });
         return { success: true, data };
       }
 
@@ -307,6 +347,19 @@ export class ApiClient {
         },
       );
       lastError = mapped;
+
+      dispatchApiTrace({
+        traceId: attempt > 0 ? `${traceId}-retry-${attempt}` : traceId,
+        source: "ApiClient",
+        method,
+        url,
+        startTime,
+        endTime: Date.now(),
+        durationMs: Date.now() - startTime,
+        status: "error",
+        statusCode: response.status,
+        errorData: mapped,
+      });
 
       // Only retry RETRYABLE errors (5xx, 429, network)
       if (mapped.severity !== ErrorSeverity.RETRYABLE) {
