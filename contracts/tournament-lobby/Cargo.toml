@@ -1,0 +1,14 @@
+[package]
+name = "stellarcade-tournament-lobby"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+soroban-sdk = "21.7.7"
+
+[dev-dependencies]
+soroban-sdk = { version = "21.7.7", features = ["testutils"] }
+
+[lib]
+crate-type = ["cdylib", "rlib"]

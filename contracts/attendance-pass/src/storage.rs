@@ -100,3 +100,47 @@ pub fn get_total_issued(env: &Env) -> u64 {
         .get(&DataKey::TotalIssued)
         .unwrap_or(0u64)
 }
+
+pub fn set_checked_in(env: &Env, pass_id: u64, checked_in: bool) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::CheckedIn(pass_id), &checked_in);
+}
+
+pub fn is_checked_in(env: &Env, pass_id: u64) -> bool {
+    env.storage()
+        .persistent()
+        .get(&DataKey::CheckedIn(pass_id))
+        .unwrap_or(false)
+}
+
+pub fn increment_checked_in_count(env: &Env) {
+    let current: u64 = env
+        .storage()
+        .instance()
+        .get(&DataKey::CheckedInCount)
+        .unwrap_or(0u64);
+    env.storage()
+        .instance()
+        .set(&DataKey::CheckedInCount, &(current + 1));
+}
+
+pub fn get_checked_in_count(env: &Env) -> u64 {
+    env.storage()
+        .instance()
+        .get(&DataKey::CheckedInCount)
+        .unwrap_or(0u64)
+}
+
+pub fn set_resale_locked(env: &Env, pass_id: u64, locked: bool) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::ResaleLocked(pass_id), &locked);
+}
+
+pub fn is_resale_locked(env: &Env, pass_id: u64) -> bool {
+    env.storage()
+        .persistent()
+        .get(&DataKey::ResaleLocked(pass_id))
+        .unwrap_or(false)
+}

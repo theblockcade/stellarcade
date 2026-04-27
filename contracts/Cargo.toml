@@ -11,6 +11,7 @@ members = [
     "creator-drops",
     "achievement-badge",
     "ai-generated-game",
+    "badge-minter",
     "balance-management",
     "coin-flip",
     "color-prediction",
@@ -38,6 +39,8 @@ members = [
     "escrow-ledger",
     "escrow-marketplace",
     "escrow-vault",
+    "mission-ledger",
+    "vault-claims",
     "attendance-pass",
     "exploit-prevention",
     "fee-shield",
@@ -69,8 +72,11 @@ members = [
     "referral-system",
     "revenue-split",
     "reward-distribution",
+    "reward-router",
     "reward-stream",
     "reward-vesting",
+    "season-pass",
+    "season-rewards-vault",
     "session-nonce-manager",
     "settlement-queue",
     "shared",
@@ -83,6 +89,7 @@ members = [
     "streak-ladder",
     "loot-crate",
     "tournament-system",
+    "tournament-lobby",
     "treasury",
     "treasury-allocation",
     "trivia-game",
@@ -94,6 +101,7 @@ members = [
     "reserve-manager",
     "quest-redeemer",
     "squad-match",
+    "sponsor-pool",
     "sponsorship-ledger",
     "treasury-safeguard",
 ]
@@ -102,6 +110,7 @@ exclude = [
     "higher-lower",
     "challenge-ladder",
     "merch-redemption",
+    "profile-perks",
 ]
 
 [profile.release]

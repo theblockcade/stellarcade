@@ -4,6 +4,18 @@
   gap: 1.5rem;
 }
 
+.game-lobby--with-mobile-footer {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+.game-lobby__mobile-action-footer {
+  margin: 0;
+}
+
+.lobby-header__delta {
+  margin-top: 0.6rem;
+}
+
 .lobby-content-grid {
   display: grid;
   gap: 1.5rem;
@@ -252,5 +264,9 @@
   .quick-action-surface__item-topline {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .game-lobby--with-mobile-footer {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
   }
 }

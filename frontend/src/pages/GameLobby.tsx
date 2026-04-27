@@ -15,6 +15,8 @@ import { PendingActionResumeChip } from "../components/v1/PendingActionResumeChi
 import { ResumeTaskBanner } from "../components/v1/ResumeTaskBanner";
 import { SegmentedControl } from "../components/v1/SegmentedControl";
 import { WalletSessionActivityRail } from "../components/v1/WalletSessionActivityRail";
+import { ActionToolbar, type ToolbarAction } from "../components/v1/ActionToolbar";
+import { InlineStatDelta } from "../components/v1/InlineStatDelta";
 import { useWalletStatus } from "../hooks/v1/useWalletStatus";
 import { ApiClient } from "../services/typed-api-sdk";
 import GlobalStateStore, {
@@ -133,12 +135,15 @@ export const GameLobby: React.FC = () => {
   const [pendingResumeContext, setPendingResumeContext] =
     useState<LobbyContext | null>(null);
   const [pendingActionChipDismissed, setPendingActionChipDismissed] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [activeGamesDelta, setActiveGamesDelta] = useState<number | null>(null);
   const wallet = useWalletStatus();
   const globalStoreRef = useRef<GlobalStateStore | null>(null);
   const walletSectionRef = useRef<HTMLDivElement | null>(null);
   const gamesSectionRef = useRef<HTMLElement | null>(null);
   const activityRailRef = useRef<HTMLDivElement | null>(null);
   const leaderboardSectionRef = useRef<HTMLElement | null>(null);
+  const previousActiveGamesCountRef = useRef<number | null>(null);
   const previousWalletStatusRef = useRef(wallet.status);
   const previousReconnectAtRef = useRef(wallet.lastReconnectAt);
 
@@ -248,6 +253,24 @@ export const GameLobby: React.FC = () => {
   }, [fetchGames, retrying]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 600px)");
+    const updateMatch = () => setIsMobileViewport(mediaQuery.matches);
+    updateMatch();
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", updateMatch);
+      return () => mediaQuery.removeEventListener("change", updateMatch);
+    }
+
+    mediaQuery.addListener(updateMatch);
+    return () => mediaQuery.removeListener(updateMatch);
+  }, []);
+
+  useEffect(() => {
     const store = globalStoreRef.current!;
     setPendingTransaction(store.getState().pendingTransaction ?? null);
     return store.subscribe((state) => {
@@ -339,6 +362,14 @@ export const GameLobby: React.FC = () => {
       games.filter((game) => String(game.status).toLowerCase() === "active"),
     [games],
   );
+
+  useEffect(() => {
+    const previousCount = previousActiveGamesCountRef.current;
+    if (previousCount !== null) {
+      setActiveGamesDelta(activeGames.length - previousCount);
+    }
+    previousActiveGamesCountRef.current = activeGames.length;
+  }, [activeGames.length]);
 
   const leaderboardRows = useMemo<LeaderboardRow[]>(
     () =>
@@ -509,6 +540,46 @@ export const GameLobby: React.FC = () => {
     [handleRefreshLobby, markQuickActionsUsed, openCommandCenter, retrying, scrollToContext],
   );
 
+  const mobileToolbarActions = useMemo<ToolbarAction[]>(
+    () => [
+      {
+        id: "refresh-lobby",
+        label: "Refresh",
+        onClick: handleRefreshLobby,
+        intent: "primary",
+        isLoading: retrying,
+      },
+      {
+        id: "open-command-center",
+        label: "Commands",
+        onClick: openCommandCenter,
+        intent: "secondary",
+      },
+      pendingTransaction
+        ? {
+            id: "inspect-transaction",
+            label: "Inspect tx",
+            onClick: () => setIsTransactionDrawerOpen(true),
+            intent: "tertiary",
+          }
+        : {
+            id: "open-wallet-panel",
+            label: "Wallet",
+            onClick: () => scrollToContext("wallet-panel"),
+            intent: "tertiary",
+          },
+    ],
+    [
+      handleRefreshLobby,
+      openCommandCenter,
+      pendingTransaction,
+      retrying,
+      scrollToContext,
+    ],
+  );
+
+  const showMobileActionFooter = isMobileViewport && mobileToolbarActions.length > 0;
+
   const activityItems = useMemo(() => {
     const items: Array<{
       id: string;
@@ -626,7 +697,9 @@ export const GameLobby: React.FC = () => {
   }
 
   return (
-    <div className="game-lobby">
+    <div
+      className={`game-lobby ${showMobileActionFooter ? "game-lobby--with-mobile-footer" : ""}`.trim()}
+    >
       {!checklistDismissed ? (
         <DashboardMissionStrip
           missions={missionItems}
@@ -679,6 +752,11 @@ export const GameLobby: React.FC = () => {
           <div className="lobby-header">
             <h1 id="games-heading">Live Arena</h1>
             <p>Real-time game status across the Stellar ecosystem.</p>
+            <InlineStatDelta
+              value={activeGamesDelta}
+              label="active games vs last sync"
+              className="lobby-header__delta"
+            />
           </div>
 
           <QuickActionSurface actions={quickActions} />
@@ -862,6 +940,15 @@ export const GameLobby: React.FC = () => {
         pendingTransaction={pendingTransaction}
         network={wallet.network}
       />
+
+      {showMobileActionFooter ? (
+        <ActionToolbar
+          actions={mobileToolbarActions}
+          mobileSticky={true}
+          className="game-lobby__mobile-action-footer"
+          testId="lobby-mobile-action-footer"
+        />
+      ) : null}
     </div>
   );
 };

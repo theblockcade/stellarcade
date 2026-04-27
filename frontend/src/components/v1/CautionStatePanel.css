@@ -1,0 +1,119 @@
+.caution-state-panel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--caution-border, #f0c75e);
+  background: var(--caution-bg, rgba(240, 199, 94, 0.08));
+  color: var(--text-primary, #f5f7fb);
+}
+
+.caution-state-panel--blocked-wallet {
+  --caution-border: #f0c75e;
+  --caution-bg: rgba(240, 199, 94, 0.08);
+}
+
+.caution-state-panel--paused-contract {
+  --caution-border: #ff8a73;
+  --caution-bg: rgba(255, 138, 115, 0.08);
+}
+
+.caution-state-panel--network-mismatch {
+  --caution-border: #6dc3ff;
+  --caution-bg: rgba(109, 195, 255, 0.08);
+}
+
+.caution-state-panel--rate-limited {
+  --caution-border: #b58aff;
+  --caution-bg: rgba(181, 138, 255, 0.08);
+}
+
+.caution-state-panel__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: var(--caution-border);
+  color: #0a0d12;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.caution-state-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.caution-state-panel__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.caution-state-panel__description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, rgba(245, 247, 251, 0.78));
+}
+
+.caution-state-panel__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.caution-state-panel__action {
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--caution-border);
+  background: transparent;
+  color: var(--caution-border);
+  cursor: pointer;
+}
+
+.caution-state-panel__action:focus-visible {
+  outline: 2px solid var(--caution-border);
+  outline-offset: 2px;
+}
+
+.caution-state-panel__action--primary {
+  background: var(--caution-border);
+  color: #0a0d12;
+}
+
+.caution-state-panel__dismiss {
+  align-self: start;
+  background: transparent;
+  border: none;
+  color: var(--text-muted, rgba(245, 247, 251, 0.55));
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+}
+
+.caution-state-panel__dismiss:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .caution-state-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .caution-state-panel__icon {
+    justify-self: start;
+  }
+
+  .caution-state-panel__dismiss {
+    justify-self: end;
+  }
+}

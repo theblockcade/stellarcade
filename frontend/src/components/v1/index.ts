@@ -284,6 +284,12 @@ export type {
 } from "./EventDigestPanel";
 
 export {
+  InlineStatDelta,
+  default as InlineStatDeltaDefault,
+} from "./InlineStatDelta";
+export type { InlineStatDeltaProps } from "./InlineStatDelta";
+
+export {
   ReviewSubmitSheet,
   default as ReviewSubmitSheetDefault,
 } from "./ReviewSubmitSheet";

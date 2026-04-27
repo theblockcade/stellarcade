@@ -36,6 +36,8 @@ export interface ActionToolbarProps {
     actions: ToolbarAction[];
     /** Layout orientation. @default 'horizontal' */
     orientation?: 'horizontal' | 'vertical';
+    /** Pins the toolbar to a sticky mobile footer when the viewport is narrow. */
+    mobileSticky?: boolean;
     /** Optional CSS class name for custom styling. */
     className?: string;
     /** Optional test ID for automation. @default 'action-toolbar' */
@@ -51,6 +53,7 @@ export interface ActionToolbarProps {
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     actions,
     orientation = 'horizontal',
+    mobileSticky = false,
     className = '',
     testId = 'action-toolbar'
 }) => {
@@ -91,7 +94,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
 
     return (
         <div
-            className={`stellarcade-action-toolbar stellarcade-action-toolbar--${orientation} ${className}`}
+            className={`stellarcade-action-toolbar stellarcade-action-toolbar--${orientation} ${mobileSticky ? 'stellarcade-action-toolbar--mobile-sticky' : ''} ${className}`}
             role="toolbar"
             aria-label="Action Toolbar"
             data-testid={testId}

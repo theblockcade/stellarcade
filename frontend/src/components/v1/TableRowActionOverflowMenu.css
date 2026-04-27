@@ -1,0 +1,97 @@
+.tr-action-overflow {
+  position: relative;
+  display: inline-flex;
+}
+
+.tr-action-overflow__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted, rgba(245, 247, 251, 0.65));
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.tr-action-overflow__trigger:hover:not(:disabled) {
+  border-color: var(--border-subtle, rgba(255, 255, 255, 0.12));
+  color: var(--text-primary, #f5f7fb);
+}
+
+.tr-action-overflow__trigger:focus-visible {
+  outline: 2px solid var(--accent-primary, #7af7c0);
+  outline-offset: 2px;
+}
+
+.tr-action-overflow__trigger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tr-action-overflow__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 11rem;
+  z-index: 30;
+  padding: 0.25rem;
+  margin: 0;
+  list-style: none;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--surface-1, #11161e);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.tr-action-overflow__item-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text-primary, #f5f7fb);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tr-action-overflow__item-button:hover:not(:disabled) {
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+}
+
+.tr-action-overflow__item-button:focus-visible {
+  outline: none;
+  background: var(--surface-2, rgba(255, 255, 255, 0.06));
+}
+
+.tr-action-overflow__item-button[data-tone="danger"] {
+  color: var(--text-danger, #ff8a73);
+}
+
+.tr-action-overflow__item-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tr-action-overflow__empty {
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted, rgba(245, 247, 251, 0.65));
+  text-align: center;
+}
+
+.tr-action-overflow__divider {
+  height: 1px;
+  margin: 0.25rem 0;
+  background: var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border: 0;
+}
