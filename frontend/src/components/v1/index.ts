@@ -298,3 +298,14 @@ export type {
   ReviewField,
   RiskLevel,
 } from "./ReviewSubmitSheet";
+
+// Issue #705
+export {
+  ContractHealthRibbon,
+  default as ContractHealthRibbonDefault,
+} from "./ContractHealthRibbon";
+export type {
+  ContractHealthRibbonProps,
+  ContractHealthStatus,
+  ContractHealthRibbonVariant,
+} from "./ContractHealthRibbon";
