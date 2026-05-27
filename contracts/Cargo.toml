@@ -109,6 +109,9 @@ members = [
     "sponsor-pool",
     "sponsorship-ledger",
     "treasury-safeguard",
+    "ladder-seasons",
+    "voucher-minter",
+    "map-voting",
 ]
 
 exclude = [
