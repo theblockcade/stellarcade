@@ -34,6 +34,9 @@ describe("Portfolio page", () => {
   it("renders distinct empty states for wallet, rewards, and collectibles", () => {
     renderPortfolio();
     expect(screen.getByTestId("portfolio-wallet-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("portfolio-wallet-health")).toHaveTextContent(
+      "Empty",
+    );
     expect(screen.getByTestId("portfolio-rewards-empty")).toBeInTheDocument();
     expect(
       screen.getByTestId("portfolio-collectibles-empty"),
@@ -121,6 +124,9 @@ describe("Portfolio page", () => {
     expect(
       screen.getByTestId("portfolio-wallet-populated"),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("portfolio-wallet-health")).toHaveTextContent(
+      "Healthy",
+    );
     expect(
       screen.getByTestId("portfolio-rewards-populated"),
     ).toBeInTheDocument();
@@ -163,5 +169,19 @@ describe("Portfolio page", () => {
 
     expect(screen.getByTestId("campaign-rewards-spotlight")).toBeInTheDocument();
     expect(screen.getByTestId("pinned-wallet-action-tray")).toBeInTheDocument();
+  });
+
+  it("renders an explicit missing wallet-balance fallback", () => {
+    renderPortfolio({
+      wallet: {
+        status: "ready",
+        items: [],
+      },
+    });
+
+    expect(screen.getByTestId("portfolio-wallet-missing")).toBeInTheDocument();
+    expect(screen.getByTestId("portfolio-wallet-health")).toHaveTextContent(
+      "Unknown",
+    );
   });
 });

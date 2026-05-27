@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useContractEvents } from '../../hooks/v1/useContractEvents';
 import { ErrorNotice } from './ErrorNotice';
 import { EmptyStateBlock } from './EmptyStateBlock';
+import { EmptyResultCallout } from './EmptyResultCallout';
 import { StatusPill } from './StatusPill';
 import type { TimelineItemData } from './Timeline';
 import { toAppError } from '../../utils/v1/errorMapper';
@@ -470,6 +471,35 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
       .map((filter) => filter.value);
   }, [eventTypeFilters, persistFilters, persistedActiveFilters]);
 
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+
+    if (eventTypeFilter?.trim()) {
+      labels.push(`type: ${eventTypeFilter.trim()}`);
+    }
+
+    if (contractSourceFilter?.trim()) {
+      labels.push(`source: ${contractSourceFilter.trim().slice(0, 10)}`);
+    }
+
+    if (timeWindowMs !== undefined && timeWindowMs > 0) {
+      labels.push(`window: ${Math.round(timeWindowMs / 1000)}s`);
+    }
+
+    currentActiveFilters.forEach((value) => {
+      const match = eventTypeFilters?.find((filter) => filter.value === value);
+      labels.push(match?.label ?? value);
+    });
+
+    return labels;
+  }, [
+    contractSourceFilter,
+    currentActiveFilters,
+    eventTypeFilter,
+    eventTypeFilters,
+    timeWindowMs,
+  ]);
+
   /**
    * Persistence-aware filter toggle handler.
    * When persistFilters=true, updates internal persisted state and writes to
@@ -578,6 +608,12 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     setRecentFilters([]);
   }, [resolvedScope]);
 
+  const handleClearResultFilters = useCallback(() => {
+    if (currentActiveFilters.length > 0) {
+      applyPresetValues([]);
+    }
+  }, [applyPresetValues, currentActiveFilters.length]);
+
   const handleDensityChange = useCallback(
     (nextDensity: TableDensityPreference) => {
       setDensity(nextDensity);
@@ -600,6 +636,10 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
           Math.max(0, (currentPage - 1) * pageSize),
           Math.max(0, (currentPage - 1) * pageSize) + pageSize,
         );
+  const hasRawEvents = Array.isArray(rawEvents) && rawEvents.length > 0;
+  const hasActiveResultFilters = activeFilterLabels.length > 0;
+  const hasFilteredOutResults =
+    hasRawEvents && filteredEvents.length === 0 && hasActiveResultFilters;
 
   const shouldVirtualize =
     renderedEvents.length >= virtualizationThreshold &&
@@ -1015,16 +1055,29 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
         </>
       ) : (
         !mappedError && (
-          <EmptyStateBlock
-            icon={isListening ? 'radio' : 'pause'}
-            title={isListening ? 'Listening for events...' : 'Feed paused'}
-            description={
-              isListening
-                ? 'Events will appear here as they are emitted by the contract.'
-                : 'Press Resume to start receiving contract events.'
-            }
-            testId={`${testId}-empty`}
-          />
+          hasFilteredOutResults ? (
+            <EmptyResultCallout
+              title="No events match these filters"
+              activeFilters={activeFilterLabels}
+              onClear={
+                currentActiveFilters.length > 0
+                  ? handleClearResultFilters
+                  : undefined
+              }
+              testId={`${testId}-empty-results`}
+            />
+          ) : (
+            <EmptyStateBlock
+              icon={isListening ? 'radio' : 'pause'}
+              title={isListening ? 'Listening for events...' : 'Feed paused'}
+              description={
+                isListening
+                  ? 'Events will appear here as they are emitted by the contract.'
+                  : 'Press Resume to start receiving contract events.'
+              }
+              testId={`${testId}-empty`}
+            />
+          )
         )
       )}
     </section>

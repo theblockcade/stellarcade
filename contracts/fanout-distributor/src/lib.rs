@@ -5,7 +5,12 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Env};
 
-pub use types::{BatchProgressSummary, BatchRecord, BatchStatus, RetryableFailure};
+pub use types::{
+    BatchHealthBand, BatchHealthSnapshot, BatchProgressSummary, BatchRecord, BatchStatus, RetryGap,
+    RetryableFailure,
+};
+
+const DEFAULT_RETRY_GAP_LEDGERS: u32 = 120;
 
 #[contracttype]
 #[derive(Clone)]
@@ -155,6 +160,148 @@ impl FanoutDistributor {
             now,
         }
     }
+
+    /// Return a structured health snapshot for one payout batch.
+    ///
+    /// Missing batch ids are not errors. They return `exists = false`,
+    /// zeroed amounts, and either `Missing` or `NotConfigured` depending on
+    /// whether the contract has been initialized. `progress_bps` is floored
+    /// basis-point math and returns zero when `total_amount <= 0`.
+    pub fn batch_health_snapshot(env: Env, batch_id: u64) -> BatchHealthSnapshot {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+
+        let Some(record) = storage::get_batch(&env, batch_id) else {
+            return BatchHealthSnapshot {
+                batch_id,
+                configured,
+                exists: false,
+                status: if configured {
+                    BatchStatus::Pending
+                } else {
+                    BatchStatus::NotConfigured
+                },
+                health_band: if configured {
+                    BatchHealthBand::Missing
+                } else {
+                    BatchHealthBand::NotConfigured
+                },
+                total_amount: 0,
+                distributed_amount: 0,
+                remaining_amount: 0,
+                recipient_count: 0,
+                progress_bps: 0,
+                failed: false,
+            };
+        };
+
+        let status = batch_status(&record);
+        let remaining_amount = (record.total_amount - record.distributed_amount).max(0);
+
+        BatchHealthSnapshot {
+            batch_id,
+            configured,
+            exists: true,
+            status: status.clone(),
+            health_band: batch_health_band(&record, &status),
+            total_amount: record.total_amount,
+            distributed_amount: record.distributed_amount,
+            remaining_amount,
+            recipient_count: record.recipient_count,
+            progress_bps: batch_progress_bps(record.total_amount, record.distributed_amount),
+            failed: record.failed,
+        }
+    }
+
+    /// Return the retry gap for a payout batch using ledger-based fallback math.
+    ///
+    /// The current storage model does not persist a failure timestamp, so failed
+    /// batches use `current_ledger + retry_gap_ledgers` as a conservative
+    /// `retry_after_ledger` until a mutation path records richer retry history.
+    /// Completed, healthy, missing, and not-configured states return gap zero
+    /// and `can_retry = false`.
+    pub fn retry_gap(env: Env, batch_id: u64) -> RetryGap {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let current_ledger = env.ledger().sequence();
+
+        let Some(record) = storage::get_batch(&env, batch_id) else {
+            return RetryGap {
+                batch_id,
+                configured,
+                exists: false,
+                status: if configured {
+                    BatchStatus::Pending
+                } else {
+                    BatchStatus::NotConfigured
+                },
+                failed: false,
+                retry_gap_ledgers: 0,
+                retry_after_ledger: 0,
+                current_ledger,
+                can_retry: false,
+            };
+        };
+
+        let status = batch_status(&record);
+        let retry_gap_ledgers = if record.failed && !record.completed {
+            DEFAULT_RETRY_GAP_LEDGERS
+        } else {
+            0
+        };
+        let retry_after_ledger = if retry_gap_ledgers > 0 {
+            current_ledger.saturating_add(retry_gap_ledgers)
+        } else {
+            0
+        };
+
+        RetryGap {
+            batch_id,
+            configured,
+            exists: true,
+            status,
+            failed: record.failed,
+            retry_gap_ledgers,
+            retry_after_ledger,
+            current_ledger,
+            can_retry: record.failed && !record.completed,
+        }
+    }
+}
+
+fn batch_status(record: &BatchRecord) -> BatchStatus {
+    if record.completed {
+        BatchStatus::Completed
+    } else if record.failed {
+        BatchStatus::Pending
+    } else if record.distributed_amount > 0 {
+        BatchStatus::InProgress
+    } else {
+        BatchStatus::Pending
+    }
+}
+
+fn batch_health_band(record: &BatchRecord, status: &BatchStatus) -> BatchHealthBand {
+    if record.completed {
+        return BatchHealthBand::Completed;
+    }
+
+    if record.failed {
+        return BatchHealthBand::Failed;
+    }
+
+    if *status == BatchStatus::InProgress {
+        BatchHealthBand::Partial
+    } else {
+        BatchHealthBand::Healthy
+    }
+}
+
+fn batch_progress_bps(total_amount: i128, distributed_amount: i128) -> u32 {
+    if total_amount <= 0 || distributed_amount <= 0 {
+        return 0;
+    }
+
+    let distributed = distributed_amount.min(total_amount);
+    ((distributed * 10_000) / total_amount) as u32
 }
 
 #[cfg(test)]
@@ -162,31 +309,39 @@ mod test {
     use super::*;
     use soroban_sdk::testutils::Address as _;
 
+    fn setup(env: &Env) -> (FanoutDistributorClient<'_>, soroban_sdk::Address) {
+        let admin = soroban_sdk::Address::generate(env);
+        let contract_id = env.register(FanoutDistributor, ());
+        let client = FanoutDistributorClient::new(env, &contract_id);
+        env.mock_all_auths();
+        (client, admin)
+    }
+
     #[test]
     fn test_init() {
         let env = Env::default();
-        let admin = soroban_sdk::Address::random(&env);
-        FanoutDistributor::init(env.clone(), admin);
+        let (client, admin) = setup(&env);
+        client.init(&admin);
     }
 
     #[test]
     fn test_batch_lifecycle() {
         let env = Env::default();
-        let admin = soroban_sdk::Address::random(&env);
+        let (client, admin) = setup(&env);
 
-        FanoutDistributor::init(env.clone(), admin.clone());
-        FanoutDistributor::create_batch(env.clone(), admin.clone(), 1, 1000, 5);
+        client.init(&admin);
+        client.create_batch(&admin, &1, &1000, &5);
 
-        let summary = FanoutDistributor::batch_progress_summary(env.clone());
+        let summary = client.batch_progress_summary();
         assert_eq!(summary.total_batches, 1);
         assert_eq!(summary.pending_batches, 1);
 
-        FanoutDistributor::distribute(env.clone(), admin.clone(), 1, 500);
-        let summary = FanoutDistributor::batch_progress_summary(env.clone());
+        client.distribute(&admin, &1, &500);
+        let summary = client.batch_progress_summary();
         assert_eq!(summary.total_distributed, 500);
 
-        FanoutDistributor::complete_batch(env.clone(), admin, 1);
-        let summary = FanoutDistributor::batch_progress_summary(env);
+        client.complete_batch(&admin, &1);
+        let summary = client.batch_progress_summary();
         assert_eq!(summary.completed_batches, 1);
         assert_eq!(summary.pending_batches, 0);
     }
@@ -194,11 +349,52 @@ mod test {
     #[test]
     fn test_retryable_failure_missing() {
         let env = Env::default();
-        let admin = soroban_sdk::Address::random(&env);
-        FanoutDistributor::init(env.clone(), admin);
+        let (client, admin) = setup(&env);
+        client.init(&admin);
 
-        let failure = FanoutDistributor::retryable_failure(env, 999);
+        let failure = client.retryable_failure(&999);
         assert_eq!(failure.exists, false);
         assert_eq!(failure.configured, true);
+    }
+
+    #[test]
+    fn test_batch_health_snapshot_and_retry_gap_failed_batch() {
+        let env = Env::default();
+        let (client, admin) = setup(&env);
+
+        client.init(&admin);
+        client.create_batch(&admin, &7, &1_000, &4);
+        client.distribute(&admin, &7, &250);
+        client.mark_failed(&admin, &7);
+
+        let snapshot = client.batch_health_snapshot(&7);
+        assert_eq!(snapshot.exists, true);
+        assert_eq!(snapshot.health_band, BatchHealthBand::Failed);
+        assert_eq!(snapshot.remaining_amount, 750);
+        assert_eq!(snapshot.progress_bps, 2_500);
+
+        let gap = client.retry_gap(&7);
+        assert_eq!(gap.exists, true);
+        assert_eq!(gap.failed, true);
+        assert_eq!(gap.retry_gap_ledgers, DEFAULT_RETRY_GAP_LEDGERS);
+        assert_eq!(gap.retry_after_ledger, gap.current_ledger + DEFAULT_RETRY_GAP_LEDGERS);
+        assert_eq!(gap.can_retry, true);
+    }
+
+    #[test]
+    fn test_batch_health_snapshot_missing_state() {
+        let env = Env::default();
+        let (client, _) = setup(&env);
+
+        let snapshot = client.batch_health_snapshot(&404);
+        assert_eq!(snapshot.configured, false);
+        assert_eq!(snapshot.exists, false);
+        assert_eq!(snapshot.health_band, BatchHealthBand::NotConfigured);
+        assert_eq!(snapshot.progress_bps, 0);
+
+        let gap = client.retry_gap(&404);
+        assert_eq!(gap.exists, false);
+        assert_eq!(gap.can_retry, false);
+        assert_eq!(gap.retry_gap_ledgers, 0);
     }
 }

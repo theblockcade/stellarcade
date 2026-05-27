@@ -1,4 +1,5 @@
 import React from "react";
+import { BalanceHealthBadge } from "./BalanceHealthBadge";
 import { InlineStatDelta } from "./InlineStatDelta";
 import "./WalletBalanceDeltaCards.css";
 
@@ -41,7 +42,14 @@ function ComparisonCard({
   const delta = balanceDelta(balance);
   return (
     <article className="wallet-balance-delta-card" data-testid={testId}>
-      <h3 className="wallet-balance-delta-card__title">{balance.label}</h3>
+      <div className="wallet-balance-delta-card__header">
+        <h3 className="wallet-balance-delta-card__title">{balance.label}</h3>
+        <BalanceHealthBadge
+          balance={balance.currentBalance}
+          loading={loading}
+          testId={`${testId}-health`}
+        />
+      </div>
       <p className="wallet-balance-delta-card__amount">
         {loading ? "Loading..." : formatBalance(balance.currentBalance)}
       </p>

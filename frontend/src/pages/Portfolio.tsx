@@ -1,5 +1,6 @@
 import React from "react";
 import { EmptyStateBlock } from "../components/v1/EmptyStateBlock";
+import { BalanceHealthBadge } from "../components/v1/BalanceHealthBadge";
 import { CampaignRewardsSpotlightCard } from "../components/v1/CampaignRewardsSpotlightCard";
 import { PinnedWalletActionTray } from "../components/v1/PinnedWalletActionTray";
 import {
@@ -130,36 +131,76 @@ export const Portfolio: React.FC<PortfolioProps> = ({
   onBrowseRewards,
   onBrowseCollectibles,
 }) => {
-  const walletSnapshot = state.wallet.items[0] ?? {
-    availableBalance: 0,
-    networkLabel: "Wallet",
-  };
-  const walletIsEmpty = walletSnapshot.availableBalance <= 0;
-  const walletContent = walletIsEmpty ? (
-    <EmptyStateBlock
-      testId="portfolio-wallet-empty"
-      icon="W"
-      title="Your wallet balance is still at zero"
-      description="Fund your wallet to join paid matches, claim drops, and unlock balance-aware actions."
-      actions={[
-        {
-          label: "Open wallet tools",
-          onClick: onOpenWallet ?? (() => {}),
-          variant: "primary",
-        },
-      ]}
-    />
+  const walletSnapshot = state.wallet.items[0];
+  const walletBalance = walletSnapshot?.availableBalance ?? null;
+  const walletIsMissing = walletSnapshot === undefined;
+  const walletIsEmpty = walletBalance !== null && walletBalance <= 0;
+  const walletContent = walletIsMissing ? (
+    <div
+      className="portfolio-page__content-card"
+      data-testid="portfolio-wallet-missing"
+    >
+      <div className="portfolio-page__content-header">
+        <BalanceHealthBadge
+          balance={null}
+          testId="portfolio-wallet-health"
+        />
+        <span>Wallet</span>
+      </div>
+      <EmptyStateBlock
+        testId="portfolio-wallet-missing-empty"
+        icon="W"
+        title="Wallet balance is unavailable"
+        description="Reconnect or refresh your wallet before using balance-aware actions."
+        actions={[
+          {
+            label: "Open wallet tools",
+            onClick: onOpenWallet ?? (() => {}),
+            variant: "primary",
+          },
+        ]}
+      />
+    </div>
+  ) : walletIsEmpty ? (
+    <div
+      className="portfolio-page__content-card"
+      data-testid="portfolio-wallet-zero"
+    >
+      <div className="portfolio-page__content-header">
+        <BalanceHealthBadge
+          balance={walletBalance}
+          testId="portfolio-wallet-health"
+        />
+        <span>{walletSnapshot?.networkLabel ?? "Wallet"}</span>
+      </div>
+      <EmptyStateBlock
+        testId="portfolio-wallet-empty"
+        icon="W"
+        title="Your wallet balance is still at zero"
+        description="Fund your wallet to join paid matches, claim drops, and unlock balance-aware actions."
+        actions={[
+          {
+            label: "Open wallet tools",
+            onClick: onOpenWallet ?? (() => {}),
+            variant: "primary",
+          },
+        ]}
+      />
+    </div>
   ) : (
     <div
       className="portfolio-page__content-card"
       data-testid="portfolio-wallet-populated"
     >
       <div className="portfolio-page__content-header">
-        <StatusPill tone="success" label="Funded" size="compact" />
-        <span>{walletSnapshot.networkLabel}</span>
+        <BalanceHealthBadge
+          balance={walletBalance}
+          testId="portfolio-wallet-health"
+        />
+        <span>{walletSnapshot?.networkLabel ?? "Wallet"}</span>
       </div>
       <strong className="portfolio-page__metric">
-        {walletSnapshot.availableBalance.toFixed(2)} XLM
+        {walletBalance?.toFixed(2) ?? "—"} XLM
       </strong>
       <p className="portfolio-page__copy">
         Available now for deposits, game entries, and marketplace settlement

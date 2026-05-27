@@ -2000,6 +2000,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellarcade-asset-escrow-v3"
+version = "0.3.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "stellarcade-attendance-pass"
 version = "0.1.0"
 dependencies = [
@@ -2327,6 +2334,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellarcade-guild-progress"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "stellarcade-guild-season"
 version = "0.1.0"
 dependencies = [
@@ -2561,6 +2575,13 @@ dependencies = [
 
 [[package]]
 name = "stellarcade-reward-stream"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
+name = "stellarcade-reward-unlocker"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk 25.3.1",

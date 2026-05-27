@@ -14,6 +14,8 @@ describe("WalletBalanceDeltaCards", () => {
     expect(screen.getByTestId("wallet-balance-delta-cards-left")).toBeInTheDocument();
     expect(screen.getByTestId("wallet-balance-delta-cards-right")).toBeInTheDocument();
     expect(screen.getByText("100.00 XLM")).toBeInTheDocument();
+    expect(screen.getByTestId("wallet-balance-delta-cards-left-health")).toHaveTextContent("Healthy");
+    expect(screen.getByTestId("wallet-balance-delta-cards-right-health")).toHaveTextContent("Healthy");
   });
 
   it("renders fallback content when balances are missing", () => {
@@ -25,5 +27,18 @@ describe("WalletBalanceDeltaCards", () => {
     );
 
     expect(screen.getAllByText("—").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Unknown")).toHaveLength(2);
+  });
+
+  it("shows checking badges while balances are loading", () => {
+    render(
+      <WalletBalanceDeltaCards
+        loading
+        left={{ id: "left", label: "Primary", currentBalance: 100, previousBalance: 80 }}
+        right={{ id: "right", label: "Secondary", currentBalance: 2, previousBalance: 3 }}
+      />,
+    );
+
+    expect(screen.getAllByText("Checking")).toHaveLength(2);
   });
 });

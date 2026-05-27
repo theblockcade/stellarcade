@@ -11,13 +11,21 @@
   background: rgba(12, 18, 30, 0.9);
 }
 
+.wallet-balance-delta-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  min-height: 1.65rem;
+}
+
 .wallet-balance-delta-card__title {
-  margin: 0 0 0.35rem;
+  margin: 0;
   font-size: 0.9rem;
 }
 
 .wallet-balance-delta-card__amount {
-  margin: 0 0 0.4rem;
+  margin: 0.35rem 0 0.4rem;
   font-size: 1.25rem;
   font-weight: 700;
   color: #7de2d1;

@@ -193,6 +193,18 @@ describe('ContractEventFeed - filters', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows reusable empty-result callout when filters hide available events', () => {
+    mockEvents = [makeEvent({ id: 'e1', type: 'dice_roll' })];
+    renderFeed({ eventTypeFilter: 'coin_flip' });
+
+    expect(
+      screen.getByTestId('contract-event-feed-empty-results'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('empty-title')).toHaveTextContent(
+      /no events match these filters/i,
+    );
+  });
+
   it('filters by contractSourceFilter', () => {
     mockEvents = [
       makeEvent({ id: 'e1', contractId: 'CAAA' }),
