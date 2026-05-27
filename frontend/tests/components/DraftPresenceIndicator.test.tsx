@@ -5,7 +5,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DraftPresenceIndicator, type DraftPresenceStatus } from '@/components/v1/DraftPresenceIndicator';
+import { DraftPresenceIndicator } from '@/components/v1/DraftPresenceIndicator';
 
 describe('DraftPresenceIndicator', () => {
   beforeEach(() => {

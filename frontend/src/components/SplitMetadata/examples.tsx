@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from "react";
-import SplitMetadataLayout from "../SplitMetadata";
+import { SplitMetadataLayout } from "../SplitMetadata";
 import type { MetadataSection } from "../SplitMetadata/types";
 
 interface GameDetailExampleProps {
@@ -128,7 +128,7 @@ export function GameDetailExample({ gameId }: GameDetailExampleProps) {
       metadataSections={metadataSections}
       isLoading={isLoading}
       emptyMessage="Game data not available"
-      onFieldInteraction={(fieldId, sectionId) => {
+      onFieldInteraction={(fieldId: string, sectionId: string) => {
         console.log(`User interacted with field "${fieldId}" in section "${sectionId}"`);
         // Handle analytics, navigation, or other interactions
       }}
@@ -140,7 +140,7 @@ export function GameDetailExample({ gameId }: GameDetailExampleProps) {
  * Example with paginated/scrollable metadata
  */
 export function LargeMetadataExample() {
-  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
+  const [_expandedSectionId, _setExpandedSectionId] = useState<string | null>(null);
 
   // Generate many fields to demonstrate scrolling
   const generateFields = (count: number) =>

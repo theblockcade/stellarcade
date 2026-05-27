@@ -6,7 +6,8 @@ export type {
   SplitMetadataLayoutProps,
   MetadataSectionProps,
   MetadataField,
-  MetadataSection,
   LoadingSkeletonProps,
   StateDisplayProps,
 } from "./types";
+
+export type { MetadataSection as MetadataSectionData } from "./types";

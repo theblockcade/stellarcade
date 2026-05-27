@@ -39,7 +39,7 @@ export function SplitMetadataLayout({
   emptyMessage = "No metadata available",
   className = "",
   onFieldInteraction,
-  stackBreakpoint = 768,
+  stackBreakpoint: _stackBreakpoint = 768,
 }: SplitMetadataLayoutProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 

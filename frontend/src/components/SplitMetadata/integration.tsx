@@ -5,7 +5,7 @@
  * real data sources and state management.
  */
 
-import { SplitMetadataLayout, type MetadataSection } from "./index";
+import type { MetadataSectionData as MetadataSection } from "./index";
 
 // ──────────────────────────────────────────────────────────────
 // Example 1: Game Details Page

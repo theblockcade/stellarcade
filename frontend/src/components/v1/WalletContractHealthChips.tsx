@@ -6,7 +6,7 @@
  * health/connection state with an accessible role="status" span.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import './WalletContractHealthChips.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────

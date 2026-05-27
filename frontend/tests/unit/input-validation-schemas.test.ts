@@ -41,7 +41,7 @@ import {
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const VALID_WALLET = Keypair.fromRawEd25519Seed(new Uint8Array(32)).publicKey();
+const VALID_WALLET = Keypair.fromRawEd25519Seed(Buffer.alloc(32)).publicKey();
 const VALID_CONTRACT = StrKey.encodeContract(Buffer.alloc(32));
 const VALID_HASH = 'a3f5c1d2e4b6789012345678901234567890abcdef1234567890abcdef123456';
 const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
