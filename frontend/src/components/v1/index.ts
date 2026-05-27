@@ -324,3 +324,35 @@ export type {
   ContractHealthStatus,
   ContractHealthRibbonVariant,
 } from "./ContractHealthRibbon";
+
+// Issues #743, #748, #749, #750
+export { WalletContractHealthChips } from "./WalletContractHealthChips";
+export type {
+  HealthChipSurface,
+  WalletContractHealthChipsProps,
+  WalletSurfaceStatus,
+  ContractSurfaceStatus,
+} from "./WalletContractHealthChips";
+
+export { CollapsibleStatsGroup } from "./CollapsibleStatsGroup";
+export type {
+  CollapsibleStatsGroupProps,
+  StatItem,
+  StatItemStatus,
+} from "./CollapsibleStatsGroup";
+
+export { StagedConfirmationTray } from "./StagedConfirmationTray";
+export type {
+  StagedConfirmationTrayProps,
+  ConfirmationField,
+  ConfirmationStage,
+  TrayRiskLevel,
+  DoneOutcome,
+} from "./StagedConfirmationTray";
+
+export { RewardBalanceSparklineCard } from "./RewardBalanceSparklineCard";
+export type {
+  RewardBalanceSparklineCardProps,
+  SparklineTrend,
+  RewardCardStatus,
+} from "./RewardBalanceSparklineCard";
