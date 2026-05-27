@@ -402,3 +402,19 @@ export {
   default as ContentShellDefault,
 } from "./ContentShell";
 export type { ContentShellProps } from "./ContentShell";
+
+export {
+  InlineAlertCluster,
+  default as InlineAlertClusterDefault,
+} from "./InlineAlertCluster";
+export type {
+  InlineAlertClusterAction,
+  InlineAlertClusterItem,
+  InlineAlertClusterProps,
+} from "./InlineAlertCluster";
+
+export {
+  EntityActionShortcuts,
+  default as EntityActionShortcutsDefault,
+} from "./EntityActionShortcuts";
+export type { EntityActionShortcutsProps } from "./EntityActionShortcuts";

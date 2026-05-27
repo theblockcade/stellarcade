@@ -1,0 +1,12 @@
+.entity-action-shortcuts {
+  width: 100%;
+}
+
+.entity-action-shortcuts__shell {
+  height: 100%;
+}
+
+.entity-action-shortcuts__content {
+  display: grid;
+  gap: 1rem;
+}

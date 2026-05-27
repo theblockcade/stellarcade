@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ContractEventFeed from '../components/v1/ContractEventFeed';
+import { EntityActionShortcuts } from '../components/v1/EntityActionShortcuts';
 import { SkeletonPreset } from '../components/v1/LoadingSkeletonSet';
-import { QuickPivotLinks, type PivotLink } from '../components/v1/QuickPivotLinks';
+import type { PivotLink } from '../components/v1/QuickPivotLinks';
 import { ApiClient } from '../services/typed-api-sdk';
 import type { Game } from '../types/api-client';
 import './GameDetail.css';
@@ -109,6 +110,35 @@ export const GameDetail: React.FC = () => {
     return links;
   }, [game, navigate, statusLabel]);
 
+  const shortcutAlerts = useMemo(() => {
+    if (!game) {
+      return [];
+    }
+
+    return [
+      {
+        id: 'contract-scope',
+        title:
+          game.contractId && game.contractId.trim().length > 0
+            ? 'Contract record linked'
+            : 'Fallback contract reference in use',
+        description:
+          game.contractId && game.contractId.trim().length > 0
+            ? `Event timeline and related records are scoped to ${resolveContractId(game)}.`
+            : `This page is using ${resolveContractId(game)} until a dedicated contract id is configured for the game.`,
+        variant:
+          game.contractId && game.contractId.trim().length > 0 ? 'info' : 'warning',
+      },
+      {
+        id: 'wallet-interruption',
+        title: 'Wallet interruption recovery',
+        description:
+          'If a confirmation flow is interrupted, return here through the pending-task banner to reopen the related records and timeline without starting over.',
+        variant: 'info' as const,
+      },
+    ];
+  }, [game]);
+
   if (loading) {
     return (
       <div role="status" aria-live="polite" data-testid="game-detail-loading">
@@ -147,12 +177,13 @@ export const GameDetail: React.FC = () => {
 
       <aside className="game-detail__sidebar" aria-label="Related actions" data-testid="game-detail-sidebar">
         <div className="game-detail__sidebar-section">
-          <h2 className="game-detail__sidebar-heading">Related</h2>
-          <QuickPivotLinks
+          <EntityActionShortcuts
+            title="Related records"
+            description="Use a single shortcut module to pivot between linked wallet, leaderboard, audit, and transaction views."
             links={sidebarLinks}
-            orientation="vertical"
-            size="compact"
-            testId="game-detail-pivot-links"
+            alerts={shortcutAlerts}
+            headingLevel={2}
+            testId="game-detail-shortcuts"
             emptyMessage="No related actions available"
           />
         </div>

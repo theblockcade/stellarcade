@@ -1,4 +1,5 @@
 import React from "react";
+import { HeadingLevelContext, type HeadingLevel } from "../../hooks/v1/useHeadingLevel";
 import "./PageIntro.css";
 
 /**
@@ -41,6 +42,8 @@ export interface PageIntroProps {
   actions?: React.ReactNode;
   /** Optional meta strip rendered at the bottom of the intro card. */
   meta?: PageIntroMeta[];
+  /** Optional semantic heading override for nested layouts. */
+  headingLevel?: HeadingLevel;
   /** Optional override for `data-testid` on the root section. */
   testId?: string;
   className?: string;
@@ -53,9 +56,17 @@ export function PageIntro({
   breadcrumbs,
   actions,
   meta,
+  headingLevel,
   testId = "page-intro",
   className = "",
 }: PageIntroProps): React.JSX.Element {
+  const contextLevel = React.useContext(HeadingLevelContext);
+  const resolvedLevel = Math.max(
+    1,
+    Math.min(6, headingLevel ?? contextLevel),
+  ) as HeadingLevel;
+  const HeadingTag = `h${resolvedLevel}` as keyof React.JSX.IntrinsicElements;
+
   return (
     <section
       className={`page-intro ${className}`.trim()}
@@ -111,13 +122,14 @@ export function PageIntro({
               {eyebrow}
             </p>
           )}
-          <h1
+          <HeadingTag
             id={`${testId}-title`}
             className="page-intro__title"
             data-testid={`${testId}-title`}
+            data-heading-level={resolvedLevel}
           >
             {title}
-          </h1>
+          </HeadingTag>
           {description && (
             <p
               className="page-intro__description"

@@ -77,6 +77,16 @@ function formatPendingTxLabel(
   return pendingTransaction.phase.replace(/_/g, " ");
 }
 
+function formatPendingTaskName(
+  pendingTransaction: PendingTransactionSnapshot | null,
+): string {
+  if (!pendingTransaction) {
+    return "Pending wallet task";
+  }
+
+  return pendingTransaction.operation.replace(/[._]/g, " ");
+}
+
 function readStoredLobbyContext(): LobbyContext | null {
   if (typeof window === "undefined") {
     return null;
@@ -136,6 +146,7 @@ export const GameLobby: React.FC = () => {
   );
   const [pendingResumeContext, setPendingResumeContext] =
     useState<LobbyContext | null>(null);
+  const [showPendingTaskBanner, setShowPendingTaskBanner] = useState(false);
   const [pendingActionChipDismissed, setPendingActionChipDismissed] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [activeGamesDelta, setActiveGamesDelta] = useState<number | null>(null);
@@ -285,6 +296,12 @@ export const GameLobby: React.FC = () => {
       setPendingActionChipDismissed(false);
     }
   }, [pendingTransaction?.txHash, pendingTransaction?.updatedAt]);
+
+  useEffect(() => {
+    if (wallet.sessionDropped && pendingTransaction) {
+      setShowPendingTaskBanner(true);
+    }
+  }, [pendingTransaction, wallet.sessionDropped]);
 
   const retryNetworkCheck = useCallback(async () => {
     if (networkCheckPending) return;
@@ -453,17 +470,19 @@ export const GameLobby: React.FC = () => {
     const previousReconnectAt = previousReconnectAtRef.current;
 
     if (
+      pendingTransaction &&
       previousStatus === "RECONNECTING" &&
       wallet.status === "CONNECTED" &&
       wallet.lastReconnectAt !== null &&
       wallet.lastReconnectAt !== previousReconnectAt
     ) {
+      setShowPendingTaskBanner(true);
       setPendingResumeContext(readStoredLobbyContext());
     }
 
     previousWalletStatusRef.current = wallet.status;
     previousReconnectAtRef.current = wallet.lastReconnectAt;
-  }, [wallet.lastReconnectAt, wallet.status]);
+  }, [pendingTransaction, wallet.lastReconnectAt, wallet.status]);
 
   const missionItems = useMemo(
     () => [
@@ -801,9 +820,23 @@ export const GameLobby: React.FC = () => {
             />
           ) : null}
 
+          {showPendingTaskBanner && pendingTransaction ? (
+            <ResumeTaskBanner
+              taskName={formatPendingTaskName(pendingTransaction)}
+              onResume={() => {
+                setIsTransactionDrawerOpen(true);
+                setPendingActionChipDismissed(false);
+                setShowPendingTaskBanner(false);
+              }}
+              onDismiss={() => setShowPendingTaskBanner(false)}
+              className="lobby-resume-banner"
+              testId="lobby-pending-task-banner"
+            />
+          ) : null}
+
           {pendingTransaction && !isTransactionDrawerOpen && !pendingActionChipDismissed ? (
             <PendingActionResumeChip
-              label={pendingTransaction.operation.replace(/\./g, " ")}
+              label={formatPendingTaskName(pendingTransaction)}
               detail={`${pendingTransaction.phase.toLowerCase().replace(/_/g, " ")} in progress`}
               onResume={() => {
                 setIsTransactionDrawerOpen(true);
@@ -938,6 +971,7 @@ export const GameLobby: React.FC = () => {
               titleId="leaderboard-heading"
               title="Active Games Leaderboard"
               description="Switch between standard and compact density to scan live tables faster."
+              headingLevel={2}
               actions={
                 <SegmentedControl
                   label="Table density"

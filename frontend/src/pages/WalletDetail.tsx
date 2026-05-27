@@ -1,23 +1,110 @@
-import React, { useState } from 'react';
-import { QuickPivotLinks, type PivotLink } from '../components/v1/QuickPivotLinks';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { EntityActionShortcuts } from '../components/v1/EntityActionShortcuts';
 import { PinnedWalletActionTray } from '../components/v1/PinnedWalletActionTray';
+import { ResumeTaskBanner } from '../components/v1/ResumeTaskBanner';
 import { StatusPill } from '../components/v1/StatusPill';
 import { WalletBalanceDeltaCards } from '../components/v1/WalletBalanceDeltaCards';
+import GlobalStateStore from '../services/global-state-store';
+import { useWalletStatus } from '../hooks/v1/useWalletStatus';
+import type { PendingTransactionSnapshot } from '../types/global-state';
+import type { PivotLink } from '../components/v1/QuickPivotLinks';
 
 interface WalletDetailProps {
   walletId?: string;
 }
 
+function formatPendingTaskLabel(snapshot: PendingTransactionSnapshot | null): string {
+  if (!snapshot) {
+    return 'Pending wallet task';
+  }
+  return snapshot.operation.replace(/[._]/g, ' ');
+}
+
 const WalletDetail: React.FC<WalletDetailProps> = ({ walletId = 'wallet_123' }) => {
   const [activeSection, setActiveSection] = useState<string>('overview');
+  const [pendingTransaction, setPendingTransaction] = useState<PendingTransactionSnapshot | null>(null);
+  const [showPendingTaskBanner, setShowPendingTaskBanner] = useState(false);
+  const walletStatus = useWalletStatus();
+  const storeRef = useRef<GlobalStateStore | null>(null);
+  const previousWalletStatusRef = useRef(walletStatus.status);
+  const previousReconnectAtRef = useRef(walletStatus.lastReconnectAt);
 
-  const pivotLinks: PivotLink[] = [
-    { id: 'contracts', label: 'Related Contracts', onClick: () => setActiveSection('contracts'), icon: 'DOC', badge: 5 },
-    { id: 'transactions', label: 'Transaction History', onClick: () => setActiveSection('transactions'), icon: 'TX', badge: 23 },
-    { id: 'analytics', label: 'Analytics Dashboard', href: `/analytics/wallet/${walletId}`, icon: 'ANL', external: true },
-    { id: 'settings', label: 'Wallet Settings', onClick: () => setActiveSection('settings'), icon: 'CFG' },
-    { id: 'export', label: 'Export Data', onClick: () => console.log('Export wallet data'), icon: 'EXP', disabled: true },
-  ];
+  if (!storeRef.current) {
+    storeRef.current = new GlobalStateStore();
+  }
+
+  useEffect(() => {
+    const store = storeRef.current!;
+    setPendingTransaction(store.getState().pendingTransaction ?? null);
+    return store.subscribe((state) => {
+      setPendingTransaction(state.pendingTransaction ?? null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (walletStatus.sessionDropped && pendingTransaction) {
+      setShowPendingTaskBanner(true);
+    }
+  }, [pendingTransaction, walletStatus.sessionDropped]);
+
+  useEffect(() => {
+    const previousStatus = previousWalletStatusRef.current;
+    const previousReconnectAt = previousReconnectAtRef.current;
+
+    if (
+      pendingTransaction &&
+      previousStatus === 'RECONNECTING' &&
+      walletStatus.status === 'CONNECTED' &&
+      walletStatus.lastReconnectAt !== null &&
+      walletStatus.lastReconnectAt !== previousReconnectAt
+    ) {
+      setShowPendingTaskBanner(true);
+    }
+
+    previousWalletStatusRef.current = walletStatus.status;
+    previousReconnectAtRef.current = walletStatus.lastReconnectAt;
+  }, [pendingTransaction, walletStatus.lastReconnectAt, walletStatus.status]);
+
+  const pivotLinks: PivotLink[] = useMemo(
+    () => [
+      { id: 'contracts', label: 'Related Contracts', onClick: () => setActiveSection('contracts'), icon: 'DOC', badge: 5 },
+      { id: 'transactions', label: 'Transaction History', onClick: () => setActiveSection('transactions'), icon: 'TX', badge: 23 },
+      { id: 'analytics', label: 'Analytics Dashboard', href: `/analytics/wallet/${walletId}`, icon: 'ANL', external: true },
+      { id: 'settings', label: 'Wallet Settings', onClick: () => setActiveSection('settings'), icon: 'CFG' },
+      { id: 'export', label: 'Export Data', onClick: () => console.log('Export wallet data'), icon: 'EXP', disabled: true },
+    ],
+    [walletId],
+  );
+
+  const shortcutAlerts = useMemo(
+    () => [
+      {
+        id: 'pending-wallet-task',
+        title: pendingTransaction ? 'Wallet action can be resumed' : 'Wallet actions stay resumable',
+        description: pendingTransaction
+          ? `Return to ${formatPendingTaskLabel(pendingTransaction)} without losing context after a wallet interruption.`
+          : 'When a wallet confirmation is interrupted, the latest pending task appears here so the user can jump back in.',
+        variant: pendingTransaction ? ('warning' as const) : ('info' as const),
+        action: pendingTransaction
+          ? {
+              label: 'Open transaction history',
+              onClick: () => {
+                setActiveSection('transactions');
+                setShowPendingTaskBanner(false);
+              },
+            }
+          : undefined,
+      },
+      {
+        id: 'export-fallback',
+        title: 'Export actions are staged',
+        description:
+          'Record shortcuts stay visible even when one downstream action is unavailable, so detail-page navigation remains predictable.',
+        variant: 'info' as const,
+      },
+    ],
+    [pendingTransaction],
+  );
 
   const renderContent = () => {
     switch (activeSection) {
@@ -33,6 +120,12 @@ const WalletDetail: React.FC<WalletDetailProps> = ({ walletId = 'wallet_123' }) 
           <div className="wallet-detail__content">
             <h2>Transaction History</h2>
             <p>Recent transactions for this wallet...</p>
+            {pendingTransaction ? (
+              <p data-testid="wallet-detail-pending-transaction">
+                Pending wallet task: {formatPendingTaskLabel(pendingTransaction)} is{' '}
+                {pendingTransaction.phase.toLowerCase().replace(/_/g, ' ')}.
+              </p>
+            ) : null}
           </div>
         );
       case 'settings':
@@ -68,11 +161,29 @@ const WalletDetail: React.FC<WalletDetailProps> = ({ walletId = 'wallet_123' }) 
         <p style={{ color: '#a8b5c8', fontFamily: 'monospace' }}>{walletId}</p>
       </header>
 
+      {showPendingTaskBanner && pendingTransaction ? (
+        <div style={{ marginBottom: '1.25rem' }}>
+          <ResumeTaskBanner
+            taskName={formatPendingTaskLabel(pendingTransaction)}
+            onResume={() => {
+              setActiveSection('transactions');
+              setShowPendingTaskBanner(false);
+            }}
+            onDismiss={() => setShowPendingTaskBanner(false)}
+            testId="wallet-detail-resume-pending-task"
+          />
+        </div>
+      ) : null}
+
       <section style={{ marginBottom: '2rem' }} aria-label="Wallet quick navigation">
-        <h2 style={{ marginBottom: '1rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Quick Navigation
-        </h2>
-        <QuickPivotLinks links={pivotLinks} activeId={activeSection} testId="wallet-detail-pivot-links" />
+        <EntityActionShortcuts
+          title="Wallet shortcuts"
+          description="Jump between related wallet records and recover interrupted actions from a single, predictable module."
+          links={pivotLinks}
+          alerts={shortcutAlerts}
+          headingLevel={2}
+          testId="wallet-detail-shortcuts"
+        />
       </section>
 
       <section aria-label="Wallet comparison snapshot" style={{ marginBottom: '1.25rem' }}>
