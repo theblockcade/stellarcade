@@ -356,3 +356,13 @@ export type {
   SparklineTrend,
   RewardCardStatus,
 } from "./RewardBalanceSparklineCard";
+
+// Issue #745
+export {
+  InterruptedFlowPrompt,
+  default as InterruptedFlowPromptDefault,
+} from "./InterruptedFlowPrompt";
+export type {
+  InterruptedFlowPromptProps,
+  InterruptedFlowAction,
+} from "./InterruptedFlowPrompt";
