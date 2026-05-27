@@ -139,7 +139,7 @@ export function GameDetailExample({ gameId }: GameDetailExampleProps) {
 /**
  * Example with paginated/scrollable metadata
  */
-export function LargeMet adataExample() {
+export function LargeMetadataExample() {
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
 
   // Generate many fields to demonstrate scrolling
