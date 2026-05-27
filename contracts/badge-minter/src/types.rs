@@ -44,3 +44,36 @@ pub struct UserMintRecord {
     pub minted_at: u64,
     pub quantity: u64,
 }
+
+/// Wallet holder summary for a badge-owning address.
+///
+/// Missing users return zero counts. `last_minted_at` is the largest ledger
+/// sequence in the user's mint records, or 0 when no mints are recorded.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HolderSummary {
+    pub user: Address,
+    pub configured: bool,
+    pub badge_count: u32,
+    pub mint_record_count: u32,
+    pub total_quantity: u64,
+    pub last_minted_at: u64,
+}
+
+/// Expiry-risk read model for a badge-owning address.
+///
+/// Badge definitions currently have no per-badge expiry timestamp, so
+/// `expiry_supported = false` and all risk counters are zero. This explicit
+/// fallback keeps frontend/backend consumers stable until expiries are added.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExpiryRiskAccessor {
+    pub user: Address,
+    pub configured: bool,
+    pub expiry_supported: bool,
+    pub held_badges: u32,
+    pub expiring_badges: u32,
+    pub expired_badges: u32,
+    pub nearest_expiry_at: u64,
+    pub risk_bps: u32,
+}

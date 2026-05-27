@@ -26,6 +26,19 @@ fn unresolved_summary_and_readiness_happy_path() {
     assert!(readiness.is_ready);
     assert_eq!(readiness.unresolved_ops, 0);
     assert!(!readiness.missing_checkpoint);
+
+    let active = client.active_round_summary();
+    assert_eq!(active.total_rounds, 2);
+    assert_eq!(active.active_rounds, 1);
+    assert_eq!(active.ready_rounds, 1);
+    assert_eq!(active.blocked_rounds, 1);
+    assert_eq!(active.next_active_round_id, 10);
+
+    let pressure = client.finalization_pressure();
+    assert_eq!(pressure.total_rounds, 2);
+    assert_eq!(pressure.blocked_rounds, 1);
+    assert_eq!(pressure.unresolved_ops, 2);
+    assert_eq!(pressure.pressure_bps, 5_000);
 }
 
 #[test]
@@ -41,4 +54,12 @@ fn unresolved_summary_unconfigured_and_missing_round() {
     let readiness = client.get_finalize_readiness(&99);
     assert!(!readiness.is_ready);
     assert!(readiness.missing_checkpoint);
+
+    let active = client.active_round_summary();
+    assert_eq!(active.total_rounds, 0);
+    assert_eq!(active.active_rounds, 0);
+
+    let pressure = client.finalization_pressure();
+    assert_eq!(pressure.total_rounds, 0);
+    assert_eq!(pressure.pressure_bps, 0);
 }

@@ -49,6 +49,16 @@ fn claim_window_and_exhaustion_track_success_path() {
     let after_summary = client.claim_window_summary(&7);
     assert_eq!(after_summary.pending_claimants, 0);
     assert_eq!(after_summary.total_claims, 1);
+
+    let saturation = client.claim_saturation_summary(&7);
+    assert_eq!(saturation.saturation_bps, 2_500);
+    assert_eq!(saturation.claimed_budget, 250);
+    assert!(!saturation.saturated);
+
+    let cooldown = client.cooldown_window_accessor(&7);
+    assert_eq!(cooldown.state, ClaimWindowState::Open);
+    assert_eq!(cooldown.seconds_until_open, 0);
+    assert_eq!(cooldown.seconds_until_closed, 150);
 }
 
 #[test]
@@ -74,4 +84,11 @@ fn not_configured_and_missing_campaign_reads_are_predictable() {
     assert_eq!(missing.state, ClaimWindowState::Missing);
     assert_eq!(missing.exhaustion_bps, 0);
     assert!(!missing.can_record_claims);
+
+    let cooldown = client.cooldown_window_accessor(&404);
+    assert!(cooldown.configured);
+    assert!(!cooldown.exists);
+    assert_eq!(cooldown.state, ClaimWindowState::Missing);
+    assert_eq!(cooldown.seconds_until_open, 0);
+    assert_eq!(cooldown.seconds_until_closed, 0);
 }

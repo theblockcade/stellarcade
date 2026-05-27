@@ -61,3 +61,39 @@ pub struct ReleaseWindow {
     /// Seconds remaining until the claim becomes releasable (0 once open).
     pub seconds_until_releasable: u64,
 }
+
+/// Reserve exposure snapshot backed by existing aggregate counters.
+///
+/// `exposure_bps` is floored as
+/// `outstanding_amount * 10_000 / total_tracked_amount`. Empty and
+/// unconfigured vaults return `exposure_bps = 0`.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ReserveExposureSnapshot {
+    pub configured: bool,
+    pub outstanding_count: u32,
+    pub outstanding_amount: i128,
+    pub released_amount: i128,
+    pub cancelled_amount: i128,
+    pub total_tracked_amount: i128,
+    pub exposure_bps: u32,
+    pub now: u64,
+}
+
+/// Aggregate release queue read model.
+///
+/// `pending_amount` includes outstanding claims whose release window has not
+/// opened. `releasable_amount` includes outstanding claims whose window is
+/// open. Empty, unconfigured, and pre-index records return zero queue values.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ReleaseQueueAccessor {
+    pub configured: bool,
+    pub indexed_claims: u32,
+    pub pending_count: u32,
+    pub pending_amount: i128,
+    pub releasable_count: u32,
+    pub releasable_amount: i128,
+    pub next_release_after: u64,
+    pub now: u64,
+}

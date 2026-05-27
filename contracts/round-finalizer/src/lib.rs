@@ -147,4 +147,120 @@ impl RoundFinalizerContract {
             missing_checkpoint,
         }
     }
+
+    /// Return a dashboard-friendly active round summary.
+    ///
+    /// Active rounds have unresolved operations or lack a checkpoint. Ready
+    /// rounds have zero unresolved operations and a checkpoint. Empty and
+    /// unconfigured states return zero counts.
+    pub fn active_round_summary(env: Env) -> ActiveRoundSummary {
+        let Some(cfg) = get_config(&env) else {
+            return ActiveRoundSummary {
+                status: RoundFinalizerStatus::Unconfigured,
+                total_rounds: 0,
+                active_rounds: 0,
+                ready_rounds: 0,
+                blocked_rounds: 0,
+                unresolved_ops: 0,
+                next_active_round_id: 0,
+            };
+        };
+
+        let ids = get_round_ids(&env);
+        let mut active_rounds = 0u32;
+        let mut ready_rounds = 0u32;
+        let mut blocked_rounds = 0u32;
+        let mut unresolved_ops = 0u32;
+        let mut next_active_round_id = 0u64;
+
+        for round_id in ids.iter() {
+            if let Some(round) = get_round(&env, round_id) {
+                let missing_checkpoint = !round.has_checkpoint;
+                let active = round.unresolved_ops > 0 || missing_checkpoint;
+                if active {
+                    active_rounds = active_rounds.saturating_add(1);
+                    unresolved_ops = unresolved_ops.saturating_add(round.unresolved_ops);
+                    if next_active_round_id == 0 || round.round_id < next_active_round_id {
+                        next_active_round_id = round.round_id;
+                    }
+                } else {
+                    ready_rounds = ready_rounds.saturating_add(1);
+                }
+                if round.unresolved_ops > 0 || missing_checkpoint || cfg.paused {
+                    blocked_rounds = blocked_rounds.saturating_add(1);
+                }
+            }
+        }
+
+        ActiveRoundSummary {
+            status: if cfg.paused {
+                RoundFinalizerStatus::Paused
+            } else {
+                RoundFinalizerStatus::Active
+            },
+            total_rounds: ids.len(),
+            active_rounds,
+            ready_rounds,
+            blocked_rounds,
+            unresolved_ops,
+            next_active_round_id,
+        }
+    }
+
+    /// Return aggregate pressure against round finalization.
+    ///
+    /// Pressure is floored basis-point math over blocked rounds. A paused
+    /// contract marks all stored rounds as blocked; empty state returns zero.
+    pub fn finalization_pressure(env: Env) -> FinalizationPressure {
+        let Some(cfg) = get_config(&env) else {
+            return FinalizationPressure {
+                status: RoundFinalizerStatus::Unconfigured,
+                total_rounds: 0,
+                blocked_rounds: 0,
+                unresolved_ops: 0,
+                missing_checkpoints: 0,
+                pressure_bps: 0,
+                finalization_paused: false,
+            };
+        };
+
+        let ids = get_round_ids(&env);
+        let mut blocked_rounds = 0u32;
+        let mut unresolved_ops = 0u32;
+        let mut missing_checkpoints = 0u32;
+
+        for round_id in ids.iter() {
+            if let Some(round) = get_round(&env, round_id) {
+                let missing_checkpoint = !round.has_checkpoint;
+                if missing_checkpoint {
+                    missing_checkpoints = missing_checkpoints.saturating_add(1);
+                }
+                unresolved_ops = unresolved_ops.saturating_add(round.unresolved_ops);
+                if cfg.paused || round.unresolved_ops > 0 || missing_checkpoint {
+                    blocked_rounds = blocked_rounds.saturating_add(1);
+                }
+            }
+        }
+
+        let total_rounds = ids.len();
+        let pressure_bps = if total_rounds == 0 {
+            0
+        } else {
+            (blocked_rounds * 10_000) / total_rounds
+        };
+
+        FinalizationPressure {
+            status: if cfg.paused {
+                RoundFinalizerStatus::Paused
+            } else {
+                RoundFinalizerStatus::Active
+            },
+            total_rounds,
+            blocked_rounds,
+            unresolved_ops,
+            missing_checkpoints,
+            pressure_bps,
+            finalization_paused: cfg.paused,
+        }
+    }
 }

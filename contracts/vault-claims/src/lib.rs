@@ -5,13 +5,17 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
-pub use types::{ClaimState, OutstandingClaimSummary, ReleaseWindow, VaultClaim};
+pub use types::{
+    ClaimState, OutstandingClaimSummary, ReleaseQueueAccessor, ReleaseWindow,
+    ReserveExposureSnapshot, VaultClaim,
+};
 
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     Admin,
     Claim(u64),
+    ClaimIds,
     OutstandingCount,
     OutstandingAmount,
     ReleasedCount,
@@ -62,6 +66,7 @@ impl VaultClaims {
                 cancelled: false,
             },
         );
+        storage::append_claim_id(&env, claim_id);
         bump_outstanding(&env, 1, amount);
     }
 
@@ -164,6 +169,95 @@ impl VaultClaims {
             release_after: claim.release_after,
             now,
             seconds_until_releasable,
+        }
+    }
+
+    /// Return reserve exposure based on aggregate claim counters.
+    ///
+    /// `exposure_bps` is floored basis-point math over all tracked claim
+    /// amounts. Empty and unconfigured vaults return zero exposure.
+    pub fn reserve_exposure_snapshot(env: Env) -> ReserveExposureSnapshot {
+        let outstanding_amount = storage::read_i128(&env, &DataKey::OutstandingAmount);
+        let released_amount = storage::read_i128(&env, &DataKey::ReleasedAmount);
+        let cancelled_amount = storage::read_i128(&env, &DataKey::CancelledAmount);
+        let total_tracked_amount = outstanding_amount
+            .saturating_add(released_amount)
+            .saturating_add(cancelled_amount);
+        let exposure_bps = if total_tracked_amount <= 0 || outstanding_amount <= 0 {
+            0
+        } else {
+            let outstanding = u128::try_from(outstanding_amount).expect("negative outstanding");
+            let total = u128::try_from(total_tracked_amount).expect("negative total");
+            u32::try_from((outstanding * 10_000) / total).expect("bps overflow")
+        };
+
+        ReserveExposureSnapshot {
+            configured: env.storage().instance().has(&DataKey::Admin),
+            outstanding_count: storage::read_u32(&env, &DataKey::OutstandingCount),
+            outstanding_amount,
+            released_amount,
+            cancelled_amount,
+            total_tracked_amount,
+            exposure_bps,
+            now: env.ledger().timestamp(),
+        }
+    }
+
+    /// Return the current release queue aggregate.
+    ///
+    /// Claims registered before the queue index existed are still reflected in
+    /// `reserve_exposure_snapshot`; this queue accessor reports the indexed
+    /// subset and falls back to zeros for empty or unconfigured state.
+    pub fn release_queue_accessor(env: Env) -> ReleaseQueueAccessor {
+        let now = env.ledger().timestamp();
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        if !configured {
+            return ReleaseQueueAccessor {
+                configured: false,
+                indexed_claims: 0,
+                pending_count: 0,
+                pending_amount: 0,
+                releasable_count: 0,
+                releasable_amount: 0,
+                next_release_after: 0,
+                now,
+            };
+        }
+
+        let ids = storage::get_claim_ids(&env);
+        let mut pending_count = 0u32;
+        let mut pending_amount = 0i128;
+        let mut releasable_count = 0u32;
+        let mut releasable_amount = 0i128;
+        let mut next_release_after = 0u64;
+
+        for claim_id in ids.iter() {
+            if let Some(claim) = storage::get_claim(&env, claim_id) {
+                if claim.released || claim.cancelled {
+                    continue;
+                }
+                if now >= claim.release_after {
+                    releasable_count = releasable_count.saturating_add(1);
+                    releasable_amount = releasable_amount.saturating_add(claim.amount);
+                } else {
+                    pending_count = pending_count.saturating_add(1);
+                    pending_amount = pending_amount.saturating_add(claim.amount);
+                    if next_release_after == 0 || claim.release_after < next_release_after {
+                        next_release_after = claim.release_after;
+                    }
+                }
+            }
+        }
+
+        ReleaseQueueAccessor {
+            configured,
+            indexed_claims: ids.len(),
+            pending_count,
+            pending_amount,
+            releasable_count,
+            releasable_amount,
+            next_release_after,
+            now,
         }
     }
 }
@@ -292,6 +386,11 @@ mod test {
         assert_eq!(s.released_amount, 100);
         assert_eq!(s.cancelled_count, 1);
         assert_eq!(s.cancelled_amount, 50);
+
+        let exposure = client.reserve_exposure_snapshot();
+        assert_eq!(exposure.outstanding_amount, 200);
+        assert_eq!(exposure.total_tracked_amount, 350);
+        assert_eq!(exposure.exposure_bps, 5_714);
     }
 
     #[test]
@@ -309,14 +408,43 @@ mod test {
         let (env, admin, client) = setup();
         let _bene = register(&env, &client, &admin, 1, 100, 5_000);
 
+        let queue = client.release_queue_accessor();
+        assert_eq!(queue.pending_count, 1);
+        assert_eq!(queue.pending_amount, 100);
+        assert_eq!(queue.releasable_count, 0);
+        assert_eq!(queue.next_release_after, 5_000);
+
         let pending = client.release_window(&1u64);
         assert_eq!(pending.state, ClaimState::Pending);
         assert_eq!(pending.seconds_until_releasable, 4_000);
 
         env.ledger().set_timestamp(6_000);
+        let queue = client.release_queue_accessor();
+        assert_eq!(queue.pending_count, 0);
+        assert_eq!(queue.releasable_count, 1);
+        assert_eq!(queue.releasable_amount, 100);
+
         let open = client.release_window(&1u64);
         assert_eq!(open.state, ClaimState::Releasable);
         assert_eq!(open.seconds_until_releasable, 0);
+    }
+
+    #[test]
+    fn reserve_exposure_and_queue_unconfigured_are_zero() {
+        let env = Env::default();
+        let contract_id = env.register(VaultClaims, ());
+        let client = VaultClaimsClient::new(&env, &contract_id);
+
+        let exposure = client.reserve_exposure_snapshot();
+        assert_eq!(exposure.configured, false);
+        assert_eq!(exposure.total_tracked_amount, 0);
+        assert_eq!(exposure.exposure_bps, 0);
+
+        let queue = client.release_queue_accessor();
+        assert_eq!(queue.configured, false);
+        assert_eq!(queue.indexed_claims, 0);
+        assert_eq!(queue.pending_count, 0);
+        assert_eq!(queue.releasable_count, 0);
     }
 
     #[test]

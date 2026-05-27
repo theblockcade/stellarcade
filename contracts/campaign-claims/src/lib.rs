@@ -6,7 +6,10 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
-pub use types::{BudgetExhaustion, CampaignRecord, ClaimWindowState, ClaimWindowSummary};
+pub use types::{
+    BudgetExhaustion, CampaignRecord, ClaimSaturationSummary, ClaimWindowState,
+    ClaimWindowSummary, CooldownWindowAccessor,
+};
 
 #[contracttype]
 #[derive(Clone)]
@@ -241,6 +244,85 @@ impl CampaignClaims {
                 && campaign.remaining_budget > 0,
         }
     }
+
+    /// Return a structured claim saturation summary for `campaign_id`.
+    ///
+    /// Saturation uses floor division in basis points:
+    /// `committed_budget * 10_000 / budget`. Unknown ids and unconfigured
+    /// contracts return zero balances with `exists = false`.
+    pub fn claim_saturation_summary(env: Env, campaign_id: u64) -> ClaimSaturationSummary {
+        let summary = Self::claim_window_summary(env.clone(), campaign_id);
+        if !summary.exists {
+            return ClaimSaturationSummary {
+                campaign_id,
+                configured: summary.configured,
+                exists: false,
+                state: summary.state,
+                paused: false,
+                budget: 0,
+                committed_budget: 0,
+                claimed_budget: 0,
+                remaining_budget: 0,
+                pending_claimants: 0,
+                total_claims: 0,
+                saturation_bps: 0,
+                saturated: false,
+            };
+        }
+
+        let campaign = storage::get_campaign(&env, campaign_id)
+            .expect("Campaign summary and storage out of sync");
+        let saturation_bps = saturation_bps(campaign.committed_budget, campaign.budget);
+
+        ClaimSaturationSummary {
+            campaign_id,
+            configured: summary.configured,
+            exists: true,
+            state: summary.state,
+            paused: campaign.paused,
+            budget: campaign.budget,
+            committed_budget: campaign.committed_budget,
+            claimed_budget: campaign.claimed_budget,
+            remaining_budget: campaign.remaining_budget,
+            pending_claimants: campaign.pending_claimants,
+            total_claims: campaign.total_claims,
+            saturation_bps,
+            saturated: campaign.remaining_budget == 0,
+        }
+    }
+
+    /// Return the claim cooldown/window timing for `campaign_id`.
+    ///
+    /// Missing and not-yet-configured campaigns return zero timestamps and
+    /// durations. Paused campaigns keep their configured times but
+    /// `can_record_claims = false`.
+    pub fn cooldown_window_accessor(env: Env, campaign_id: u64) -> CooldownWindowAccessor {
+        let summary = Self::claim_window_summary(env, campaign_id);
+        let seconds_until_open = if summary.state == ClaimWindowState::Scheduled {
+            summary.starts_at.saturating_sub(summary.now)
+        } else {
+            0
+        };
+        let seconds_until_closed = if summary.state == ClaimWindowState::Open {
+            summary.ends_at.saturating_sub(summary.now)
+        } else {
+            0
+        };
+
+        CooldownWindowAccessor {
+            campaign_id,
+            configured: summary.configured,
+            exists: summary.exists,
+            state: summary.state,
+            now: summary.now,
+            starts_at: summary.starts_at,
+            ends_at: summary.ends_at,
+            seconds_until_open,
+            seconds_until_closed,
+            can_record_claims: summary.state == ClaimWindowState::Open
+                && summary.remaining_budget > 0,
+        }
+    }
 }
 
 fn is_configured(env: &Env) -> bool {
@@ -266,6 +348,16 @@ fn read_window_state(now: u64, campaign: &CampaignRecord) -> ClaimWindowState {
         ClaimWindowState::Open
     } else {
         ClaimWindowState::Closed
+    }
+}
+
+fn saturation_bps(committed_budget: i128, budget: i128) -> u32 {
+    if budget <= 0 || committed_budget <= 0 {
+        0
+    } else {
+        let committed = u128::try_from(committed_budget).expect("negative committed");
+        let budget = u128::try_from(budget).expect("negative budget");
+        u32::try_from((committed * 10_000) / budget).expect("bps overflow")
     }
 }
 

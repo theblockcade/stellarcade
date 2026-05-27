@@ -364,6 +364,61 @@ impl BadgeMinter {
     pub fn get_user_mint_records(env: Env, user: Address) -> Vec<UserMintRecord> {
         get_user_mint_records(&env, &user)
     }
+
+    // -----------------------------------------------------------------------
+    // holder_summary
+    // -----------------------------------------------------------------------
+
+    /// Return a wallet holder summary for `user`.
+    ///
+    /// Unknown users return zero counts. `last_minted_at` is the newest ledger
+    /// sequence in the user's mint records, or 0 when there are no mints.
+    pub fn holder_summary(env: Env, user: Address) -> HolderSummary {
+        let badges = get_user_minted_badges(&env, &user);
+        let records = get_user_mint_records(&env, &user);
+        let mut total_quantity = 0u64;
+        let mut last_minted_at = 0u64;
+
+        for record in records.iter() {
+            total_quantity = total_quantity.saturating_add(record.quantity);
+            if record.minted_at > last_minted_at {
+                last_minted_at = record.minted_at;
+            }
+        }
+
+        HolderSummary {
+            user,
+            configured: get_admin(&env).is_some(),
+            badge_count: badges.len(),
+            mint_record_count: records.len(),
+            total_quantity,
+            last_minted_at,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // expiry_risk_accessor
+    // -----------------------------------------------------------------------
+
+    /// Return the badge expiry-risk view for `user`.
+    ///
+    /// Badge expiry is not configured in this contract's current storage model,
+    /// so the accessor returns `expiry_supported = false`, `risk_bps = 0`, and
+    /// zero expiry counters for every state.
+    pub fn expiry_risk_accessor(env: Env, user: Address) -> ExpiryRiskAccessor {
+        let badges = get_user_minted_badges(&env, &user);
+
+        ExpiryRiskAccessor {
+            user,
+            configured: get_admin(&env).is_some(),
+            expiry_supported: false,
+            held_badges: badges.len(),
+            expiring_badges: 0,
+            expired_badges: 0,
+            nearest_expiry_at: 0,
+            risk_bps: 0,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -476,6 +531,17 @@ mod test {
         let badges = client.get_user_minted_badges(&user);
         assert_eq!(badges.len(), 1);
         assert_eq!(badges.get(0).unwrap(), 1u64);
+
+        let holder = client.holder_summary(&user);
+        assert_eq!(holder.badge_count, 1);
+        assert_eq!(holder.mint_record_count, 1);
+        assert_eq!(holder.total_quantity, 1);
+
+        let risk = client.expiry_risk_accessor(&user);
+        assert!(risk.configured);
+        assert!(!risk.expiry_supported);
+        assert_eq!(risk.held_badges, 1);
+        assert_eq!(risk.risk_bps, 0);
     }
 
     #[test]
@@ -519,6 +585,27 @@ mod test {
         assert_eq!(snapshot.total_minted, 0);
         assert_eq!(snapshot.max_supply, 0);
         assert_eq!(snapshot.remaining_supply, 0);
+    }
+
+    #[test]
+    fn test_holder_summary_and_expiry_risk_empty_user() {
+        let env = Env::default();
+        let (client, _) = setup(&env);
+        let user = Address::generate(&env);
+
+        let holder = client.holder_summary(&user);
+        assert!(holder.configured);
+        assert_eq!(holder.badge_count, 0);
+        assert_eq!(holder.mint_record_count, 0);
+        assert_eq!(holder.total_quantity, 0);
+        assert_eq!(holder.last_minted_at, 0);
+
+        let risk = client.expiry_risk_accessor(&user);
+        assert!(risk.configured);
+        assert!(!risk.expiry_supported);
+        assert_eq!(risk.held_badges, 0);
+        assert_eq!(risk.expiring_badges, 0);
+        assert_eq!(risk.expired_badges, 0);
     }
 
     #[test]
