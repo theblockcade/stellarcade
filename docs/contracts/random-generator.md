@@ -174,7 +174,7 @@ pub fn get_request_status(env: Env, request_id: u64) -> Result<RequestStatus, Er
 `Result<RequestStatus, Error>`
 
 ### `get_config`
-Return a stable snapshot of the generator's operational configuration. This is a read-only, side-effect-free accessor designed for operational tooling. The config shape is extensible for future generator policy fields.
+Return a stable snapshot of the generator's operational configuration.  This is a read-only, side-effect-free accessor designed for operational tooling. The config shape is extensible for future generator policy fields.
 
 ```rust
 pub fn get_config(env: Env) -> Result<GeneratorConfig, Error>
@@ -190,18 +190,8 @@ pub fn get_config(env: Env) -> Result<GeneratorConfig, Error>
 
 `Result<GeneratorConfig, Error>`
 
-#### GeneratorConfig Structure
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `admin` | `Address` | Address of the contract administrator |
-| `oracle` | `Address` | Address of the oracle authorized to fulfill randomness requests |
-| `persistent_ttl` | `u32` | Persistent storage TTL in ledgers (518,400 ≈ 30 days) |
-| `min_max_bound` | `u64` | Minimum allowed value for the `max` parameter (always 2) |
-| `entropy_version` | `Option<String>` | Current entropy metadata version string, if set |
-
 ### `get_requester_summary`
-Return a per-requester sequencing summary showing their request history. This is a deterministic, side-effect-free read operation. For missing requesters (never authorized or no requests), returns a summary with all counts at zero.
+Return a per-requester sequencing summary showing their request history.  This is a deterministic, side-effect-free read operation. For missing requesters (never authorized or no requests), returns a summary with all counts at zero.
 
 ```rust
 pub fn get_requester_summary(env: Env, caller: Address) -> RequesterSummary
@@ -217,18 +207,4 @@ pub fn get_requester_summary(env: Env, caller: Address) -> RequesterSummary
 #### Return Type
 
 `RequesterSummary`
-
-#### RequesterSummary Structure
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `caller` | `Address` | The caller address this summary is for |
-| `total_requests` | `u64` | Total number of requests made by this caller (pending + fulfilled) |
-| `pending_count` | `u64` | Number of requests currently pending fulfillment |
-| `fulfilled_count` | `u64` | Number of requests that have been fulfilled |
-
-#### Missing-Requester Behavior
-
-For callers that have never made requests or are not in the whitelist, the function returns a `RequesterSummary` with all count fields set to zero. This allows operational tooling to inspect any address without requiring error handling or prior knowledge of which callers have interacted with the contract.
-
 
