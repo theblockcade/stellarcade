@@ -11,3 +11,4 @@ export * from './useAsyncAction';
 export * from './useDebouncedValue';
 export * from './useContractEvents';
 export * from './useFocusRecovery';
+export * from './useHeadingLevel';

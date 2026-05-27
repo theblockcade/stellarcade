@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import ContractEventFeed from '../components/v1/ContractEventFeed';
 import { SkeletonPreset } from '../components/v1/LoadingSkeletonSet';
+import { QuickPivotLinks, type PivotLink } from '../components/v1/QuickPivotLinks';
 import { ApiClient } from '../services/typed-api-sdk';
 import type { Game } from '../types/api-client';
+import './GameDetail.css';
 
 const FALLBACK_CONTRACT_PREFIX = 'game';
 
@@ -18,6 +20,7 @@ function resolveContractId(game: Game): string {
 
 export const GameDetail: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [game, setGame] = useState<Game | null>(null);
@@ -63,6 +66,49 @@ export const GameDetail: React.FC = () => {
     return String(game.status ?? 'unknown').toLowerCase();
   }, [game]);
 
+  const sidebarLinks = useMemo<PivotLink[]>(() => {
+    if (!game) return [];
+
+    const links: PivotLink[] = [
+      {
+        id: 'back-to-lobby',
+        label: 'Back to Lobby',
+        onClick: () => navigate('/'),
+      },
+      {
+        id: 'wallet',
+        label: 'Wallet Details',
+        href: '/wallet',
+      },
+      {
+        id: 'leaderboard',
+        label: 'Leaderboard',
+        onClick: () => navigate('/?section=leaderboard'),
+      },
+      {
+        id: 'transactions',
+        label: 'Transaction History',
+        href: '/wallet?tab=transactions',
+      },
+      {
+        id: 'audit-log',
+        label: 'Audit Log',
+        href: '/audit',
+      },
+    ];
+
+    if (statusLabel === 'active') {
+      links.unshift({
+        id: 'live-match',
+        label: 'Live Match',
+        href: `/games/${game.id}/live`,
+        disabled: true,
+      });
+    }
+
+    return links;
+  }, [game, navigate, statusLabel]);
+
   if (loading) {
     return (
       <div role="status" aria-live="polite" data-testid="game-detail-loading">
@@ -99,13 +145,28 @@ export const GameDetail: React.FC = () => {
         <p data-testid="game-detail-contract">Contract: {contractId}</p>
       </header>
 
-      <ContractEventFeed
-        contractId={contractId}
-        autoStart={true}
-        maxEvents={50}
-        feedScope={`game-detail-${game.id}`}
-        testId="game-detail-timeline"
-      />
+      <aside className="game-detail__sidebar" aria-label="Related actions" data-testid="game-detail-sidebar">
+        <div className="game-detail__sidebar-section">
+          <h2 className="game-detail__sidebar-heading">Related</h2>
+          <QuickPivotLinks
+            links={sidebarLinks}
+            orientation="vertical"
+            size="compact"
+            testId="game-detail-pivot-links"
+            emptyMessage="No related actions available"
+          />
+        </div>
+      </aside>
+
+      <div className="game-detail__timeline">
+        <ContractEventFeed
+          contractId={contractId}
+          autoStart={true}
+          maxEvents={50}
+          feedScope={`game-detail-${game.id}`}
+          testId="game-detail-timeline"
+        />
+      </div>
     </section>
   );
 };

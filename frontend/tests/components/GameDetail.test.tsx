@@ -78,3 +78,116 @@ describe('GameDetail', () => {
     });
   });
 });
+
+describe('GameDetail sidebar quick actions', () => {
+  it('renders the sidebar with related-entity pivot links on successful load', async () => {
+    (ApiClient as any).prototype.getGameById.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'game-55',
+        name: 'Stellar Duel',
+        status: 'waiting',
+        contractId: 'contract-duel-55',
+      },
+    });
+
+    renderWithRoute('/games/game-55');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-detail-sidebar')).toBeInTheDocument();
+      expect(screen.getByRole('complementary', { name: 'Related actions' })).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('game-detail-pivot-links')).toBeInTheDocument();
+    expect(screen.getByText('Back to Lobby')).toBeInTheDocument();
+    expect(screen.getByText('Wallet Details')).toBeInTheDocument();
+    expect(screen.getByText('Transaction History')).toBeInTheDocument();
+    expect(screen.getByText('Audit Log')).toBeInTheDocument();
+  });
+
+  it('includes a Live Match link when the game status is active', async () => {
+    (ApiClient as any).prototype.getGameById.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'game-77',
+        name: 'Active Arena',
+        status: 'active',
+        contractId: 'contract-arena-77',
+      },
+    });
+
+    renderWithRoute('/games/game-77');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-detail-pivot-links')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Live Match')).toBeInTheDocument();
+  });
+
+  it('does not include a Live Match link for non-active games', async () => {
+    (ApiClient as any).prototype.getGameById.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'game-88',
+        name: 'Completed Game',
+        status: 'completed',
+        contractId: 'contract-comp-88',
+      },
+    });
+
+    renderWithRoute('/games/game-88');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-detail-pivot-links')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Live Match')).not.toBeInTheDocument();
+  });
+
+  it('sidebar is not rendered in the loading state', () => {
+    (ApiClient as any).prototype.getGameById.mockReturnValue(new Promise(() => {}));
+
+    renderWithRoute('/games/game-loading');
+
+    expect(screen.queryByTestId('game-detail-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('game-detail-loading')).toBeInTheDocument();
+  });
+
+  it('sidebar is not rendered in the error state', async () => {
+    (ApiClient as any).prototype.getGameById.mockResolvedValue({
+      success: false,
+      error: { message: 'Not found' },
+    });
+
+    renderWithRoute('/games/bad-id');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-detail-error')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('game-detail-sidebar')).not.toBeInTheDocument();
+  });
+
+  it('pivot links render in vertical orientation for the sidebar', async () => {
+    (ApiClient as any).prototype.getGameById.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'game-99',
+        name: 'Orientation Test',
+        status: 'idle',
+        contractId: 'contract-ot-99',
+      },
+    });
+
+    renderWithRoute('/games/game-99');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-detail-pivot-links')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('game-detail-pivot-links')).toHaveClass(
+      'quick-pivot-links--vertical',
+    );
+  });
+});

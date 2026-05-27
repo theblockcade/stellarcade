@@ -18,6 +18,7 @@ import { WalletSessionActivityRail } from "../components/v1/WalletSessionActivit
 import { ActionToolbar, type ToolbarAction } from "../components/v1/ActionToolbar";
 import { InlineStatDelta } from "../components/v1/InlineStatDelta";
 import { QueueHealthWidget } from "../components/v1/QueueHealthWidget";
+import { QueueStateMiniPanel } from "../components/v1/QueueStateMiniPanel";
 import { useWalletStatus } from "../hooks/v1/useWalletStatus";
 import { ApiClient } from "../services/typed-api-sdk";
 import GlobalStateStore, {
@@ -901,6 +902,13 @@ export const GameLobby: React.FC = () => {
             className="games-section"
             ref={gamesSectionRef}
           >
+            <QueueStateMiniPanel
+              metrics={queueSummaryMetrics}
+              context="lobby"
+              onRefresh={handleRefreshLobby}
+              testId="lobby-queue-mini-panel"
+            />
+
             {games.length === 0 ? (
               <div className="lobby-empty" role="status" aria-live="polite">
                 <div className="empty-icon">No live games</div>

@@ -278,4 +278,42 @@ describe("GameLobby", () => {
     fireEvent.click(screen.getByTestId("lobby-pending-action-chip-dismiss-btn"));
     expect(screen.queryByTestId("lobby-pending-action-chip")).not.toBeInTheDocument();
   });
+
+  it("renders the queue-state mini panel in the lobby live arena section", async () => {
+    (ApiClient as any).prototype.getGames.mockResolvedValue({
+      success: true,
+      data: [
+        { id: "g1", name: "Game One", status: "active", wager: 25 },
+        { id: "g2", name: "Game Two", status: "active", wager: 10 },
+      ],
+    });
+
+    render(<GameLobby />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("lobby-queue-mini-panel")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("lobby-queue-mini-panel")).toHaveClass(
+      "queue-state-mini-panel--lobby",
+    );
+  });
+
+  it("queue-state mini panel shows offline when no active games are present", async () => {
+    (ApiClient as any).prototype.getGames.mockResolvedValue({
+      success: true,
+      data: [],
+    });
+
+    render(<GameLobby />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("lobby-queue-mini-panel")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("lobby-queue-mini-panel-health")).toHaveAttribute(
+      "data-tone",
+      "neutral",
+    );
+  });
 });

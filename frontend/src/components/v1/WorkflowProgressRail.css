@@ -1,0 +1,292 @@
+.wpr {
+  --wpr-pending-bg: color-mix(in oklab, var(--surface-elevated, rgba(255, 255, 255, 0.08)) 80%, transparent);
+  --wpr-pending-border: rgba(255, 255, 255, 0.2);
+  --wpr-pending-text: rgba(255, 255, 255, 0.4);
+  --wpr-active-bg: color-mix(in oklab, var(--accent, #7de2d1) 20%, rgba(255, 255, 255, 0.04));
+  --wpr-active-border: var(--accent, #7de2d1);
+  --wpr-active-text: var(--accent, #7de2d1);
+  --wpr-active-glow: 0 0 10px color-mix(in oklab, var(--accent, #7de2d1) 40%, transparent);
+  --wpr-completed-bg: color-mix(in oklab, #4ade80 20%, rgba(255, 255, 255, 0.04));
+  --wpr-completed-border: #4ade80;
+  --wpr-completed-text: #4ade80;
+  --wpr-error-bg: color-mix(in oklab, #f87171 20%, rgba(255, 255, 255, 0.04));
+  --wpr-error-border: #f87171;
+  --wpr-error-text: #f87171;
+  --wpr-blocked-bg: color-mix(in oklab, rgba(255, 255, 255, 0.08) 60%, transparent);
+  --wpr-blocked-border: rgba(255, 255, 255, 0.12);
+  --wpr-blocked-text: rgba(255, 255, 255, 0.25);
+  --wpr-connector-base: rgba(255, 255, 255, 0.12);
+  --wpr-connector-completed: #4ade80;
+  --wpr-connector-active: var(--accent, #7de2d1);
+  --wpr-label-active: var(--text-main, #f5f7fb);
+  --wpr-label-muted: var(--text-secondary, #a8b5c8);
+  display: block;
+}
+
+/* ── Track ─────────────────────────────────────────────────── */
+
+.wpr__track {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  align-items: flex-start;
+}
+
+.wpr--horizontal .wpr__track {
+  flex-direction: row;
+  align-items: center;
+}
+
+.wpr--vertical .wpr__track {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* ── Step item (step + connector grouped) ───────────────────── */
+
+.wpr__step-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.wpr--vertical .wpr__step-item {
+  flex-direction: column;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+
+/* ── Connector ──────────────────────────────────────────────── */
+
+.wpr__connector {
+  flex: 1;
+  height: 2px;
+  background: var(--wpr-connector-base);
+  border-radius: 1px;
+  transition: background 0.25s ease;
+  min-width: 1rem;
+}
+
+.wpr--vertical .wpr__connector {
+  flex: 0 0 auto;
+  width: 2px;
+  height: 1.5rem;
+  min-width: auto;
+  margin: 0.25rem auto;
+  align-self: flex-start;
+  margin-left: 0.9375rem; /* aligns with center of indicator */
+}
+
+.wpr__connector--completed {
+  background: var(--wpr-connector-completed);
+}
+
+.wpr__connector--active {
+  background: linear-gradient(
+    90deg,
+    var(--wpr-connector-completed) 0%,
+    var(--wpr-connector-base) 100%
+  );
+}
+
+/* ── Step ───────────────────────────────────────────────────── */
+
+.wpr__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: default;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  transition: background 0.15s ease;
+  flex: 0 0 auto;
+}
+
+.wpr--vertical .wpr__step {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.wpr__step--clickable {
+  cursor: pointer;
+}
+
+.wpr__step--clickable:hover {
+  background: color-mix(in oklab, var(--surface-elevated, rgba(255, 255, 255, 0.08)) 85%, transparent);
+}
+
+.wpr__step--clickable:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent, #7de2d1) 55%, white);
+  outline-offset: 2px;
+}
+
+/* ── Indicator circle ────────────────────────────────────────── */
+
+.wpr__indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid var(--wpr-pending-border);
+  background: var(--wpr-pending-bg);
+  color: var(--wpr-pending-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wpr--default .wpr__indicator {
+  width: 2rem;
+  height: 2rem;
+}
+
+.wpr--compact .wpr__indicator {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.75rem;
+}
+
+.wpr__step--active .wpr__indicator {
+  border-color: var(--wpr-active-border);
+  background: var(--wpr-active-bg);
+  color: var(--wpr-active-text);
+  box-shadow: var(--wpr-active-glow);
+}
+
+.wpr__step--completed .wpr__indicator {
+  border-color: var(--wpr-completed-border);
+  background: var(--wpr-completed-bg);
+  color: var(--wpr-completed-text);
+}
+
+.wpr__step--error .wpr__indicator {
+  border-color: var(--wpr-error-border);
+  background: var(--wpr-error-bg);
+  color: var(--wpr-error-text);
+  box-shadow: 0 0 8px color-mix(in oklab, #f87171 40%, transparent);
+}
+
+.wpr__step--blocked .wpr__indicator {
+  border-color: var(--wpr-blocked-border);
+  background: var(--wpr-blocked-bg);
+  color: var(--wpr-blocked-text);
+}
+
+.wpr__step-icon {
+  display: block;
+  line-height: 1;
+}
+
+.wpr__step-number {
+  display: block;
+  line-height: 1;
+}
+
+.wpr__step-dot {
+  display: block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ── Step content ────────────────────────────────────────────── */
+
+.wpr__step-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  max-width: 6rem;
+  text-align: center;
+}
+
+.wpr--vertical .wpr__step-content {
+  align-items: flex-start;
+  text-align: left;
+  max-width: none;
+  padding-top: 0.125rem;
+}
+
+.wpr__step-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--wpr-label-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wpr__step--active .wpr__step-label {
+  color: var(--wpr-label-active);
+  font-weight: 700;
+}
+
+.wpr__step--completed .wpr__step-label {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.wpr__step--error .wpr__step-label {
+  color: var(--wpr-error-text);
+  font-weight: 700;
+}
+
+.wpr__step--blocked .wpr__step-label {
+  color: var(--wpr-blocked-text);
+}
+
+.wpr__step-description {
+  font-size: 0.6875rem;
+  color: var(--wpr-label-muted);
+  line-height: 1.3;
+  white-space: normal;
+}
+
+/* ── Summary (screen-reader live region) ─────────────────────── */
+
+.wpr__summary {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+
+.wpr__empty {
+  font-size: 0.8125rem;
+  color: var(--wpr-label-muted);
+  font-style: italic;
+}
+
+/* ── Reduced motion ──────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .wpr__indicator,
+  .wpr__connector,
+  .wpr__step {
+    transition: none;
+  }
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .wpr--horizontal .wpr__step-content {
+    display: none;
+  }
+
+  .wpr--horizontal.wpr__step-item {
+    flex: 1;
+  }
+}

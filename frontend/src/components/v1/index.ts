@@ -374,3 +374,31 @@ export type {
   InterruptedFlowPromptProps,
   InterruptedFlowAction,
 } from "./InterruptedFlowPrompt";
+
+// Issues #753, #756
+export {
+  QueueStateMiniPanel,
+  default as QueueStateMiniPanelDefault,
+} from "./QueueStateMiniPanel";
+export type {
+  QueueStateMiniPanelProps,
+  QueuePanelContext,
+} from "./QueueStateMiniPanel";
+
+// Issue #754
+export {
+  WorkflowProgressRail,
+  default as WorkflowProgressRailDefault,
+} from "./WorkflowProgressRail";
+export type {
+  WorkflowProgressRailProps,
+  WorkflowStep,
+  WorkflowStepStatus,
+} from "./WorkflowProgressRail";
+
+// Issue #752
+export {
+  ContentShell,
+  default as ContentShellDefault,
+} from "./ContentShell";
+export type { ContentShellProps } from "./ContentShell";
