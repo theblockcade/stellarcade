@@ -119,6 +119,10 @@ members = [
     "vault-routing",
     "bonus-vault",
     "combo-rewards",
+    "prize-streamer",
+    "mission-pass",
+    "arena-ladder",
+    "clan-seasons",
 ]
 
 exclude = [
