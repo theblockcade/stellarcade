@@ -357,6 +357,10 @@ export type {
   RewardCardStatus,
 } from "./RewardBalanceSparklineCard";
 
+// Issue #751
+export { EmptyHintRow, default as EmptyHintRowDefault } from "./EmptyHintRow";
+export type { EmptyHintRowProps } from "./EmptyHintRow";
+
 // Issue #745
 export {
   InterruptedFlowPrompt,
