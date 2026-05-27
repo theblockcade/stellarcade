@@ -1,0 +1,57 @@
+.rapc {
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.rapc__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.rapc__tab {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.rapc__tab--active {
+  color: var(--color-text-primary, #111827);
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-accent, #6366f1);
+}
+
+.rapc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rapc__empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.rapc__item {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-subtle, #f3f4f6);
+}
+
+.rapc__item:last-child { border-bottom: none; }
+
+.rapc__item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.rapc__item-label { font-weight: 500; font-size: 0.875rem; }
+.rapc__item-time { margin-left: auto; font-size: 0.75rem; color: var(--color-text-muted, #9ca3af); }
+.rapc__item-summary { font-size: 0.8125rem; color: var(--color-text-secondary, #6b7280); margin: 0; }
