@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { Keypair, StrKey } from '@stellar/stellar-sdk';
 import {
   // Constants
   U64_MAX,
@@ -40,8 +41,8 @@ import {
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const VALID_WALLET = 'GABCDEFGHJKLMNPQRSTUVWXYZ234567ABCDEFGHJKLMNPQRSTUVWXYZ2';
-const VALID_CONTRACT = 'CABCDEFGHJKLMNPQRSTUVWXYZ234567ABCDEFGHJKLMNPQRSTUVWXYZ2';
+const VALID_WALLET = Keypair.fromRawEd25519Seed(new Uint8Array(32)).publicKey();
+const VALID_CONTRACT = StrKey.encodeContract(Buffer.alloc(32));
 const VALID_HASH = 'a3f5c1d2e4b6789012345678901234567890abcdef1234567890abcdef123456';
 const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
 const VALID_WAGER = 50_000_000n; // 5 XLM
@@ -430,6 +431,7 @@ describe('parsePatternSubmission', () => {
   it('fails when walletAddress is invalid', () => {
     const result = parsePatternSubmission({ ...validInput, walletAddress: 'bad-address' });
     expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.field).toBe('walletAddress');
   });
 });
 
@@ -515,6 +517,7 @@ describe('parsePrizePoolPayout', () => {
   it('fails when recipient is missing', () => {
     const result = parsePrizePoolPayout({ gameId: '5', amount: VALID_WAGER, recipient: null });
     expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.field).toBe('recipient');
   });
 
   it('fails when gameId is invalid', () => {
