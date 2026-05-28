@@ -28,3 +28,15 @@ pub struct RedemptionSnapshot {
     pub quest_id: u32,
     pub timestamp: u64,
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RewardGap {
+    pub config: Option<RedeemerConfig>,
+    pub status: RedemptionStatus,
+    pub user: Address,
+    pub quest_id: u32,
+    pub reward_gap: u32,
+    pub ready_to_turn_in: bool,
+    pub timestamp: u64,
+}

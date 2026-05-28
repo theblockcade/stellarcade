@@ -6,8 +6,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    CheckInCoverageSummary, ExpiryBand, HolderCoverageSummary, PassRecord, PassStatus,
-    ResaleLockStatus,
+    CheckInCoverageSummary, ExpiryBand, HolderCoverageSummary, PassRecord,
+    PassStatus, RedemptionReadinessSnapshot, ResaleLockStatus,
 };
 
 #[contracttype]
@@ -120,6 +120,62 @@ impl AttendancePass {
             configured,
             exists: true,
             status,
+            issued_at: record.issued_at,
+            expires_at: record.expires_at,
+            now,
+        }
+    }
+
+    /// Returns a readiness snapshot for redeeming a pass.
+    ///
+    /// Empty/missing behavior:
+    /// - Unknown `pass_id` returns `exists = false` and zero-value fields.
+    /// - Not-yet-configured contracts return `configured = false` and `status = NotConfigured`.
+    pub fn redemption_readiness_snapshot(
+        env: Env,
+        pass_id: u64,
+    ) -> RedemptionReadinessSnapshot {
+        let now = env.ledger().timestamp();
+        let configured = env.storage().instance().has(&DataKey::Admin);
+
+        let Some(record) = storage::get_pass(&env, pass_id) else {
+            return RedemptionReadinessSnapshot {
+                pass_id,
+                configured,
+                exists: false,
+                status: if configured {
+                    PassStatus::Active
+                } else {
+                    PassStatus::NotConfigured
+                },
+                active: false,
+                checked_in: false,
+                resale_locked: false,
+                ready_to_redeem: false,
+                issued_at: 0,
+                expires_at: 0,
+                now,
+            };
+        };
+
+        let status = if !record.active || now >= record.expires_at {
+            PassStatus::Expired
+        } else {
+            PassStatus::Active
+        };
+        let checked_in = storage::is_checked_in(&env, pass_id);
+        let resale_locked = storage::is_resale_locked(&env, pass_id);
+        let ready_to_redeem = configured && status == PassStatus::Active && !checked_in && !resale_locked;
+
+        RedemptionReadinessSnapshot {
+            pass_id,
+            configured,
+            exists: true,
+            status,
+            active: record.active,
+            checked_in,
+            resale_locked,
+            ready_to_redeem,
             issued_at: record.issued_at,
             expires_at: record.expires_at,
             now,

@@ -94,6 +94,11 @@ impl ProfilePerks {
         }
     }
 
+    /// Backwards-compatible alias for the active perk snapshot accessor.
+    pub fn active_perk_snapshot(env: Env, user: Address) -> ActivePerkSummary {
+        Self::active_perk_summary(env, user)
+    }
+
     /// Returns unlock-gap info for the next perk in the active catalog.
     ///
     /// Zero-value conventions:
@@ -132,5 +137,10 @@ impl ProfilePerks {
             points_to_unlock,
             all_perks_unlocked,
         }
+    }
+
+    /// Backwards-compatible alias for the next-perk gap accessor.
+    pub fn expiration_gap(env: Env, user: Address) -> UnlockGapSnapshot {
+        Self::unlock_gap(env, user)
     }
 }

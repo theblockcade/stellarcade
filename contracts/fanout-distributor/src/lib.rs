@@ -120,6 +120,11 @@ impl FanoutDistributor {
         }
     }
 
+    /// Backwards-compatible alias for the payout sweep backlog summary.
+    pub fn sweep_backlog_summary(env: Env) -> BatchProgressSummary {
+        Self::batch_progress_summary(env)
+    }
+
     pub fn retryable_failure(env: Env, batch_id: u64) -> RetryableFailure {
         let now = env.ledger().timestamp();
         let configured = env.storage().instance().has(&DataKey::Admin);
@@ -264,6 +269,11 @@ impl FanoutDistributor {
             current_ledger,
             can_retry: record.failed && !record.completed,
         }
+    }
+
+    /// Backwards-compatible alias for the batch retry window accessor.
+    pub fn retry_window_accessor(env: Env, batch_id: u64) -> RetryGap {
+        Self::retry_gap(env, batch_id)
     }
 }
 

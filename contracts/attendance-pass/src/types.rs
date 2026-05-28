@@ -42,6 +42,22 @@ pub struct ExpiryBand {
 
 #[contracttype]
 #[derive(Clone, Debug)]
+pub struct RedemptionReadinessSnapshot {
+    pub pass_id: u64,
+    pub configured: bool,
+    pub exists: bool,
+    pub status: PassStatus,
+    pub active: bool,
+    pub checked_in: bool,
+    pub resale_locked: bool,
+    pub ready_to_redeem: bool,
+    pub issued_at: u64,
+    pub expires_at: u64,
+    pub now: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
 pub struct CheckInCoverageSummary {
     pub configured: bool,
     pub total_issued: u64,

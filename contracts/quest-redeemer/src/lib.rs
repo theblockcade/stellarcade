@@ -7,7 +7,7 @@ mod storage;
 mod test;
 
 use soroban_sdk::{contract, contractimpl, contractevent, Address, Env, contracterror};
-use crate::types::{RedeemerConfig, RedemptionStatus, RedemptionSnapshot};
+use crate::types::{RedeemerConfig, RedemptionStatus, RedemptionSnapshot, RewardGap};
 use crate::storage::{get_config, set_config, has_redeemed, record_redemption};
 
 #[contracterror]
@@ -79,7 +79,12 @@ impl QuestRedeemer {
         
         record_redemption(&env, &user, quest_id);
 
-        env.events().publish(("quest", "redeemed"), QuestRedeemed { user, quest_id, reward_amount: 0 });
+        QuestRedeemed {
+            user,
+            quest_id,
+            reward_amount: 0,
+        }
+        .publish(&env);
 
         Ok(())
     }
@@ -112,6 +117,43 @@ impl QuestRedeemer {
             user,
             quest_id,
             timestamp: env.ledger().timestamp(),
+        }
+    }
+
+    /// Backwards-compatible alias for the turn-in queue summary accessor.
+    pub fn turn_in_queue_summary(env: Env, user: Address, quest_id: u32) -> RedemptionSnapshot {
+        Self::get_redemption_snapshot(env, user, quest_id)
+    }
+
+    /// Returns how far a quest turn-in is from being claimable.
+    ///
+    /// Zero-state behavior:
+    /// - Uninitialized or paused contracts return `reward_gap = 1`.
+    /// - Redeemed quests return `reward_gap = 0`.
+    pub fn reward_gap(env: Env, user: Address, quest_id: u32) -> RewardGap {
+        let RedemptionSnapshot {
+            config,
+            status,
+            user,
+            quest_id,
+            timestamp,
+        } = Self::get_redemption_snapshot(env, user, quest_id);
+
+        let ready_to_turn_in = matches!(&status, RedemptionStatus::Eligible);
+        let reward_gap = if ready_to_turn_in || matches!(&status, RedemptionStatus::Redeemed) {
+            0
+        } else {
+            1
+        };
+
+        RewardGap {
+            config,
+            status,
+            user,
+            quest_id,
+            reward_gap,
+            ready_to_turn_in,
+            timestamp,
         }
     }
 
