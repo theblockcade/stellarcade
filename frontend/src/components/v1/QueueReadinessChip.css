@@ -1,0 +1,57 @@
+/* Queue readiness chip (#832). Small inline indicator; host carries
+ * layout / spacing. */
+.queue-readiness-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    pointer-events: none; /* clicks pass through to the card */
+}
+
+.queue-readiness-chip__icon {
+    font-size: 0.65rem;
+    line-height: 1;
+}
+
+.queue-readiness-chip__label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 9rem;
+}
+
+.queue-readiness-chip__count {
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* Tones */
+.queue-readiness-chip--idle {
+    background: rgba(148, 163, 184, 0.15);
+    color: rgba(226, 232, 240, 0.85);
+}
+
+.queue-readiness-chip--forming {
+    background: rgba(251, 191, 36, 0.18);
+    color: rgba(252, 211, 77, 0.95);
+}
+
+.queue-readiness-chip--ready {
+    background: rgba(74, 222, 128, 0.18);
+    color: rgba(167, 243, 208, 0.95);
+}
+
+.queue-readiness-chip--disabled {
+    background: rgba(71, 85, 105, 0.25);
+    color: rgba(148, 163, 184, 0.75);
+}
+
+.queue-readiness-chip--unavailable {
+    background: rgba(248, 113, 113, 0.15);
+    color: rgba(254, 202, 202, 0.85);
+}

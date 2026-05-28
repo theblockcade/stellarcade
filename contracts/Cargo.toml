@@ -141,6 +141,7 @@ members = [
     "ladder-checkpoints",
     "referral-quests",
     "rank-rewards",
+    "lobby-escrow",
 ]
 
 exclude = [

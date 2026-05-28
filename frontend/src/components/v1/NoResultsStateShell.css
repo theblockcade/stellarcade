@@ -1,0 +1,110 @@
+/* No-results shell (#830) — minimal token usage so it inherits the
+ * surrounding theme; host controls min-height + outer padding. */
+.no-results-shell {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 1.25rem 1rem;
+}
+
+.no-results-shell__body {
+    width: 100%;
+    max-width: 32rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.no-results-shell__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.no-results-shell__description {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.no-results-shell__filters {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: center;
+    list-style: none;
+}
+
+.no-results-shell__filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.no-results-shell__filter-label {
+    font-weight: 600;
+}
+
+.no-results-shell__filter-value {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.no-results-shell__filter-clear {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+}
+
+.no-results-shell__filter-clear:hover,
+.no-results-shell__filter-clear:focus-visible {
+    color: rgba(251, 191, 36, 0.9);
+    outline: none;
+}
+
+.no-results-shell__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.no-results-shell__action {
+    appearance: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.no-results-shell__action--primary {
+    background: rgba(251, 191, 36, 0.85);
+    color: #08111f;
+    border-color: transparent;
+}
+
+.no-results-shell__action:focus-visible {
+    outline: 2px solid rgba(251, 191, 36, 0.6);
+    outline-offset: 1px;
+}
