@@ -8,7 +8,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, token::TokenClient,
-    Address, Env, Symbol,
+    Address, Env, Symbol, Vec, vec,
 };
 
 use shared::{calculate_fee, BASIS_POINTS_DIVISOR};
@@ -517,12 +517,12 @@ impl FeeManagerContract {
 
     /// Get route allocation snapshot for a game
     pub fn route_allocation_snapshot(env: Env, game_id: Symbol) -> RouteAllocationSnapshot {
-        match env.storage().instance().get(&DataKey::FeeConfig(game_id.clone())) {
+        match env.storage().instance().get::<_, FeeConfig>(&DataKey::FeeConfig(game_id.clone())) {
             Some(config) => {
                 let accrued = env
                     .storage()
                     .instance()
-                    .get(&DataKey::AccruedFees(game_id.clone()))
+                    .get::<_, i128>(&DataKey::AccruedFees(game_id.clone()))
                     .unwrap_or(0i128);
 
                 RouteAllocationSnapshot {
@@ -547,7 +547,7 @@ impl FeeManagerContract {
 
     /// Get fallback policy for a game
     pub fn fallback_policy(env: Env, game_id: Symbol) -> FallbackPolicy {
-        match env.storage().instance().get(&DataKey::FeeConfig(game_id.clone())) {
+        match env.storage().instance().get::<_, FeeConfig>(&DataKey::FeeConfig(game_id.clone())) {
             Some(config) => FallbackPolicy {
                 game_id,
                 exists: true,
@@ -557,7 +557,7 @@ impl FeeManagerContract {
             None => FallbackPolicy {
                 game_id,
                 exists: false,
-                fallback_recipient: Address::from_contract_id(&env.current_contract_address()),
+                fallback_recipient: env.current_contract_address(),
                 fallback_percentage: 0,
             },
         }

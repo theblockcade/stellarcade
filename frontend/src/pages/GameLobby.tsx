@@ -470,14 +470,15 @@ export const GameLobby: React.FC = () => {
     const previousReconnectAt = previousReconnectAtRef.current;
 
     if (
-      pendingTransaction &&
       previousStatus === "RECONNECTING" &&
       wallet.status === "CONNECTED" &&
       wallet.lastReconnectAt !== null &&
       wallet.lastReconnectAt !== previousReconnectAt
     ) {
-      setShowPendingTaskBanner(true);
       setPendingResumeContext(readStoredLobbyContext());
+      if (pendingTransaction) {
+        setShowPendingTaskBanner(true);
+      }
     }
 
     previousWalletStatusRef.current = wallet.status;
