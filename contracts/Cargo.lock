@@ -2511,6 +2511,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellarcade-player-stamps"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "stellarcade-price-prediction"
 version = "0.1.0"
 dependencies = [
@@ -2658,6 +2665,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellarcade-round-vouchers"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "stellarcade-season-pass"
 version = "0.1.0"
 dependencies = [
@@ -2694,6 +2708,13 @@ dependencies = [
 
 [[package]]
 name = "stellarcade-speed-trivia"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
+name = "stellarcade-sponsor-lockbox"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk 25.3.1",
@@ -2855,6 +2876,13 @@ dependencies = [
 
 [[package]]
 name = "stellarcade-voucher-minter"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
+name = "stellarcade-wallet-claims-v2"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk 25.3.1",
