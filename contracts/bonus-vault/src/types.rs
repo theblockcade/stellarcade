@@ -43,6 +43,20 @@ pub struct ReleaseThresholdAccessor {
     pub remaining_until_release: i128,
 }
 
+/// Summary of pending outflow pressure for the vault.
+///
+/// Zero-state: `status` is `Unconfigured` and all numeric fields are zero when
+/// the contract has not been initialized.
+#[contracttype]
+#[derive(Clone)]
+pub struct PendingOutflowSummary {
+    pub status: BonusVaultStatus,
+    pub pending_outflow: i128,
+    pub release_threshold: i128,
+    pub pressure_bps: u32,
+    pub over_threshold: bool,
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {

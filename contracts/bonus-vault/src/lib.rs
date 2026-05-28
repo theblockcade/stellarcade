@@ -37,12 +37,7 @@ impl BonusVaultContract {
         set_config(&env, &cfg);
     }
 
-    pub fn set_state(
-        env: Env,
-        admin: Address,
-        pending_accrual: i128,
-        release_threshold: i128,
-    ) {
+    pub fn set_state(env: Env, admin: Address, pending_accrual: i128, release_threshold: i128) {
         let cfg = get_config(&env).unwrap_or_else(|| panic!("not configured"));
         admin.require_auth();
         if admin != cfg.admin {
@@ -91,7 +86,8 @@ impl BonusVaultContract {
             pending_accrual: state.pending_accrual,
             release_threshold: state.release_threshold,
             pressure_bps,
-            over_threshold: state.release_threshold > 0 && state.pending_accrual >= state.release_threshold,
+            over_threshold: state.release_threshold > 0
+                && state.pending_accrual >= state.release_threshold,
         }
     }
 
@@ -111,12 +107,12 @@ impl BonusVaultContract {
         });
 
         let threshold_configured = state.release_threshold > 0;
-        let remaining_until_release = if !threshold_configured || state.pending_accrual >= state.release_threshold
-        {
-            0
-        } else {
-            state.release_threshold - state.pending_accrual
-        };
+        let remaining_until_release =
+            if !threshold_configured || state.pending_accrual >= state.release_threshold {
+                0
+            } else {
+                state.release_threshold - state.pending_accrual
+            };
 
         ReleaseThresholdAccessor {
             status: if cfg.paused {
@@ -127,6 +123,50 @@ impl BonusVaultContract {
             threshold_configured,
             release_threshold: state.release_threshold,
             remaining_until_release,
+        }
+    }
+
+    /// Backwards-compatible accessor for the release-threshold read model.
+    pub fn release_threshold_accessor(env: Env) -> ReleaseThresholdAccessor {
+        Self::get_release_threshold_accessor(env)
+    }
+
+    /// Return the pending outflow pressure summary.
+    ///
+    /// Zero-state returns `Unconfigured` with zeroed numeric fields.
+    pub fn pending_outflow_summary(env: Env) -> PendingOutflowSummary {
+        let Some(cfg) = get_config(&env) else {
+            return PendingOutflowSummary {
+                status: BonusVaultStatus::Unconfigured,
+                pending_outflow: 0,
+                release_threshold: 0,
+                pressure_bps: 0,
+                over_threshold: false,
+            };
+        };
+
+        let state = get_state(&env).unwrap_or(BonusVaultState {
+            pending_accrual: 0,
+            release_threshold: 0,
+        });
+
+        let pressure_bps = if state.release_threshold <= 0 {
+            0
+        } else {
+            ((state.pending_accrual as u128 * 10_000u128) / state.release_threshold as u128) as u32
+        };
+
+        PendingOutflowSummary {
+            status: if cfg.paused {
+                BonusVaultStatus::Paused
+            } else {
+                BonusVaultStatus::Active
+            },
+            pending_outflow: state.pending_accrual,
+            release_threshold: state.release_threshold,
+            pressure_bps,
+            over_threshold: state.release_threshold > 0
+                && state.pending_accrual >= state.release_threshold,
         }
     }
 }

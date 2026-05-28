@@ -40,6 +40,44 @@ pub struct FundingGap {
     pub is_underfunded: bool,
 }
 
+/// Backlog snapshot for a prize stream.
+///
+/// Zero-state: `exists` is false and all numeric fields are zero when the
+/// requested stream has not been configured.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamBacklogSnapshot {
+    pub stream_id: u32,
+    pub exists: bool,
+    /// Total tokens ever streamed out.
+    pub total_streamed: i128,
+    /// Tokens currently remaining against the configured target.
+    pub current_backlog: i128,
+    /// The configured funding target.
+    pub funding_target: i128,
+    /// Backlog pressure in basis points, floored.
+    pub backlog_bps: u32,
+    /// `true` when the stream is actively draining.
+    pub is_draining: bool,
+}
+
+/// Settlement readiness view for a prize stream.
+///
+/// Zero-state: `exists` is false and all numeric fields are zero when the
+/// requested stream has not been configured.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SettlementReadiness {
+    pub stream_id: u32,
+    pub exists: bool,
+    pub is_ready: bool,
+    pub current_balance: i128,
+    pub funding_target: i128,
+    pub remaining_gap: i128,
+    pub is_draining: bool,
+    pub blocked_reason_code: u32,
+}
+
 /// Persistent stream record written by admin mutations.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]

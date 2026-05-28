@@ -3,12 +3,13 @@
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 mod storage;
-mod types;
 #[cfg(test)]
 mod test;
+mod types;
 
 pub use types::{
-    DepletionBand, StreamData, StreamHealthSummary, StreamPressureSnapshot, WithdrawalReadiness,
+    DepletionBand, DripPressureSummary, PauseRecoveryAccessor, StreamData, StreamHealthSummary,
+    StreamPressureSnapshot, WithdrawalReadiness,
 };
 
 #[contract]
@@ -135,12 +136,83 @@ impl RewardStream {
         }
     }
 
+    /// Return a drip-pressure summary for the configured stream.
+    ///
+    /// Missing, empty, or non-positive allocations return a zero pressure and
+    /// `is_configured = false` so callers can render a predictable zero state.
+    pub fn drip_pressure_summary(env: Env) -> DripPressureSummary {
+        if let Some(s) = storage::get_stream(&env) {
+            let remaining = (s.total_allocated - s.total_withdrawn).max(0);
+            let pressure_bps = pressure_bps(s.total_allocated, s.total_withdrawn);
+
+            DripPressureSummary {
+                is_configured: s.total_allocated > 0,
+                stream_id: s.stream_id,
+                total_allocated: s.total_allocated,
+                total_withdrawn: s.total_withdrawn,
+                remaining,
+                pressure_bps,
+                paused: s.paused,
+            }
+        } else {
+            DripPressureSummary {
+                is_configured: false,
+                stream_id: 0,
+                total_allocated: 0,
+                total_withdrawn: 0,
+                remaining: 0,
+                pressure_bps: 0,
+                paused: false,
+            }
+        }
+    }
+
     /// Return only the depletion band from `stream_pressure_snapshot`.
     ///
     /// This accessor is intentionally narrow for UI badge reads. Missing or
     /// not-yet-configured state returns `DepletionBand::NotConfigured`.
     pub fn depletion_band(env: Env) -> DepletionBand {
         Self::stream_pressure_snapshot(env).depletion_band
+    }
+
+    /// Return a pause-recovery view for the configured stream.
+    ///
+    /// Missing, empty, or non-positive allocations return a zero state with
+    /// `is_configured = false`.
+    pub fn pause_recovery_accessor(env: Env, now: u64) -> PauseRecoveryAccessor {
+        if let Some(s) = storage::get_stream(&env) {
+            let remaining = (s.total_allocated - s.total_withdrawn).max(0);
+            let recovery_ready = !s.paused && now >= s.unlock_time && remaining > 0;
+            let blocked_reason_code = if s.paused {
+                1
+            } else if now < s.unlock_time {
+                2
+            } else if remaining == 0 {
+                3
+            } else {
+                0
+            };
+
+            PauseRecoveryAccessor {
+                is_configured: s.total_allocated > 0,
+                stream_id: s.stream_id,
+                paused: s.paused,
+                unlock_time: s.unlock_time,
+                remaining,
+                recovery_ready,
+                blocked_reason_code,
+            }
+        } else {
+            PauseRecoveryAccessor {
+                is_configured: false,
+                stream_id: 0,
+                paused: false,
+                unlock_time: 0,
+                remaining: 0,
+                recovery_ready: false,
+                blocked_reason_code: 4,
+            }
+        }
     }
 }
 

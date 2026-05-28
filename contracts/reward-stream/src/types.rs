@@ -55,3 +55,35 @@ pub struct StreamPressureSnapshot {
     pub depletion_band: DepletionBand,
     pub paused: bool,
 }
+
+/// Drip-pressure snapshot returned by `drip_pressure_summary`.
+///
+/// Zero-state: all numeric fields are zero and `is_configured` is false when
+/// no stream has been configured.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DripPressureSummary {
+    pub is_configured: bool,
+    pub stream_id: u64,
+    pub total_allocated: i128,
+    pub total_withdrawn: i128,
+    pub remaining: i128,
+    pub pressure_bps: u32,
+    pub paused: bool,
+}
+
+/// Pause-recovery view returned by `pause_recovery_accessor`.
+///
+/// Zero-state: all numeric fields are zero and `is_configured` is false when
+/// no stream has been configured.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PauseRecoveryAccessor {
+    pub is_configured: bool,
+    pub stream_id: u64,
+    pub paused: bool,
+    pub unlock_time: u64,
+    pub remaining: i128,
+    pub recovery_ready: bool,
+    pub blocked_reason_code: u32,
+}

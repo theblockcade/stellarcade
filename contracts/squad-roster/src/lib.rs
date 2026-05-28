@@ -9,12 +9,10 @@
 mod storage;
 mod types;
 
-pub use types::*;
 use storage::{DataKey, PERSISTENT_BUMP};
+pub use types::*;
 
-use soroban_sdk::{
-    contract, contracterror, contractimpl, Address, Env, Symbol, Vec,
-};
+use soroban_sdk::{contract, contracterror, contractimpl, Address, Env, Symbol, Vec};
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -25,12 +23,12 @@ use soroban_sdk::{
 #[repr(u32)]
 pub enum Error {
     AlreadyInitialized = 1,
-    NotInitialized     = 2,
-    NotAuthorized      = 3,
-    SlotNotFound       = 4,
-    SlotLocked         = 5,
-    ContractPaused     = 6,
-    DuplicateRole      = 7,
+    NotInitialized = 2,
+    NotAuthorized = 3,
+    SlotNotFound = 4,
+    SlotLocked = 5,
+    ContractPaused = 6,
+    DuplicateRole = 7,
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +223,55 @@ impl SquadRosterContract {
         }
     }
 
+    /// Return a coverage snapshot for roster participation.
+    ///
+    /// Zero-state (no slots registered): all counts 0, `ready` false.
+    /// `coverage_bps` is floored basis-point coverage of filled slots over
+    /// registered slots.
+    pub fn participation_coverage_snapshot(env: Env) -> ParticipationCoverageSnapshot {
+        let roles: Vec<Symbol> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Roles)
+            .unwrap_or(Vec::new(&env));
+
+        let total_slots = roles.len();
+        let mut filled_slots: u32 = 0;
+        let mut locked_slots: u32 = 0;
+
+        for role in roles.iter() {
+            if let Some(slot) = env
+                .storage()
+                .persistent()
+                .get::<DataKey, RosterSlot>(&DataKey::Slot(role))
+            {
+                if slot.player.is_some() {
+                    filled_slots += 1;
+                }
+                if slot.locked {
+                    locked_slots += 1;
+                }
+            }
+        }
+
+        let coverage_bps = if total_slots > 0 {
+            ((filled_slots as u128 * 10_000) / (total_slots as u128)) as u32
+        } else {
+            0
+        };
+        let paused = Self::is_paused(&env);
+        let ready = total_slots > 0 && filled_slots == total_slots && locked_slots == 0 && !paused;
+
+        ParticipationCoverageSnapshot {
+            total_slots,
+            filled_slots,
+            locked_slots,
+            coverage_bps,
+            ready,
+            paused,
+        }
+    }
+
     /// Return vacancy information for a specific role.
     ///
     /// Zero-state: `exists` false when the role has no registered slot.
@@ -242,6 +289,35 @@ impl SquadRosterContract {
             Some(slot) => RoleVacancy {
                 exists: true,
                 vacant: slot.player.is_none(),
+                player: slot.player,
+            },
+        }
+    }
+
+    /// Return the current lock-window state for a specific role.
+    ///
+    /// Zero-state: `exists` false when the role has no registered slot.
+    pub fn lock_window_accessor(env: Env, role: Symbol) -> LockWindowAccessor {
+        let paused = Self::is_paused(&env);
+        match env
+            .storage()
+            .persistent()
+            .get::<DataKey, RosterSlot>(&DataKey::Slot(role.clone()))
+        {
+            None => LockWindowAccessor {
+                exists: false,
+                role,
+                locked: false,
+                paused,
+                can_modify: false,
+                player: None,
+            },
+            Some(slot) => LockWindowAccessor {
+                exists: true,
+                role,
+                locked: slot.locked,
+                paused,
+                can_modify: !slot.locked && !paused,
                 player: slot.player,
             },
         }
@@ -283,6 +359,15 @@ fn assert_not_paused(env: &Env) -> Result<(), Error> {
         return Err(Error::ContractPaused);
     }
     Ok(())
+}
+
+impl SquadRosterContract {
+    fn is_paused(env: &Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]

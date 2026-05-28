@@ -21,7 +21,9 @@ mod types;
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
-pub use types::{FundingGap, StreamOutflowSummary, StreamRecord};
+pub use types::{
+    FundingGap, SettlementReadiness, StreamBacklogSnapshot, StreamOutflowSummary, StreamRecord,
+};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 
@@ -153,6 +155,78 @@ impl PrizeStreamer {
             },
         }
     }
+
+    /// Return a backlog snapshot for `stream_id`.
+    ///
+    /// Unknown stream ids return `exists = false` with zeroed numeric fields.
+    pub fn stream_backlog_snapshot(env: Env, stream_id: u32) -> StreamBacklogSnapshot {
+        match storage::get_stream(&env, stream_id) {
+            Some(record) => {
+                let current_balance = (record.total_funding - record.total_streamed).max(0);
+                let backlog_bps = backlog_bps(record.funding_target, current_balance);
+
+                StreamBacklogSnapshot {
+                    stream_id,
+                    exists: true,
+                    total_streamed: record.total_streamed,
+                    current_backlog: current_balance,
+                    funding_target: record.funding_target,
+                    backlog_bps,
+                    is_draining: record.is_draining,
+                }
+            }
+            None => StreamBacklogSnapshot {
+                stream_id,
+                exists: false,
+                total_streamed: 0,
+                current_backlog: 0,
+                funding_target: 0,
+                backlog_bps: 0,
+                is_draining: false,
+            },
+        }
+    }
+
+    /// Return whether a stream is ready to settle.
+    ///
+    /// Unknown stream ids return `exists = false` with zeroed numeric fields.
+    pub fn settlement_readiness(env: Env, stream_id: u32) -> SettlementReadiness {
+        match storage::get_stream(&env, stream_id) {
+            Some(record) => {
+                let current_balance = (record.total_funding - record.total_streamed).max(0);
+                let remaining_gap = (record.funding_target - current_balance).max(0);
+                let is_ready = !record.is_draining && remaining_gap == 0;
+                let blocked_reason_code = if record.is_draining {
+                    1
+                } else if remaining_gap > 0 {
+                    2
+                } else {
+                    0
+                };
+
+                SettlementReadiness {
+                    stream_id,
+                    exists: true,
+                    is_ready,
+                    current_balance,
+                    funding_target: record.funding_target,
+                    remaining_gap,
+                    is_draining: record.is_draining,
+                    blocked_reason_code,
+                }
+            }
+            None => SettlementReadiness {
+                stream_id,
+                exists: false,
+                is_ready: false,
+                current_balance: 0,
+                funding_target: 0,
+                remaining_gap: 0,
+                is_draining: false,
+                blocked_reason_code: 3,
+            },
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -170,6 +244,15 @@ fn require_admin(env: &Env, caller: &Address) -> Result<(), Error> {
         return Err(Error::NotAuthorized);
     }
     Ok(())
+}
+
+fn backlog_bps(funding_target: i128, current_balance: i128) -> u32 {
+    if funding_target <= 0 {
+        return 0;
+    }
+
+    let gap = (funding_target - current_balance).max(0);
+    ((gap * 10_000) / funding_target) as u32
 }
 
 // ---------------------------------------------------------------------------
