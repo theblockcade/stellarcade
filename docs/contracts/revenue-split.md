@@ -1,5 +1,7 @@
 # revenue-split
 
+Per-beneficiary share calculation returned by `preview_shares`.
+
 ## Public Methods
 
 ### `init`
@@ -80,4 +82,41 @@ pub fn recipient_balance(env: Env, stream_id: Symbol, recipient: Address) -> i12
 #### Return Type
 
 `i128`
+
+### `preview_shares`
+Preview how a prospective amount would be split for a configured stream. The preview uses the exact same rounding logic as `distribute`.
+
+```rust
+pub fn preview_shares(env: Env, stream_id: Symbol, amount: i128) -> SharePreview
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `stream_id` | `Symbol` |
+| `amount` | `i128` |
+
+#### Return Type
+
+`SharePreview`
+
+### `get_split_state`
+Return a deterministic snapshot of current pending balance and cumulative beneficiary accruals for the stream.
+
+```rust
+pub fn get_split_state(env: Env, stream_id: Symbol) -> SplitAccrualSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `stream_id` | `Symbol` |
+
+#### Return Type
+
+`SplitAccrualSnapshot`
 

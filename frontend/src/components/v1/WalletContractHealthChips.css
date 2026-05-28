@@ -1,0 +1,104 @@
+.wchc {
+  --wchc-gap: 0.5rem;
+  --wchc-chip-bg: rgba(255, 255, 255, 0.05);
+  --wchc-chip-border: rgba(255, 255, 255, 0.1);
+  --wchc-chip-radius: 999px;
+  --wchc-chip-px: 0.6rem;
+  --wchc-chip-py: 0.25rem;
+  --wchc-font-size: 0.75rem;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wchc-gap);
+  align-items: center;
+}
+
+/* ── Base chip ──────────────────────────────────────────────────────────── */
+
+.wchc__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: var(--wchc-chip-py) var(--wchc-chip-px);
+  background: var(--wchc-chip-bg);
+  border: 1px solid var(--wchc-chip-border);
+  border-radius: var(--wchc-chip-radius);
+  font-size: var(--wchc-font-size);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+/* ── Tone variants ──────────────────────────────────────────────────────── */
+
+.wchc__chip--success {
+  --wchc-chip-bg: rgba(74, 222, 128, 0.08);
+  --wchc-chip-border: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+}
+
+.wchc__chip--pending {
+  --wchc-chip-bg: rgba(250, 204, 21, 0.08);
+  --wchc-chip-border: rgba(250, 204, 21, 0.25);
+  color: #facc15;
+}
+
+.wchc__chip--warning {
+  --wchc-chip-bg: rgba(251, 146, 60, 0.08);
+  --wchc-chip-border: rgba(251, 146, 60, 0.25);
+  color: #fb923c;
+}
+
+.wchc__chip--error {
+  --wchc-chip-bg: rgba(248, 113, 113, 0.08);
+  --wchc-chip-border: rgba(248, 113, 113, 0.25);
+  color: #f87171;
+}
+
+.wchc__chip--neutral {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Inner parts ────────────────────────────────────────────────────────── */
+
+.wchc__chip-icon {
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+.wchc__chip-label {
+  font-weight: 600;
+}
+
+.wchc__chip-status {
+  opacity: 0.75;
+  text-transform: capitalize;
+}
+
+/* ── Skeleton ───────────────────────────────────────────────────────────── */
+
+.wchc__chip--skeleton {
+  width: 90px;
+  height: 26px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: wchc-shimmer 1.4s ease-in-out infinite;
+  border-color: transparent;
+}
+
+@keyframes wchc-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Empty ──────────────────────────────────────────────────────────────── */
+
+.wchc__empty {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.35);
+}

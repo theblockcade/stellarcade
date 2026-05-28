@@ -488,6 +488,61 @@ fn test_not_initialized() {
         let result = client.charge_fee(&game_id, &amount, &None::<Address>);
         assert_eq!(result, 0);
 
-        // Full amount should be accrued as fees
-        assert_eq!(client.accrued_fees(&game_id), 1000);
-    }
+    // Full amount should be accrued as fees
+    assert_eq!(client.accrued_fees(&game_id), 1000);
+}
+
+#[test]
+fn test_route_allocation_snapshot() {
+    let (env, contract_id, admin, _) = setup_contract();
+    let client = FeeManagerContractClient::new(&env, &contract_id);
+    let game_id = symbol_short!("game1");
+    let fee_bps = 250;
+    let recipient = Address::generate(&env);
+
+    // Test with no config
+    let snapshot = client.route_allocation_snapshot(&game_id);
+    assert_eq!(snapshot.game_id, game_id);
+    assert!(!snapshot.exists);
+    assert_eq!(snapshot.total_allocated, 0);
+    assert!(snapshot.routes.is_empty());
+
+    // Set fee config and charge fees
+    client.set_fee_config(&admin, &game_id, &fee_bps, &recipient);
+    client.charge_fee(&game_id, &1000i128, &None::<Address>);
+
+    // Test with config and fees
+    let snapshot = client.route_allocation_snapshot(&game_id);
+    assert_eq!(snapshot.game_id, game_id);
+    assert!(snapshot.exists);
+    assert_eq!(snapshot.total_allocated, 25);
+    assert_eq!(snapshot.routes.len(), 1);
+    assert_eq!(snapshot.routes.get(0).unwrap().recipient, recipient);
+    assert_eq!(snapshot.routes.get(0).unwrap().percentage, 10000);
+    assert_eq!(snapshot.routes.get(0).unwrap().amount, 25);
+}
+
+#[test]
+fn test_fallback_policy() {
+    let (env, contract_id, admin, _) = setup_contract();
+    let client = FeeManagerContractClient::new(&env, &contract_id);
+    let game_id = symbol_short!("game1");
+    let fee_bps = 250;
+    let recipient = Address::generate(&env);
+
+    // Test with no config
+    let policy = client.fallback_policy(&game_id);
+    assert_eq!(policy.game_id, game_id);
+    assert!(!policy.exists);
+    assert_eq!(policy.fallback_percentage, 0);
+
+    // Set fee config
+    client.set_fee_config(&admin, &game_id, &fee_bps, &recipient);
+
+    // Test with config
+    let policy = client.fallback_policy(&game_id);
+    assert_eq!(policy.game_id, game_id);
+    assert!(policy.exists);
+    assert_eq!(policy.fallback_recipient, recipient);
+    assert_eq!(policy.fallback_percentage, 10000);
+}

@@ -43,6 +43,56 @@ pub struct UserStreakData {
     pub last_claimed_streak: u32,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum StreakSummaryStatus {
+    Missing = 0,
+    Active = 1,
+    Reset = 2,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreakSummary {
+    pub status: StreakSummaryStatus,
+    pub active_streak: u32,
+    pub last_recorded_streak: u32,
+    pub last_claimed_streak: u32,
+    pub last_activity_ts: u64,
+    pub streak_window_ends_at: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NextBonusPreview {
+    pub status: StreakSummaryStatus,
+    pub active_streak: u32,
+    pub threshold_streak: u32,
+    pub streaks_needed: u32,
+    pub projected_reward: i128,
+    pub claimable_now: bool,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExpiryPressure {
+    pub status: StreakSummaryStatus,
+    pub active_streak: u32,
+    pub expiry_time: u64,
+    pub seconds_until_expiry: u64,
+    pub pressure_level: ExpiryPressureLevel,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ExpiryPressureLevel {
+    None = 0,
+    Low = 1,
+    Medium = 2,
+    High = 3,
+    Critical = 4,
+}
+
 // ---------------------------------------------------------------------------
 // Errors
 // ---------------------------------------------------------------------------
@@ -115,9 +165,11 @@ impl StreakBonus {
         let default_rules = StreakRules {
             min_streak_to_claim: 3,
             reward_per_streak: 1_000_000i128, // e.g. 1 unit in 6 decimals
-            streak_window_secs: 86400,         // 24h
+            streak_window_secs: 86400,        // 24h
         };
-        env.storage().instance().set(&DataKey::Rules, &default_rules);
+        env.storage()
+            .instance()
+            .set(&DataKey::Rules, &default_rules);
         Initialized {
             admin,
             reward_contract,
@@ -144,24 +196,22 @@ impl StreakBonus {
             .ok_or(Error::NotInitialized)?;
 
         let key = DataKey::UserData(user.clone());
-        let mut data: UserStreakData = env
-            .storage()
-            .instance()
-            .get(&key)
-            .unwrap_or(UserStreakData {
-                last_activity_ts: 0,
-                current_streak: 0,
-                last_claimed_streak: 0,
-            });
+        let mut data: UserStreakData =
+            env.storage()
+                .instance()
+                .get(&key)
+                .unwrap_or(UserStreakData {
+                    last_activity_ts: 0,
+                    current_streak: 0,
+                    last_claimed_streak: 0,
+                });
 
         let new_streak = if data.last_activity_ts == 0 {
             1u32
         } else if ts > data.last_activity_ts
             && ts.saturating_sub(data.last_activity_ts) <= rules.streak_window_secs
         {
-            data.current_streak
-                .checked_add(1)
-                .ok_or(Error::Overflow)?
+            data.current_streak.checked_add(1).ok_or(Error::Overflow)?
         } else {
             1u32
         };
@@ -188,6 +238,117 @@ impl StreakBonus {
             .get(&key)
             .map(|d: UserStreakData| d.current_streak)
             .unwrap_or(0)
+    }
+
+    /// Return a UI-friendly summary of a player's streak at `as_of_ts`.
+    ///
+    /// Missing players return a zeroed summary with `status = Missing`.
+    /// Players whose latest activity window has elapsed return `status = Reset`
+    /// with `active_streak = 0` while preserving the last recorded streak.
+    pub fn streak_summary(env: Env, user: Address, as_of_ts: u64) -> StreakSummary {
+        let Some(rules) = read_rules(&env) else {
+            return empty_streak_summary();
+        };
+
+        build_streak_summary(&env, &user, &rules, as_of_ts)
+    }
+
+    /// Preview the next streak bonus target for a player at `as_of_ts`.
+    ///
+    /// The preview is side-effect free and uses the effective active streak,
+    /// making reset streaks render as `active_streak = 0`.
+    pub fn next_bonus_preview(env: Env, user: Address, as_of_ts: u64) -> NextBonusPreview {
+        let Some(rules) = read_rules(&env) else {
+            return NextBonusPreview {
+                status: StreakSummaryStatus::Missing,
+                active_streak: 0,
+                threshold_streak: 0,
+                streaks_needed: 0,
+                projected_reward: 0,
+                claimable_now: false,
+            };
+        };
+
+        let summary = build_streak_summary(&env, &user, &rules, as_of_ts);
+        let next_unclaimed_streak = summary.last_claimed_streak.saturating_add(1);
+        let threshold_streak = if next_unclaimed_streak > rules.min_streak_to_claim {
+            next_unclaimed_streak
+        } else {
+            rules.min_streak_to_claim
+        };
+
+        let preview_threshold = if summary.active_streak >= threshold_streak {
+            summary.active_streak
+        } else {
+            threshold_streak
+        };
+
+        NextBonusPreview {
+            status: summary.status,
+            active_streak: summary.active_streak,
+            threshold_streak: preview_threshold,
+            streaks_needed: preview_threshold.saturating_sub(summary.active_streak),
+            projected_reward: (preview_threshold as i128).saturating_mul(rules.reward_per_streak),
+            claimable_now: summary.active_streak >= rules.min_streak_to_claim
+                && summary.active_streak > summary.last_claimed_streak,
+        }
+    }
+
+    /// Return expiry pressure information for a player's streak at `as_of_ts`.
+    ///
+    /// Shows how close the streak is to expiring, with pressure levels indicating urgency.
+    pub fn expiry_pressure(env: Env, user: Address, as_of_ts: u64) -> ExpiryPressure {
+        let Some(rules) = read_rules(&env) else {
+            return ExpiryPressure {
+                status: StreakSummaryStatus::Missing,
+                active_streak: 0,
+                expiry_time: 0,
+                seconds_until_expiry: 0,
+                pressure_level: ExpiryPressureLevel::None,
+            };
+        };
+
+        let summary = build_streak_summary(&env, &user, &rules, as_of_ts);
+
+        let (expiry_time, seconds_until_expiry) = if summary.status == StreakSummaryStatus::Active {
+            let expiry = summary.streak_window_ends_at;
+            let remaining = if as_of_ts < expiry {
+                expiry.saturating_sub(as_of_ts)
+            } else {
+                0
+            };
+            (expiry, remaining)
+        } else {
+            (0, 0)
+        };
+
+        let pressure_level = match summary.status {
+            StreakSummaryStatus::Missing => ExpiryPressureLevel::None,
+            StreakSummaryStatus::Reset => ExpiryPressureLevel::None,
+            StreakSummaryStatus::Active => {
+                let window_secs = rules.streak_window_secs;
+                let remaining_pct = if window_secs > 0 {
+                    (seconds_until_expiry * 100) / window_secs
+                } else {
+                    0
+                };
+                match remaining_pct {
+                    0..=10 => ExpiryPressureLevel::Critical,
+                    11..=25 => ExpiryPressureLevel::High,
+                    26..=50 => ExpiryPressureLevel::Medium,
+                    51..=75 => ExpiryPressureLevel::Low,
+                    _ => ExpiryPressureLevel::None,
+                }
+            }
+        };
+
+        ExpiryPressure {
+            status: summary.status,
+            active_streak: summary.active_streak,
+            expiry_time,
+            seconds_until_expiry,
+            pressure_level,
+        }
     }
 
     /// Claim streak bonus for the current streak. User must authorize. Updates last_claimed_streak.
@@ -273,6 +434,59 @@ fn require_admin_or_self(env: &Env, caller: &Address, user: &Address) -> Result<
         return Err(Error::NotAuthorized);
     }
     Ok(())
+}
+
+fn read_rules(env: &Env) -> Option<StreakRules> {
+    env.storage().instance().get(&DataKey::Rules)
+}
+
+fn empty_streak_summary() -> StreakSummary {
+    StreakSummary {
+        status: StreakSummaryStatus::Missing,
+        active_streak: 0,
+        last_recorded_streak: 0,
+        last_claimed_streak: 0,
+        last_activity_ts: 0,
+        streak_window_ends_at: 0,
+    }
+}
+
+fn build_streak_summary(
+    env: &Env,
+    user: &Address,
+    rules: &StreakRules,
+    as_of_ts: u64,
+) -> StreakSummary {
+    let key = DataKey::UserData(user.clone());
+    let Some(data) = env
+        .storage()
+        .instance()
+        .get::<DataKey, UserStreakData>(&key)
+    else {
+        return empty_streak_summary();
+    };
+
+    let streak_window_ends_at = data
+        .last_activity_ts
+        .saturating_add(rules.streak_window_secs);
+    let streak_is_active = data.last_activity_ts > 0 && as_of_ts <= streak_window_ends_at;
+
+    StreakSummary {
+        status: if streak_is_active {
+            StreakSummaryStatus::Active
+        } else {
+            StreakSummaryStatus::Reset
+        },
+        active_streak: if streak_is_active {
+            data.current_streak
+        } else {
+            0
+        },
+        last_recorded_streak: data.current_streak,
+        last_claimed_streak: data.last_claimed_streak,
+        last_activity_ts: data.last_activity_ts,
+        streak_window_ends_at,
+    }
 }
 
 // ---------------------------------------------------------------------------

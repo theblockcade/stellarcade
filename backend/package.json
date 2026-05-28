@@ -10,7 +10,9 @@
     "test:watch": "jest --watchAll",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "migrate": "knex migrate:latest"
+    "migrate": "knex migrate:latest",
+    "openapi:generate": "node scripts/openapi.js generate",
+    "openapi:validate": "node scripts/openapi.js validate"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^14.5.0",

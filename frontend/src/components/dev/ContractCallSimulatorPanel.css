@@ -65,6 +65,13 @@
   opacity: 0.85;
 }
 
+.contract-call-simulator__field .contract-call-simulator__helper {
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--cc-sim-muted, #8b949e);
+  opacity: 1;
+}
+
 .contract-call-simulator__field input,
 .contract-call-simulator__field textarea,
 .contract-call-simulator__field select {

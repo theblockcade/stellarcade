@@ -64,6 +64,23 @@ pub struct BracketSummary {
     pub remaining_participants: u32,
 }
 
+/// Compact summary of a participant's journey through the tournament bracket.
+///
+/// Returned by `elimination_path`. Returns `Err(TournamentNotFound)` when the
+/// tournament does not exist and `Err(PlayerNotJoined)` when the participant
+/// has never joined.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EliminationPath {
+    /// Total number of rounds the participant appeared in.
+    pub rounds_played: u32,
+    /// The highest round number in which the participant was still active.
+    /// Zero when the player joined but no round data exists yet.
+    pub last_round_active: u32,
+    /// `true` when the participant is still alive in the current round.
+    pub is_active: bool,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Matchup {
@@ -383,6 +400,85 @@ impl TournamentSystem {
         Ok(matchups)
     }
 
+    /// Returns the number of matches remaining in the current round.
+    ///
+    /// Each match pairs two participants; a participant with no opponent receives
+    /// a bye and counts as half a match (rounded up). Returns
+    /// `Err(TournamentNotFound)` when the tournament does not exist.
+    pub fn remaining_match_count(env: Env, id: u64) -> Result<u32, Error> {
+        if !env.storage().persistent().has(&DataKey::Tournament(id)) {
+            return Err(Error::TournamentNotFound);
+        }
+
+        let round: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CurrentRound(id))
+            .ok_or(Error::TournamentNotFound)?;
+
+        let participants: soroban_sdk::Vec<Address> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundParticipants(id, round))
+            .unwrap_or(soroban_sdk::Vec::new(&env));
+
+        // Ceiling division: an odd participant gets a bye and counts as one match.
+        let count = participants.len();
+        Ok((count + 1) / 2)
+    }
+
+    /// Returns a compact summary of a participant's elimination path.
+    ///
+    /// Walks every round from 1 to the current round and checks whether the
+    /// participant appeared in the `RoundParticipants` list. The result is
+    /// deterministic and does not require reconstructing the full bracket
+    /// off-chain.
+    ///
+    /// Returns `Err(TournamentNotFound)` when the tournament does not exist.
+    /// Returns `Err(PlayerNotJoined)` when the participant never joined.
+    pub fn elimination_path(env: Env, id: u64, player: Address) -> Result<EliminationPath, Error> {
+        if !env.storage().persistent().has(&DataKey::Tournament(id)) {
+            return Err(Error::TournamentNotFound);
+        }
+
+        if !env.storage().persistent().has(&DataKey::PlayerJoined(id, player.clone())) {
+            return Err(Error::PlayerNotJoined);
+        }
+
+        let current_round: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CurrentRound(id))
+            .ok_or(Error::TournamentNotFound)?;
+
+        let mut last_round_active: u32 = 0;
+        let mut rounds_played: u32 = 0;
+        let mut round: u32 = 1;
+
+        while round <= current_round {
+            let participants: soroban_sdk::Vec<Address> = env
+                .storage()
+                .persistent()
+                .get(&DataKey::RoundParticipants(id, round))
+                .unwrap_or(soroban_sdk::Vec::new(&env));
+
+            if participants.contains(&player) {
+                last_round_active = round;
+                rounds_played = rounds_played.checked_add(1).ok_or(Error::Overflow)?;
+            }
+
+            round += 1;
+        }
+
+        let is_active = last_round_active == current_round && current_round > 0;
+
+        Ok(EliminationPath {
+            rounds_played,
+            last_round_active,
+            is_active,
+        })
+    }
+
     pub fn advance_round(env: Env, admin: Address, id: u64) -> Result<(), Error> {
         require_admin(&env, &admin)?;
         
@@ -655,5 +751,156 @@ mod test {
 
         let summary = client.get_bracket_summary(&id);
         assert_eq!(summary.current_round, 1);
+    }
+
+    // --- remaining_match_count ---
+
+    #[test]
+    fn remaining_match_count_even_participants() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+
+        let id = 200u64;
+        env.mock_all_auths();
+        client.create_tournament(&admin, &id, &BytesN::from_array(&env, &[0u8; 32]), &0i128);
+
+        let p1 = Address::generate(&env);
+        let p2 = Address::generate(&env);
+        let p3 = Address::generate(&env);
+        let p4 = Address::generate(&env);
+        client.join_tournament(&p1, &id);
+        client.join_tournament(&p2, &id);
+        client.join_tournament(&p3, &id);
+        client.join_tournament(&p4, &id);
+
+        // 4 participants → 2 matches
+        assert_eq!(client.remaining_match_count(&id), Ok(2));
+    }
+
+    #[test]
+    fn remaining_match_count_odd_participants_gives_bye() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+
+        let id = 201u64;
+        env.mock_all_auths();
+        client.create_tournament(&admin, &id, &BytesN::from_array(&env, &[0u8; 32]), &0i128);
+
+        let p1 = Address::generate(&env);
+        let p2 = Address::generate(&env);
+        let p3 = Address::generate(&env);
+        client.join_tournament(&p1, &id);
+        client.join_tournament(&p2, &id);
+        client.join_tournament(&p3, &id);
+
+        // 3 participants → 2 matches (one bye)
+        assert_eq!(client.remaining_match_count(&id), Ok(2));
+    }
+
+    #[test]
+    fn remaining_match_count_single_participant() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+
+        let id = 202u64;
+        env.mock_all_auths();
+        client.create_tournament(&admin, &id, &BytesN::from_array(&env, &[0u8; 32]), &0i128);
+
+        let p1 = Address::generate(&env);
+        client.join_tournament(&p1, &id);
+
+        // 1 participant → 1 match (bye)
+        assert_eq!(client.remaining_match_count(&id), Ok(1));
+    }
+
+    #[test]
+    fn remaining_match_count_missing_tournament() {
+        let env = Env::default();
+        let (client, _, _, _) = setup(&env);
+
+        assert_eq!(
+            client.try_remaining_match_count(&9999u64),
+            Err(Ok(Error::TournamentNotFound))
+        );
+    }
+
+    // --- elimination_path ---
+
+    #[test]
+    fn elimination_path_active_participant_in_round_1() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+
+        let id = 300u64;
+        env.mock_all_auths();
+        client.create_tournament(&admin, &id, &BytesN::from_array(&env, &[0u8; 32]), &0i128);
+
+        let player = Address::generate(&env);
+        client.join_tournament(&player, &id);
+
+        let path = client.elimination_path(&id, &player).expect("path present");
+        assert_eq!(path.rounds_played, 1);
+        assert_eq!(path.last_round_active, 1);
+        assert!(path.is_active);
+    }
+
+    #[test]
+    fn elimination_path_eliminated_after_round_advance() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+
+        let id = 301u64;
+        env.mock_all_auths();
+        client.create_tournament(&admin, &id, &BytesN::from_array(&env, &[0u8; 32]), &0i128);
+
+        let winner = Address::generate(&env);
+        let loser = Address::generate(&env);
+        client.join_tournament(&winner, &id);
+        client.join_tournament(&loser, &id);
+
+        // Record so that winner beats loser
+        client.record_result(&admin, &id, &winner, &200u64);
+        client.record_result(&admin, &id, &loser, &50u64);
+        client.advance_round(&admin, &id);
+
+        // loser was in round 1 but not round 2
+        let path = client.elimination_path(&id, &loser).expect("path");
+        assert_eq!(path.rounds_played, 1);
+        assert_eq!(path.last_round_active, 1);
+        assert!(!path.is_active);
+
+        // winner is now in round 2
+        let winner_path = client.elimination_path(&id, &winner).expect("winner path");
+        assert_eq!(winner_path.rounds_played, 2);
+        assert_eq!(winner_path.last_round_active, 2);
+        assert!(winner_path.is_active);
+    }
+
+    #[test]
+    fn elimination_path_missing_tournament() {
+        let env = Env::default();
+        let (client, _, _, _) = setup(&env);
+
+        let phantom = Address::generate(&env);
+        assert_eq!(
+            client.try_elimination_path(&9999u64, &phantom),
+            Err(Ok(Error::TournamentNotFound))
+        );
+    }
+
+    #[test]
+    fn elimination_path_unjoined_player() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+
+        let id = 302u64;
+        env.mock_all_auths();
+        client.create_tournament(&admin, &id, &BytesN::from_array(&env, &[0u8; 32]), &0i128);
+
+        let outsider = Address::generate(&env);
+        assert_eq!(
+            client.try_elimination_path(&id, &outsider),
+            Err(Ok(Error::PlayerNotJoined))
+        );
     }
 }

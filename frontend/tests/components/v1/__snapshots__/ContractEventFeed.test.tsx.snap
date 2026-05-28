@@ -14,20 +14,52 @@ exports[`ContractEventFeed - snapshot > matches stable header snapshot 1`] = `
     </h2>
     <span
       aria-label="Feed status: Live"
-      aria-live="polite"
-      class="cef-status-badge cef-status-badge--connected"
+      class="status-pill status-pill--success status-pill--compact cef-status-badge cef-status-badge--connected"
       data-testid="contract-event-feed-status"
+      data-tone="success"
+      role="status"
     >
       <span
         aria-hidden="true"
-        class="cef-status-badge__dot"
-      />
-      Live
+        class="status-pill__icon"
+      >
+        <span
+          class="cef-status-badge__dot"
+        />
+      </span>
+      <span
+        class="status-pill__label"
+      >
+        Live
+      </span>
     </span>
   </div>
   <div
     class="cef__header-right"
   >
+    <div
+      aria-label="Event density"
+      class="cef__density-toggle"
+      data-testid="contract-event-feed-density-toggle"
+      role="group"
+    >
+      <button
+        aria-pressed="true"
+        class="cef__density-button is-active"
+        data-testid="contract-event-feed-density-standard"
+        type="button"
+      >
+        Standard
+      </button>
+      <button
+        aria-pressed="false"
+        class="cef__density-button"
+        data-testid="contract-event-feed-density-compact"
+        type="button"
+      >
+        Compact
+      </button>
+    </div>
     <span
       aria-atomic="true"
       aria-live="polite"

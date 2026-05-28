@@ -67,6 +67,49 @@ pub struct QueueMetrics {
     pub oldest_pending: Option<Symbol>,
 }
 
+/// Stable queue-backed snapshot for a settlement read.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueuedPayoutSnapshot {
+    pub settlement_id: Symbol,
+    /// True when the settlement exists in storage.
+    pub exists: bool,
+    /// Account that will receive the payout when known.
+    pub account: Option<Address>,
+    /// Settlement amount or `0` when unknown.
+    pub amount: i128,
+    /// Settlement reason when known.
+    pub reason: Option<Symbol>,
+    /// Current stored status.
+    pub status: SettlementStatus,
+    /// Failure code, if any.
+    pub error_code: Option<u32>,
+    /// Queue index of the first still-referenced item for this settlement.
+    pub queue_index: Option<u64>,
+    /// Queue position relative to the current head, when still queued.
+    pub queue_position: Option<u64>,
+    /// True when the settlement still appears in the queue window.
+    pub in_queue: bool,
+    /// Current queue depth to help consumers size backlog pressure.
+    pub queue_depth: u64,
+}
+
+/// Read-only readiness snapshot for an off-chain signer or operator.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SignerReadiness {
+    /// True when admin and downstream contract addresses are configured.
+    pub initialized: bool,
+    /// True when the queried signer matches the configured admin.
+    pub signer_matches_admin: bool,
+    pub reward_contract_configured: bool,
+    pub treasury_contract_configured: bool,
+    /// True when the signer matches admin and the contract is initialized.
+    pub can_administer_queue: bool,
+    /// Pending queue depth at the time of the read.
+    pub queue_depth: u64,
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
@@ -477,6 +520,98 @@ impl SettlementQueue {
         QueueMetrics {
             depth: Self::queue_depth(env.clone()),
             oldest_pending: Self::oldest_pending_settlement(env),
+        }
+    }
+
+    /// Returns a queue-backed snapshot for one settlement id.
+    ///
+    /// Missing settlements return a predictable empty struct with
+    /// `exists = false` and zero-value numeric fields.
+    pub fn queued_payout_snapshot(env: Env, settlement_id: Symbol) -> QueuedPayoutSnapshot {
+        let queue_depth = Self::queue_depth(env.clone());
+        let head: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::QueueHead)
+            .unwrap_or(0);
+        let tail: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::QueueTail)
+            .unwrap_or(0);
+
+        let mut queue_index: Option<u64> = None;
+        for index in head..tail {
+            let item_key = DataKey::QueueItem(index);
+            if let Some(queued_id) = env.storage().persistent().get::<_, Symbol>(&item_key) {
+                if queued_id == settlement_id {
+                    queue_index = Some(index);
+                    break;
+                }
+            }
+        }
+
+        match env
+            .storage()
+            .persistent()
+            .get::<_, SettlementData>(&DataKey::Settlement(settlement_id.clone()))
+        {
+            Some(settlement) => QueuedPayoutSnapshot {
+                settlement_id,
+                exists: true,
+                account: Some(settlement.account),
+                amount: settlement.amount,
+                reason: Some(settlement.reason),
+                status: settlement.status,
+                error_code: settlement.error_code,
+                queue_position: queue_index.map(|index| index.saturating_sub(head)),
+                queue_index,
+                in_queue: queue_index.is_some(),
+                queue_depth,
+            },
+            None => QueuedPayoutSnapshot {
+                settlement_id,
+                exists: false,
+                account: None,
+                amount: 0,
+                reason: None,
+                status: SettlementStatus::Failed,
+                error_code: None,
+                queue_index: None,
+                queue_position: None,
+                in_queue: false,
+                queue_depth,
+            },
+        }
+    }
+
+    /// Returns whether the provided signer is ready to administer the queue.
+    ///
+    /// Pre-configuration reads return all readiness flags as `false` so
+    /// callers can distinguish uninitialized state without trapping.
+    pub fn signer_readiness(env: Env, signer: Address) -> SignerReadiness {
+        let admin: Option<Address> = env.storage().instance().get(&DataKey::Admin);
+        let reward: Option<Address> = env.storage().instance().get(&DataKey::RewardContract);
+        let treasury: Option<Address> = env.storage().instance().get(&DataKey::TreasuryContract);
+
+        let initialized = admin.is_some() && reward.is_some() && treasury.is_some();
+        let signer_matches_admin = admin
+            .as_ref()
+            .map(|stored| stored == &signer)
+            .unwrap_or(false);
+        let queue_depth = if initialized {
+            Self::queue_depth(env)
+        } else {
+            0
+        };
+
+        SignerReadiness {
+            initialized,
+            signer_matches_admin,
+            reward_contract_configured: reward.is_some(),
+            treasury_contract_configured: treasury.is_some(),
+            can_administer_queue: initialized && signer_matches_admin,
+            queue_depth,
         }
     }
 

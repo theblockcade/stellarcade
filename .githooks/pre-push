@@ -52,9 +52,9 @@ if command -v cargo >/dev/null 2>&1; then
             CRATE_DIR="$REPO_ROOT/contracts/$crate"
 
             echo "  -> $crate: fmt"
-            if ! (cd "$CRATE_DIR" && cargo fmt --all -- --check 2>&1); then
+            if ! (cd "$CRATE_DIR" && cargo fmt -- --check 2>&1); then
                 echo "fmt failed in $crate."
-                echo "Fix: cd contracts/$crate && cargo fmt --all"
+                echo "Fix: cd contracts/$crate && cargo fmt"
                 FAIL=1
             fi
 

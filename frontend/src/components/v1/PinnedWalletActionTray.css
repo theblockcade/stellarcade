@@ -1,0 +1,42 @@
+.pinned-wallet-action-tray {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 20;
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-border);
+  background: rgba(10, 18, 31, 0.88);
+  backdrop-filter: blur(8px);
+}
+
+.pinned-wallet-action-tray__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.pinned-wallet-action-tray__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pinned-wallet-action-tray__actions button {
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+.pinned-wallet-action-tray__actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

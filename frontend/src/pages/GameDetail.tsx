@@ -1,0 +1,205 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import ContractEventFeed from '../components/v1/ContractEventFeed';
+import { EntityActionShortcuts } from '../components/v1/EntityActionShortcuts';
+import { SkeletonPreset } from '../components/v1/LoadingSkeletonSet';
+import type { PivotLink } from '../components/v1/QuickPivotLinks';
+import { ApiClient } from '../services/typed-api-sdk';
+import type { Game } from '../types/api-client';
+import './GameDetail.css';
+
+const FALLBACK_CONTRACT_PREFIX = 'game';
+
+function resolveContractId(game: Game): string {
+  const contractCandidate = game.contractId;
+  if (typeof contractCandidate === 'string' && contractCandidate.trim().length > 0) {
+    return contractCandidate.trim();
+  }
+
+  return `${FALLBACK_CONTRACT_PREFIX}-${game.id}`;
+}
+
+export const GameDetail: React.FC = () => {
+  const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [game, setGame] = useState<Game | null>(null);
+
+  useEffect(() => {
+    const normalizedGameId = gameId?.trim() ?? '';
+    if (!normalizedGameId) {
+      setLoading(false);
+      setError('Game id is required.');
+      setGame(null);
+      return;
+    }
+
+    let active = true;
+    const loadGame = async () => {
+      setLoading(true);
+      setError(null);
+
+      const client = new ApiClient();
+      const result = await client.getGameById(normalizedGameId);
+
+      if (!active) return;
+
+      if (result.success) {
+        setGame(result.data);
+      } else {
+        setError(result.error.message);
+        setGame(null);
+      }
+
+      setLoading(false);
+    };
+
+    void loadGame();
+
+    return () => {
+      active = false;
+    };
+  }, [gameId]);
+
+  const statusLabel = useMemo(() => {
+    if (!game) return 'unknown';
+    return String(game.status ?? 'unknown').toLowerCase();
+  }, [game]);
+
+  const sidebarLinks = useMemo<PivotLink[]>(() => {
+    if (!game) return [];
+
+    const links: PivotLink[] = [
+      {
+        id: 'back-to-lobby',
+        label: 'Back to Lobby',
+        onClick: () => navigate('/'),
+      },
+      {
+        id: 'wallet',
+        label: 'Wallet Details',
+        href: '/wallet',
+      },
+      {
+        id: 'leaderboard',
+        label: 'Leaderboard',
+        onClick: () => navigate('/?section=leaderboard'),
+      },
+      {
+        id: 'transactions',
+        label: 'Transaction History',
+        href: '/wallet?tab=transactions',
+      },
+      {
+        id: 'audit-log',
+        label: 'Audit Log',
+        href: '/audit',
+      },
+    ];
+
+    if (statusLabel === 'active') {
+      links.unshift({
+        id: 'live-match',
+        label: 'Live Match',
+        href: `/games/${game.id}/live`,
+        disabled: true,
+      });
+    }
+
+    return links;
+  }, [game, navigate, statusLabel]);
+
+  const shortcutAlerts = useMemo(() => {
+    if (!game) {
+      return [];
+    }
+
+    return [
+      {
+        id: 'contract-scope',
+        title:
+          game.contractId && game.contractId.trim().length > 0
+            ? 'Contract record linked'
+            : 'Fallback contract reference in use',
+        description:
+          game.contractId && game.contractId.trim().length > 0
+            ? `Event timeline and related records are scoped to ${resolveContractId(game)}.`
+            : `This page is using ${resolveContractId(game)} until a dedicated contract id is configured for the game.`,
+        variant:
+          game.contractId && game.contractId.trim().length > 0 ? 'info' : 'warning',
+      },
+      {
+        id: 'wallet-interruption',
+        title: 'Wallet interruption recovery',
+        description:
+          'If a confirmation flow is interrupted, return here through the pending-task banner to reopen the related records and timeline without starting over.',
+        variant: 'info' as const,
+      },
+    ];
+  }, [game]);
+
+  if (loading) {
+    return (
+      <div role="status" aria-live="polite" data-testid="game-detail-loading">
+        <p>Loading game details...</p>
+        <SkeletonPreset type="detail" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div role="status" aria-live="polite" data-testid="game-detail-error">
+        Failed to load game: {error}
+      </div>
+    );
+  }
+
+  if (!game) {
+    return (
+      <div role="status" aria-live="polite" data-testid="game-detail-empty">
+        No game found for id: {gameId}
+      </div>
+    );
+  }
+
+  const contractId = resolveContractId(game);
+
+  return (
+    <section className="game-detail" aria-labelledby="game-detail-heading" data-testid="game-detail-page">
+      <header className="game-detail__summary">
+        <h1 id="game-detail-heading">{game.name}</h1>
+        <p data-testid="game-detail-id">Game ID: {game.id}</p>
+        <p data-testid="game-detail-status">Status: {statusLabel}</p>
+        <p data-testid="game-detail-contract">Contract: {contractId}</p>
+      </header>
+
+      <aside className="game-detail__sidebar" aria-label="Related actions" data-testid="game-detail-sidebar">
+        <div className="game-detail__sidebar-section">
+          <EntityActionShortcuts
+            title="Related records"
+            description="Use a single shortcut module to pivot between linked wallet, leaderboard, audit, and transaction views."
+            links={sidebarLinks}
+            alerts={shortcutAlerts}
+            headingLevel={2}
+            testId="game-detail-shortcuts"
+            emptyMessage="No related actions available"
+          />
+        </div>
+      </aside>
+
+      <div className="game-detail__timeline">
+        <ContractEventFeed
+          contractId={contractId}
+          autoStart={true}
+          maxEvents={50}
+          feedScope={`game-detail-${game.id}`}
+          testId="game-detail-timeline"
+        />
+      </div>
+    </section>
+  );
+};
+
+export default GameDetail;

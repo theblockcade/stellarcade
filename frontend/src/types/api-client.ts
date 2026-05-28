@@ -47,6 +47,20 @@ export interface ApiClientError extends AppError {
   originalMessage?: string;
 }
 
+/**
+ * Options for a single API request.
+ */
+export interface ApiRequestOptions {
+  /**
+   * Optional AbortSignal to cancel the request.
+   */
+  signal?: AbortSignal;
+  /**
+   * Optional timeout in milliseconds.
+   */
+  timeout?: number;
+}
+
 // ── GET /api/games ───────────────────────────────────────────────────────────
 
 /** A single game entry returned by the backend. */
@@ -59,6 +73,9 @@ export interface Game {
 
 /** Response shape for `GET /api/games`. */
 export type GetGamesResponse = Game[];
+
+/** Response shape for `GET /api/games/:gameId`. */
+export type GetGameByIdResponse = Game | null;
 
 // ── POST /api/games/play ─────────────────────────────────────────────────────
 
@@ -100,6 +117,13 @@ export interface CreateProfileRequest {
 
 /** Response shape for `POST /api/users/create`. */
 export type CreateProfileResponse = UserProfile;
+
+export interface UpdateProfileRequest {
+  address: string;
+  username: string;
+}
+
+export type UpdateProfileResponse = UserProfile;
 
 // ── POST /api/wallet/deposit & /api/wallet/withdraw ─────────────────────────
 

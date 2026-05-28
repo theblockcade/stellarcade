@@ -39,15 +39,15 @@ pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum Error {
-    AlreadyInitialized      = 1,
-    NotInitialized          = 2,
-    NotAuthorized           = 3,
-    InvalidAmount           = 4,
-    InsufficientFunds       = 5,
-    GameAlreadyReserved     = 6,
-    ReservationNotFound     = 7,
+    AlreadyInitialized = 1,
+    NotInitialized = 2,
+    NotAuthorized = 3,
+    InvalidAmount = 4,
+    InsufficientFunds = 5,
+    GameAlreadyReserved = 6,
+    ReservationNotFound = 7,
     PayoutExceedsReservation = 8,
-    Overflow                = 9,
+    Overflow = 9,
 }
 
 // ---------------------------------------------------------------------------
@@ -122,6 +122,37 @@ pub struct PrizePoolConfigSnapshot {
     pub reserved_amount: i128,
     pub payouts_count: u64,
     pub last_update_ledger: u32,
+}
+
+/// Per-game reservation summary for frontend and backend payout views.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrizeAllocationSummary {
+    pub game_id: u64,
+    /// True when a reservation currently exists for the game.
+    pub exists: bool,
+    /// Original reserved amount; `0` when missing.
+    pub total_allocated: i128,
+    /// Amount already paid out or released from the reservation.
+    pub amount_distributed: i128,
+    /// Amount still reserved for future payouts or release.
+    pub remaining_amount: i128,
+    /// True when there is no remaining balance to claim against.
+    pub fully_distributed: bool,
+}
+
+/// Aggregate payout-demand snapshot derived from tracked pool totals.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClaimPressure {
+    pub available_balance: i128,
+    pub reserved_amount: i128,
+    /// `available + reserved`.
+    pub tracked_balance: i128,
+    /// `reserved / tracked_balance * 10_000`, rounded down.
+    /// Returns `0` when tracked balance is zero.
+    pub reserved_share_bps: u32,
+    pub payouts_count: u64,
 }
 
 // ---------------------------------------------------------------------------
@@ -255,12 +286,7 @@ impl PrizePool {
     /// Calling reserve with a `game_id` that already has a reservation returns
     /// `GameAlreadyReserved` — this is the idempotency guard preventing a
     /// buggy game contract from double-drawing from the pool.
-    pub fn reserve(
-        env: Env,
-        admin: Address,
-        game_id: u64,
-        amount: i128,
-    ) -> Result<(), Error> {
+    pub fn reserve(env: Env, admin: Address, game_id: u64, amount: i128) -> Result<(), Error> {
         require_initialized(&env)?;
         require_admin(&env, &admin)?;
 
@@ -286,11 +312,16 @@ impl PrizePool {
             .ok_or(Error::Overflow)?;
         set_persistent_i128(&env, DataKey::TotalReserved, new_total_reserved);
 
-        let reservation = ReservationData { total: amount, remaining: amount };
+        let reservation = ReservationData {
+            total: amount,
+            remaining: amount,
+        };
         env.storage().persistent().set(&res_key, &reservation);
-        env.storage()
-            .persistent()
-            .extend_ttl(&res_key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &res_key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         update_markers(&env);
         Reserved { game_id, amount }.publish(&env);
@@ -308,12 +339,7 @@ impl PrizePool {
     /// payout remainder, or game cancelled). A partial release (`amount <
     /// remaining`) is valid. When `remaining` reaches zero the reservation
     /// entry is removed to avoid stale storage.
-    pub fn release(
-        env: Env,
-        admin: Address,
-        game_id: u64,
-        amount: i128,
-    ) -> Result<(), Error> {
+    pub fn release(env: Env, admin: Address, game_id: u64, amount: i128) -> Result<(), Error> {
         require_initialized(&env)?;
         require_admin(&env, &admin)?;
 
@@ -351,9 +377,11 @@ impl PrizePool {
             env.storage().persistent().remove(&res_key);
         } else {
             env.storage().persistent().set(&res_key, &reservation);
-            env.storage()
-                .persistent()
-                .extend_ttl(&res_key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+            env.storage().persistent().extend_ttl(
+                &res_key,
+                PERSISTENT_BUMP_LEDGERS,
+                PERSISTENT_BUMP_LEDGERS,
+            );
         }
 
         update_markers(&env);
@@ -416,9 +444,11 @@ impl PrizePool {
             env.storage().persistent().remove(&res_key);
         } else {
             env.storage().persistent().set(&res_key, &reservation);
-            env.storage()
-                .persistent()
-                .extend_ttl(&res_key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+            env.storage().persistent().extend_ttl(
+                &res_key,
+                PERSISTENT_BUMP_LEDGERS,
+                PERSISTENT_BUMP_LEDGERS,
+            );
         }
 
         // Increment cumulative payout counter
@@ -429,7 +459,12 @@ impl PrizePool {
         let token = get_token(&env);
         TokenClient::new(&env, &token).transfer(&env.current_contract_address(), &to, &amount);
 
-        PaidOut { to, game_id, amount }.publish(&env);
+        PaidOut {
+            to,
+            game_id,
+            amount,
+        }
+        .publish(&env);
 
         Ok(())
     }
@@ -451,7 +486,8 @@ impl PrizePool {
         require_admin(&env, &admin)?;
 
         let token = get_token(&env);
-        let actual_balance = TokenClient::new(&env, &token).balance(&env.current_contract_address());
+        let actual_balance =
+            TokenClient::new(&env, &token).balance(&env.current_contract_address());
 
         let available = get_available(&env);
         let reserved = get_total_reserved(&env);
@@ -459,9 +495,11 @@ impl PrizePool {
         // Invariant: available + reserved == actual_balance
         // Delta = actual_balance - (available + reserved)
         let tracked_total = available.checked_add(reserved).ok_or(Error::Overflow)?;
-        
+
         if actual_balance > tracked_total {
-            let delta = actual_balance.checked_sub(tracked_total).ok_or(Error::Overflow)?;
+            let delta = actual_balance
+                .checked_sub(tracked_total)
+                .ok_or(Error::Overflow)?;
             let new_available = available.checked_add(delta).ok_or(Error::Overflow)?;
 
             set_persistent_i128(&env, DataKey::Available, new_available);
@@ -471,11 +509,12 @@ impl PrizePool {
                 admin: admin.clone(),
                 amount: delta,
                 new_available,
-            }.publish(&env);
+            }
+            .publish(&env);
 
             Ok(delta)
         } else {
-            // No-op if balance is already in sync or somehow lower (which shouldn't happen 
+            // No-op if balance is already in sync or somehow lower (which shouldn't happen
             // unless tokens were burned/slashed externally, which we don't handle here).
             Ok(0)
         }
@@ -516,6 +555,69 @@ impl PrizePool {
             reserved_amount: get_total_reserved(&env),
             payouts_count: get_payouts_count(&env),
             last_update_ledger: get_last_update_ledger(&env),
+        })
+    }
+
+    /// Returns a per-game reservation snapshot.
+    ///
+    /// Missing game ids return a zeroed response with `exists = false`.
+    pub fn get_prize_allocation_summary(
+        env: Env,
+        game_id: u64,
+    ) -> Result<PrizeAllocationSummary, Error> {
+        require_initialized(&env)?;
+
+        let reservation = env
+            .storage()
+            .persistent()
+            .get::<_, ReservationData>(&DataKey::Reservation(game_id));
+
+        Ok(match reservation {
+            Some(reservation) => PrizeAllocationSummary {
+                game_id,
+                exists: true,
+                total_allocated: reservation.total,
+                amount_distributed: reservation.total.saturating_sub(reservation.remaining),
+                remaining_amount: reservation.remaining,
+                fully_distributed: reservation.remaining == 0,
+            },
+            None => PrizeAllocationSummary {
+                game_id,
+                exists: false,
+                total_allocated: 0,
+                amount_distributed: 0,
+                remaining_amount: 0,
+                fully_distributed: true,
+            },
+        })
+    }
+
+    /// Returns a contract-wide payout-demand summary.
+    ///
+    /// `reserved_share_bps` uses floor rounding and returns `0` when the pool
+    /// has no tracked balance, which gives consumers a stable zero-value
+    /// convention for empty or freshly initialized state.
+    pub fn get_claim_pressure(env: Env) -> Result<ClaimPressure, Error> {
+        require_initialized(&env)?;
+
+        let available_balance = get_available(&env);
+        let reserved_amount = get_total_reserved(&env);
+        let tracked_balance = available_balance
+            .checked_add(reserved_amount)
+            .ok_or(Error::Overflow)?;
+
+        let reserved_share_bps = if tracked_balance == 0 {
+            0
+        } else {
+            ((reserved_amount * 10_000) / tracked_balance) as u32
+        };
+
+        Ok(ClaimPressure {
+            available_balance,
+            reserved_amount,
+            tracked_balance,
+            reserved_share_bps,
+            payouts_count: get_payouts_count(&env),
         })
     }
 }

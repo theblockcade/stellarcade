@@ -137,3 +137,39 @@ pub fn unpause(env: Env, admin: Address) -> Result<(), Error>
 
 `Result<(), Error>`
 
+### `route_allocation_snapshot`
+Get route allocation snapshot for a game
+
+```rust
+pub fn route_allocation_snapshot(env: Env, game_id: Symbol) -> RouteAllocationSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `game_id` | `Symbol` |
+
+#### Return Type
+
+`RouteAllocationSnapshot`
+
+### `fallback_policy`
+Get fallback policy for a game
+
+```rust
+pub fn fallback_policy(env: Env, game_id: Symbol) -> FallbackPolicy
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `game_id` | `Symbol` |
+
+#### Return Type
+
+`FallbackPolicy`
+

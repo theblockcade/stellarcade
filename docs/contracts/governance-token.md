@@ -1,5 +1,7 @@
 # governance-token
 
+A single voting-weight snapshot recorded at a given ledger sequence.
+
 ## Public Methods
 
 ### `init`
@@ -156,4 +158,60 @@ pub fn decimals(env: Env) -> u32
 #### Return Type
 
 `u32`
+
+### `latest_checkpoint`
+Returns the most recent checkpoint for `holder`. Returns `None` when the holder has no recorded history.
+
+```rust
+pub fn latest_checkpoint(env: Env, holder: Address) -> Option<Checkpoint>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `holder` | `Address` |
+
+#### Return Type
+
+`Option<Checkpoint>`
+
+### `checkpoint_history`
+Returns up to `limit` most-recent checkpoints for `holder`, ordered oldest-first within the returned slice.  `limit` is capped at `MAX_CHECKPOINTS`.  Returns an empty vec for unknown holders.
+
+```rust
+pub fn checkpoint_history(env: Env, holder: Address, limit: u32) -> Vec<Checkpoint>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `holder` | `Address` |
+| `limit` | `u32` |
+
+#### Return Type
+
+`Vec<Checkpoint>`
+
+### `checkpoint_at_ledger`
+Returns the most recent checkpoint at or before `ledger` for `holder`. Enables snapshot-based vote weighting: callers pass a proposal's `start_ledger` to get the holder's balance at that point in time. Returns `None` for unknown holders or if no checkpoint precedes `ledger`.
+
+```rust
+pub fn checkpoint_at_ledger(env: Env, holder: Address, ledger: u32) -> Option<Checkpoint>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `holder` | `Address` |
+| `ledger` | `u32` |
+
+#### Return Type
+
+`Option<Checkpoint>`
 

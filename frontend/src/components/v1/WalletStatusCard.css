@@ -20,13 +20,14 @@
   box-sizing: border-box;
 }
 
-/*  Header row (badge + provider)  */
+/*  Header row (badge + provider + environment)  */
 
 .wallet-status-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .wallet-status-card__provider {
@@ -36,6 +37,11 @@
   font-size: 0.875rem;
   color: #4a5568;
   font-weight: 500;
+}
+
+.wallet-status-card__environment {
+  display: flex;
+  align-items: center;
 }
 
 .wallet-status-card__provider-icon {
@@ -48,63 +54,43 @@
 /*  Status badge  */
 
 .wallet-status-card__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+  box-shadow: none;
 }
 
 .wallet-status-card__badge-dot {
-  width: 7px;
-  height: 7px;
+  display: inline-flex;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-/* Badge variants */
-.wallet-status-card__badge--connected {
-  background-color: #f0fdf4;
-  color: #16a34a;
-}
 .wallet-status-card__badge--connected .wallet-status-card__badge-dot {
   background-color: #16a34a;
 }
 
-.wallet-status-card__badge--disconnected {
-  background-color: #f8fafc;
-  color: #64748b;
-}
 .wallet-status-card__badge--disconnected .wallet-status-card__badge-dot {
   background-color: #94a3b8;
 }
 
-.wallet-status-card__badge--connecting,
-.wallet-status-card__badge--reconnecting {
-  background-color: #eff6ff;
-  color: #2563eb;
-}
 .wallet-status-card__badge--connecting .wallet-status-card__badge-dot,
 .wallet-status-card__badge--reconnecting .wallet-status-card__badge-dot {
   background-color: #2563eb;
   animation: wallet-badge-pulse 1.2s ease-in-out infinite;
 }
 
-.wallet-status-card__badge--error {
-  background-color: #fef2f2;
-  color: #dc2626;
-}
 .wallet-status-card__badge--error .wallet-status-card__badge-dot {
   background-color: #dc2626;
 }
 
 @keyframes wallet-badge-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.35; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 /*  Body (address + network)  */
@@ -139,7 +125,7 @@
 }
 
 .wallet-status-card__value--mono {
-  font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
   font-size: 0.8125rem;
 }
 
@@ -185,7 +171,10 @@
   border-radius: 0.375rem;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
   font-family: inherit;
   line-height: 1;
 }
@@ -282,6 +271,33 @@
   cursor: not-allowed;
 }
 
+.wallet-status-card__reconnect-progress {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.wallet-status-card__reconnect-progress-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #1e40af;
+}
+
+.wallet-status-card__reconnect-progress-track {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.15);
+  overflow: hidden;
+}
+
+.wallet-status-card__reconnect-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  transition: width 0.2s ease-in-out;
+}
+
 .wallet-status-card__action-btn {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
@@ -289,7 +305,10 @@
   border-radius: 0.375rem;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
   font-family: inherit;
   line-height: 1;
 }
@@ -395,5 +414,356 @@
   }
   .wallet-status-card__action-btn--disconnect:hover:not(:disabled) {
     background-color: #334155;
+  }
+}
+
+/*  Freshness row  */
+
+.wallet-status-card__freshness {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 1.25rem;
+}
+
+.wallet-status-card__last-updated {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.wallet-status-card__refresh-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #4a90e2;
+  border-radius: 50%;
+  animation: wallet-refresh-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes wallet-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wallet-status-card__history {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.9rem;
+}
+
+.wallet-status-card__activity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.wallet-status-card__activity-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.wallet-status-card__activity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.wallet-status-card__activity-chip-label {
+  font-weight: 600;
+}
+
+.wallet-status-card__activity-chip-time {
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-status-card__activity-chip--success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.wallet-status-card__activity-chip--warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.wallet-status-card__activity-chip--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.wallet-status-card__activity-chip--neutral {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.wallet-status-card__activity-summary {
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.wallet-status-card__activity-summary-strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.wallet-status-card__activity-summary-muted {
+  color: #64748b;
+}
+
+.wallet-status-card__history-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 600;
+}
+
+.wallet-status-card__history-toggle-icon {
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.wallet-status-card__history-list {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wallet-status-card__history-item {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.wallet-status-card__history-main,
+.wallet-status-card__history-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.wallet-status-card__history-main {
+  margin-bottom: 0.35rem;
+}
+
+.wallet-status-card__history-event {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.wallet-status-card__history-address {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.wallet-status-card__history-meta {
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.wallet-status-card__diagnostics {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.9rem;
+}
+
+.wallet-status-card__diagnostics-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  color: #0f172a;
+  font-weight: 600;
+  list-style: none;
+}
+
+.wallet-status-card__diagnostics-summary::-webkit-details-marker {
+  display: none;
+}
+
+.wallet-status-card__diagnostics-summary:focus {
+  outline: 2px solid #4a90e2;
+  outline-offset: 3px;
+}
+
+.wallet-status-card__diagnostics-summary-icon {
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.wallet-status-card__diagnostics-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.85rem 0 0;
+}
+
+.wallet-status-card__diagnostics-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+}
+
+.wallet-status-card__diagnostics-item dt {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.wallet-status-card__diagnostics-item dd {
+  margin: 0;
+  color: #0f172a;
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.wallet-status-card__diagnostics-item--success {
+  border-color: #bbf7d0;
+}
+
+.wallet-status-card__diagnostics-item--warning {
+  border-color: #fde68a;
+}
+
+.wallet-status-card__diagnostics-item--error {
+  border-color: #fecaca;
+}
+
+.wallet-status-card__diagnostics-empty {
+  margin: 0.75rem 0 0;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wallet-status-card__last-updated {
+    color: #64748b;
+  }
+
+  .wallet-status-card__refresh-spinner {
+    border-color: #334155;
+    border-top-color: #4a90e2;
+  }
+
+  .wallet-status-card__history {
+    border-top-color: #334155;
+  }
+
+  .wallet-status-card__activity-chip {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+  }
+
+  .wallet-status-card__activity-chip-time {
+    color: #94a3b8;
+  }
+
+  .wallet-status-card__activity-chip--success {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.25);
+    color: #bbf7d0;
+  }
+
+  .wallet-status-card__activity-chip--warning {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.25);
+    color: #fde68a;
+  }
+
+  .wallet-status-card__activity-chip--error {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #fecaca;
+  }
+
+  .wallet-status-card__activity-chip--neutral {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+  }
+
+  .wallet-status-card__activity-summary {
+    color: #94a3b8;
+  }
+
+  .wallet-status-card__activity-summary-strong {
+    color: #f8fafc;
+  }
+
+  .wallet-status-card__activity-summary-muted {
+    color: #94a3b8;
+  }
+
+  .wallet-status-card__history-toggle,
+  .wallet-status-card__history-event,
+  .wallet-status-card__diagnostics-summary {
+    color: #f8fafc;
+  }
+
+  .wallet-status-card__history-item,
+  .wallet-status-card__diagnostics-item {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .wallet-status-card__history-address,
+  .wallet-status-card__history-meta,
+  .wallet-status-card__history-toggle-icon,
+  .wallet-status-card__diagnostics-summary-icon,
+  .wallet-status-card__diagnostics-item dt,
+  .wallet-status-card__diagnostics-empty {
+    color: #94a3b8;
+  }
+
+  .wallet-status-card__diagnostics {
+    border-top-color: #334155;
+  }
+
+  .wallet-status-card__diagnostics-item dd {
+    color: #f8fafc;
   }
 }

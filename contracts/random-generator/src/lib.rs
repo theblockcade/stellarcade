@@ -85,6 +85,10 @@ pub enum DataKey {
     PendingRequest(u64),
     /// A fulfilled request with its result and seed stored for verification.
     FulfilledRequest(u64),
+    /// Per-requester request counters for sequencing visibility.
+    RequesterPendingCount(Address),
+    /// Per-requester fulfilled counters for sequencing visibility.
+    RequesterFulfilledCount(Address),
 }
 
 #[contracttype]
@@ -144,6 +148,43 @@ pub struct EntropySourceMetadata {
     pub hash_algorithm: String,
     /// Number of bytes from the hash digest used for the random value.
     pub output_bytes: u32,
+}
+
+/// A stable snapshot of the generator's operational configuration.
+///
+/// Designed for operational tooling to inspect contract settings without
+/// side effects. The shape is extensible — new fields can be added in future
+/// versions without breaking existing consumers.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GeneratorConfig {
+    /// Address of the contract administrator.
+    pub admin: Address,
+    /// Address of the oracle authorized to fulfill randomness requests.
+    pub oracle: Address,
+    /// Persistent storage TTL in ledgers.
+    pub persistent_ttl: u32,
+    /// Minimum allowed value for the `max` parameter in requests.
+    pub min_max_bound: u64,
+    /// Current entropy metadata version, if set.
+    pub entropy_version: Option<String>,
+}
+
+/// A per-requester sequencing summary showing their request history.
+///
+/// Provides deterministic, side-effect-free visibility into how many
+/// requests a caller has made and their current state distribution.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RequesterSummary {
+    /// The caller address this summary is for.
+    pub caller: Address,
+    /// Total number of requests made by this caller (pending + fulfilled).
+    pub total_requests: u64,
+    /// Number of requests currently pending fulfillment.
+    pub pending_count: u64,
+    /// Number of requests that have been fulfilled.
+    pub fulfilled_count: u64,
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +336,22 @@ impl RandomGenerator {
             PERSISTENT_BUMP_LEDGERS,
         );
 
+        // Increment requester's pending count
+        let pending_count_key = DataKey::RequesterPendingCount(caller.clone());
+        let pending_count: u64 = env
+            .storage()
+            .persistent()
+            .get(&pending_count_key)
+            .unwrap_or(0);
+        env.storage()
+            .persistent()
+            .set(&pending_count_key, &(pending_count + 1));
+        env.storage().persistent().extend_ttl(
+            &pending_count_key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
+
         RandomRequested {
             request_id,
             caller,
@@ -359,8 +416,21 @@ impl RandomGenerator {
         // Remove the pending entry; write the fulfilled entry.
         env.storage().persistent().remove(&pending_key);
 
+        // Decrement requester's pending count
+        let pending_count_key = DataKey::RequesterPendingCount(pending.caller.clone());
+        let pending_count: u64 = env
+            .storage()
+            .persistent()
+            .get(&pending_count_key)
+            .unwrap_or(0);
+        if pending_count > 0 {
+            env.storage()
+                .persistent()
+                .set(&pending_count_key, &(pending_count - 1));
+        }
+
         let fulfilled = FulfilledEntry {
-            caller: pending.caller,
+            caller: pending.caller.clone(),
             max: pending.max,
             server_seed: server_seed.clone(),
             result,
@@ -369,6 +439,22 @@ impl RandomGenerator {
         env.storage().persistent().set(&fulfilled_key, &fulfilled);
         env.storage().persistent().extend_ttl(
             &fulfilled_key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
+
+        // Increment requester's fulfilled count
+        let fulfilled_count_key = DataKey::RequesterFulfilledCount(pending.caller);
+        let fulfilled_count: u64 = env
+            .storage()
+            .persistent()
+            .get(&fulfilled_count_key)
+            .unwrap_or(0);
+        env.storage()
+            .persistent()
+            .set(&fulfilled_count_key, &(fulfilled_count + 1));
+        env.storage().persistent().extend_ttl(
+            &fulfilled_count_key,
             PERSISTENT_BUMP_LEDGERS,
             PERSISTENT_BUMP_LEDGERS,
         );
@@ -477,6 +563,74 @@ impl RandomGenerator {
             result: None,
             server_seed: None,
         })
+    }
+
+    // -----------------------------------------------------------------------
+    // get_config
+    // -----------------------------------------------------------------------
+
+    /// Return a stable snapshot of the generator's operational configuration.
+    ///
+    /// This is a read-only, side-effect-free accessor designed for operational
+    /// tooling. The config shape is extensible for future generator policy fields.
+    pub fn get_config(env: Env) -> Result<GeneratorConfig, Error> {
+        require_initialized(&env)?;
+
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
+
+        let oracle: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Oracle)
+            .ok_or(Error::NotInitialized)?;
+
+        let entropy_version = env
+            .storage()
+            .instance()
+            .get::<DataKey, EntropySourceMetadata>(&DataKey::EntropyMetadata)
+            .map(|m| m.version);
+
+        Ok(GeneratorConfig {
+            admin,
+            oracle,
+            persistent_ttl: PERSISTENT_BUMP_LEDGERS,
+            min_max_bound: 2,
+            entropy_version,
+        })
+    }
+
+    // -----------------------------------------------------------------------
+    // get_requester_summary
+    // -----------------------------------------------------------------------
+
+    /// Return a per-requester sequencing summary showing their request history.
+    ///
+    /// This is a deterministic, side-effect-free read operation. For missing
+    /// requesters (never authorized or no requests), returns a summary with
+    /// all counts at zero.
+    pub fn get_requester_summary(env: Env, caller: Address) -> RequesterSummary {
+        let pending_count: u64 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RequesterPendingCount(caller.clone()))
+            .unwrap_or(0);
+
+        let fulfilled_count: u64 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RequesterFulfilledCount(caller.clone()))
+            .unwrap_or(0);
+
+        RequesterSummary {
+            caller,
+            total_requests: pending_count + fulfilled_count,
+            pending_count,
+            fulfilled_count,
+        }
     }
 }
 
@@ -1062,5 +1216,241 @@ mod test {
             client.get_entropy_metadata().version,
             String::from_str(&env, "2.0.0")
         );
+    }
+
+    // ------------------------------------------------------------------
+    // 21. Get config snapshot returns correct configuration
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_get_config_snapshot() {
+        let env = Env::default();
+        let (client, admin, oracle, _) = setup(&env);
+        env.mock_all_auths();
+
+        let config = client.get_config();
+
+        assert_eq!(config.admin, admin);
+        assert_eq!(config.oracle, oracle);
+        assert_eq!(config.persistent_ttl, PERSISTENT_BUMP_LEDGERS);
+        assert_eq!(config.min_max_bound, 2);
+        assert_eq!(config.entropy_version, None);
+    }
+
+    // ------------------------------------------------------------------
+    // 22. Get config snapshot includes entropy version when set
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_get_config_with_entropy_metadata() {
+        let env = Env::default();
+        let (client, admin, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let metadata = EntropySourceMetadata {
+            version: String::from_str(&env, "1.2.3"),
+            source_type: String::from_str(&env, "oracle-committed-seed"),
+            hash_algorithm: String::from_str(&env, "sha256"),
+            output_bytes: 8,
+        };
+        client.set_entropy_metadata(&admin, &metadata);
+
+        let config = client.get_config();
+
+        assert_eq!(
+            config.entropy_version,
+            Some(String::from_str(&env, "1.2.3"))
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // 23. Get config before initialization returns error
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_get_config_before_init_returns_error() {
+        let env = Env::default();
+
+        let contract_id = env.register(RandomGenerator, ());
+        let client = RandomGeneratorClient::new(&env, &contract_id);
+
+        let result = client.try_get_config();
+        assert!(result.is_err());
+    }
+
+    // ------------------------------------------------------------------
+    // 24. Get requester summary for authorized caller with no requests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_requester_summary_no_requests() {
+        let env = Env::default();
+        let (client, _, _, game) = setup(&env);
+        env.mock_all_auths();
+
+        let summary = client.get_requester_summary(&game);
+
+        assert_eq!(summary.caller, game);
+        assert_eq!(summary.total_requests, 0);
+        assert_eq!(summary.pending_count, 0);
+        assert_eq!(summary.fulfilled_count, 0);
+    }
+
+    // ------------------------------------------------------------------
+    // 25. Get requester summary tracks pending requests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_requester_summary_tracks_pending() {
+        let env = Env::default();
+        let (client, _, _, game) = setup(&env);
+        env.mock_all_auths();
+
+        // Make two pending requests
+        client.request_random(&game, &1u64, &6u64);
+        client.request_random(&game, &2u64, &10u64);
+
+        let summary = client.get_requester_summary(&game);
+
+        assert_eq!(summary.total_requests, 2);
+        assert_eq!(summary.pending_count, 2);
+        assert_eq!(summary.fulfilled_count, 0);
+    }
+
+    // ------------------------------------------------------------------
+    // 26. Get requester summary tracks fulfilled requests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_requester_summary_tracks_fulfilled() {
+        let env = Env::default();
+        let (client, _, oracle, game) = setup(&env);
+        env.mock_all_auths();
+
+        // Make and fulfill two requests
+        client.request_random(&game, &1u64, &6u64);
+        client.request_random(&game, &2u64, &10u64);
+        client.fulfill_random(&oracle, &1u64, &seed(&env, 1));
+        client.fulfill_random(&oracle, &2u64, &seed(&env, 2));
+
+        let summary = client.get_requester_summary(&game);
+
+        assert_eq!(summary.total_requests, 2);
+        assert_eq!(summary.pending_count, 0);
+        assert_eq!(summary.fulfilled_count, 2);
+    }
+
+    // ------------------------------------------------------------------
+    // 27. Get requester summary tracks mixed state
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_requester_summary_mixed_state() {
+        let env = Env::default();
+        let (client, _, oracle, game) = setup(&env);
+        env.mock_all_auths();
+
+        // Make three requests, fulfill two
+        client.request_random(&game, &1u64, &6u64);
+        client.request_random(&game, &2u64, &10u64);
+        client.request_random(&game, &3u64, &20u64);
+
+        client.fulfill_random(&oracle, &1u64, &seed(&env, 1));
+        client.fulfill_random(&oracle, &3u64, &seed(&env, 3));
+
+        let summary = client.get_requester_summary(&game);
+
+        assert_eq!(summary.total_requests, 3);
+        assert_eq!(summary.pending_count, 1);
+        assert_eq!(summary.fulfilled_count, 2);
+    }
+
+    // ------------------------------------------------------------------
+    // 28. Get requester summary for missing caller returns zeros
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_requester_summary_missing_caller() {
+        let env = Env::default();
+        let (client, _, _, _) = setup(&env);
+        env.mock_all_auths();
+
+        let unknown_caller = Address::generate(&env);
+        let summary = client.get_requester_summary(&unknown_caller);
+
+        assert_eq!(summary.caller, unknown_caller);
+        assert_eq!(summary.total_requests, 0);
+        assert_eq!(summary.pending_count, 0);
+        assert_eq!(summary.fulfilled_count, 0);
+    }
+
+    // ------------------------------------------------------------------
+    // 29. Requester summary is side-effect free (multiple calls same result)
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_requester_summary_side_effect_free() {
+        let env = Env::default();
+        let (client, _, oracle, game) = setup(&env);
+        env.mock_all_auths();
+
+        client.request_random(&game, &1u64, &6u64);
+        client.fulfill_random(&oracle, &1u64, &seed(&env, 1));
+
+        // Call summary multiple times
+        let summary1 = client.get_requester_summary(&game);
+        let summary2 = client.get_requester_summary(&game);
+        let summary3 = client.get_requester_summary(&game);
+
+        // All should be identical
+        assert_eq!(summary1, summary2);
+        assert_eq!(summary2, summary3);
+        assert_eq!(summary1.total_requests, 1);
+        assert_eq!(summary1.pending_count, 0);
+        assert_eq!(summary1.fulfilled_count, 1);
+    }
+
+    // ------------------------------------------------------------------
+    // 30. Multiple requesters tracked independently
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_multiple_requesters_independent() {
+        let env = Env::default();
+        let admin = Address::generate(&env);
+        let oracle = Address::generate(&env);
+        let game1 = Address::generate(&env);
+        let game2 = Address::generate(&env);
+
+        let contract_id = env.register(RandomGenerator, ());
+        let client = RandomGeneratorClient::new(&env, &contract_id);
+
+        env.mock_all_auths();
+        client.init(&admin, &oracle);
+        client.authorize(&admin, &game1);
+        client.authorize(&admin, &game2);
+
+        // Game1 makes 2 requests, fulfills 1
+        client.request_random(&game1, &1u64, &6u64);
+        client.request_random(&game1, &2u64, &10u64);
+        client.fulfill_random(&oracle, &1u64, &seed(&env, 1));
+
+        // Game2 makes 3 requests, fulfills 2
+        client.request_random(&game2, &3u64, &6u64);
+        client.request_random(&game2, &4u64, &10u64);
+        client.request_random(&game2, &5u64, &20u64);
+        client.fulfill_random(&oracle, &3u64, &seed(&env, 3));
+        client.fulfill_random(&oracle, &4u64, &seed(&env, 4));
+
+        let summary1 = client.get_requester_summary(&game1);
+        let summary2 = client.get_requester_summary(&game2);
+
+        assert_eq!(summary1.total_requests, 2);
+        assert_eq!(summary1.pending_count, 1);
+        assert_eq!(summary1.fulfilled_count, 1);
+
+        assert_eq!(summary2.total_requests, 3);
+        assert_eq!(summary2.pending_count, 1);
+        assert_eq!(summary2.fulfilled_count, 2);
     }
 }

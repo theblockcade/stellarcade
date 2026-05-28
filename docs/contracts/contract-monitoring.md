@@ -53,6 +53,38 @@ pub fn set_paused(env: Env, admin: Address, paused: bool) -> Result<(), Error>
 
 `Result<(), Error>`
 
+### `set_alert_thresholds`
+```rust
+pub fn set_alert_thresholds(env: Env, admin: Address, thresholds: AlertThresholds) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `thresholds` | `AlertThresholds` |
+
+#### Return Type
+
+`Result<(), Error>`
+
+### `get_alert_thresholds`
+```rust
+pub fn get_alert_thresholds(env: Env) -> AlertThresholds
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`AlertThresholds`
+
 ### `get_metrics`
 ```rust
 pub fn get_metrics(env: Env) -> Metrics
@@ -82,6 +114,21 @@ pub fn get_health(env: Env) -> HealthSnapshot
 #### Return Type
 
 `HealthSnapshot`
+
+### `get_snapshot`
+```rust
+pub fn get_snapshot(env: Env) -> MonitoringSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`MonitoringSnapshot`
 
 ### `get_sliding_window_metrics`
 ```rust

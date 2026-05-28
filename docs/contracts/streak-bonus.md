@@ -60,6 +60,63 @@ pub fn current_streak(env: Env, user: Address) -> u32
 
 `u32`
 
+### `streak_summary`
+Return a UI-friendly summary of a player's streak at `as_of_ts`.  Missing players return a zeroed summary with `status = Missing`. Players whose latest activity window has elapsed return `status = Reset` with `active_streak = 0` while preserving the last recorded streak.
+
+```rust
+pub fn streak_summary(env: Env, user: Address, as_of_ts: u64) -> StreakSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+| `as_of_ts` | `u64` |
+
+#### Return Type
+
+`StreakSummary`
+
+### `next_bonus_preview`
+Preview the next streak bonus target for a player at `as_of_ts`.  The preview is side-effect free and uses the effective active streak, making reset streaks render as `active_streak = 0`.
+
+```rust
+pub fn next_bonus_preview(env: Env, user: Address, as_of_ts: u64) -> NextBonusPreview
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+| `as_of_ts` | `u64` |
+
+#### Return Type
+
+`NextBonusPreview`
+
+### `expiry_pressure`
+Return expiry pressure information for a player's streak at `as_of_ts`.  Shows how close the streak is to expiring, with pressure levels indicating urgency.
+
+```rust
+pub fn expiry_pressure(env: Env, user: Address, as_of_ts: u64) -> ExpiryPressure
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+| `as_of_ts` | `u64` |
+
+#### Return Type
+
+`ExpiryPressure`
+
 ### `claim_streak_bonus`
 Claim streak bonus for the current streak. User must authorize. Updates last_claimed_streak.
 

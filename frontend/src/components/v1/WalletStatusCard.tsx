@@ -8,17 +8,23 @@
  * @module components/v1/WalletStatusCard
  */
 
-import React, { useCallback } from 'react';
-import { SkeletonBase } from './LoadingSkeletonSet';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { SkeletonBase } from "./LoadingSkeletonSet";
+import { EnvironmentBadge } from "./EnvironmentBadge";
+import { StatusPill } from "./StatusPill";
 import {
   BADGE_VARIANT_MAP,
+  BADGE_TONE_MAP,
   STATUS_LABEL_MAP,
   type WalletStatusCardProps,
   type WalletBadgeVariant,
   type WalletCapabilities,
+  type WalletDiagnosticItem,
   type WalletStatus,
-} from './WalletStatusCard.types';
-import './WalletStatusCard.css';
+} from "./WalletStatusCard.types";
+import WalletSessionService from "../../services/wallet-session-service";
+import type { WalletSessionHistoryEntry } from "../../types/wallet-session";
+import "./WalletStatusCard.css";
 
 // ── Internal helpers ───────────────────────────────────────────────────────────
 
@@ -32,14 +38,80 @@ function truncateAddress(address: string): string {
 }
 
 /**
+ * Formats a timestamp into a human-readable "Updated X ago" string.
+ */
+function formatLastUpdated(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return "Updated just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `Updated ${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  return `Updated ${diffHr}h ago`;
+}
+
+function formatSessionTime(ts: number): string {
+  return new Date(ts).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getSessionEventLabel(type: WalletSessionHistoryEntry["type"]): string {
+  switch (type) {
+    case "connected":
+      return "Connected";
+    case "reconnected":
+      return "Reconnected";
+    case "disconnected":
+      return "Disconnected";
+    case "expired":
+      return "Expired";
+    default:
+      return "Session update";
+  }
+}
+
+function getSessionEventTone(
+  type: WalletSessionHistoryEntry["type"],
+): "success" | "warning" | "error" | "neutral" {
+  switch (type) {
+    case "connected":
+    case "reconnected":
+      return "success";
+    case "expired":
+      return "warning";
+    case "disconnected":
+      return "neutral";
+    default:
+      return "neutral";
+  }
+}
+
+function summarizeSessionHistory(entries: WalletSessionHistoryEntry[]): {
+  lastLabel: string | null;
+  counts: Record<string, number>;
+} {
+  const counts: Record<string, number> = {};
+  for (const entry of entries) {
+    const key = entry.type;
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  const lastLabel = entries.length > 0 ? getSessionEventLabel(entries[0].type) : null;
+  return { lastLabel, counts };
+}
+
+/**
  * Sanitizes a string by stripping HTML tags.
  * Guards against prop-injected markup.
  */
 
 function sanitize(value: string): string {
   return value
-    .replace(/<(script|style|iframe|object|embed)[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<[^>]*>/g, '');
+    .replace(/<(script|style|iframe|object|embed)[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/<[^>]*>/g, "");
 }
 /**
  * Derives WalletCapabilities from a WalletStatus when the caller
@@ -47,15 +119,15 @@ function sanitize(value: string): string {
  */
 function deriveCapabilities(status: WalletStatus): WalletCapabilities {
   return {
-    isConnected: status === 'CONNECTED',
-    isConnecting: status === 'CONNECTING',
-    isReconnecting: status === 'RECONNECTING',
+    isConnected: status === "CONNECTED",
+    isConnecting: status === "CONNECTING",
+    isReconnecting: status === "RECONNECTING",
     canConnect:
-      status === 'DISCONNECTED' ||
-      status === 'PROVIDER_MISSING' ||
-      status === 'PERMISSION_DENIED' ||
-      status === 'STALE_SESSION' ||
-      status === 'ERROR',
+      status === "DISCONNECTED" ||
+      status === "PROVIDER_MISSING" ||
+      status === "PERMISSION_DENIED" ||
+      status === "STALE_SESSION" ||
+      status === "ERROR",
   };
 }
 
@@ -66,7 +138,7 @@ function safeCall(
   fn: (() => void | Promise<void>) | undefined,
   label: string,
 ): void {
-  if (typeof fn !== 'function') return;
+  if (typeof fn !== "function") return;
   try {
     const result = fn();
     if (result instanceof Promise) {
@@ -95,23 +167,31 @@ interface NetworkRecoveryBannerProps {
 function NetworkRecoveryBanner({
   onRecoverNetwork,
   pending = false,
-  label = 'Recover Network',
+  label = "Recover Network",
 }: NetworkRecoveryBannerProps): React.JSX.Element {
-  const onRecover = useCallback(() => safeCall(onRecoverNetwork, 'onRecoverNetwork'), [onRecoverNetwork]);
+  const onRecover = useCallback(
+    () => safeCall(onRecoverNetwork, "onRecoverNetwork"),
+    [onRecoverNetwork],
+  );
 
   return (
-    <div className="wallet-status-card__network-mismatch" role="status" data-testid="wallet-network-mismatch">
+    <div
+      className="wallet-status-card__network-mismatch"
+      role="status"
+      data-testid="wallet-network-mismatch"
+    >
       <span className="wallet-status-card__network-mismatch-text">
-        Network mismatch detected. Switch back to a supported network to continue.
+        Network mismatch detected. Switch back to a supported network to
+        continue.
       </span>
       <button
         className="wallet-status-card__btn wallet-status-card__btn--retry"
         type="button"
         onClick={onRecover}
-        disabled={pending || typeof onRecoverNetwork !== 'function'}
+        disabled={pending || typeof onRecoverNetwork !== "function"}
         data-testid="wallet-network-recover-btn"
       >
-        {pending ? 'Checking network...' : label}
+        {pending ? "Checking network..." : label}
       </button>
     </div>
   );
@@ -123,6 +203,8 @@ interface DroppedSessionBannerProps {
   onReconnect?: () => void | Promise<void>;
   pending?: boolean;
   label?: string;
+  progress?: number;
+  progressLabel?: string;
 }
 
 /**
@@ -133,12 +215,15 @@ interface DroppedSessionBannerProps {
 function DroppedSessionBanner({
   onReconnect,
   pending = false,
-  label = 'Reconnect',
+  label = "Reconnect",
+  progress = 0,
+  progressLabel = "Recovering wallet session",
 }: DroppedSessionBannerProps): React.JSX.Element {
   const handleReconnect = useCallback(
-    () => safeCall(onReconnect, 'onReconnect'),
+    () => safeCall(onReconnect, "onReconnect"),
     [onReconnect],
   );
+  const safeProgress = Math.max(0, Math.min(100, Math.round(progress)));
 
   return (
     <div
@@ -154,26 +239,99 @@ function DroppedSessionBanner({
         className="wallet-status-card__btn wallet-status-card__btn--reconnect"
         type="button"
         onClick={handleReconnect}
-        disabled={pending || typeof onReconnect !== 'function'}
+        disabled={pending || typeof onReconnect !== "function"}
         aria-busy={pending}
         data-testid="wallet-reconnect-btn"
       >
-        {pending ? 'Reconnecting...' : label}
+        {pending ? "Reconnecting..." : label}
       </button>
+      {pending && (
+        <div
+          className="wallet-status-card__reconnect-progress"
+          data-testid="wallet-reconnect-progress"
+        >
+          <div className="wallet-status-card__reconnect-progress-row">
+            <span>{progressLabel}</span>
+            <strong>{safeProgress}%</strong>
+          </div>
+          <div
+            className="wallet-status-card__reconnect-progress-track"
+            aria-hidden="true"
+          >
+            <div
+              className="wallet-status-card__reconnect-progress-bar"
+              style={{ width: `${safeProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function StatusBadge({ variant, label }: StatusBadgeProps): React.JSX.Element {
   return (
-    <span
+    <StatusPill
+      tone={BADGE_TONE_MAP[variant]}
+      label={label}
+      size="compact"
+      testId="wallet-status-badge"
+      ariaLabel={`Wallet status: ${label}`}
+      icon={<span className="wallet-status-card__badge-dot" />}
       className={`wallet-status-card__badge wallet-status-card__badge--${variant}`}
-      data-testid="wallet-status-badge"
-      aria-label={`Wallet status: ${label}`}
+    />
+  );
+}
+
+function formatDiagnosticValue(value: WalletDiagnosticItem["value"]): string {
+  if (value === null || value === undefined || value === "")
+    return "Not available";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return sanitize(String(value));
+}
+
+function WalletDiagnosticsDisclosure({
+  diagnostics,
+  label = "Advanced wallet diagnostics",
+}: {
+  diagnostics: WalletDiagnosticItem[];
+  label?: string;
+}): React.JSX.Element {
+  return (
+    <details
+      className="wallet-status-card__diagnostics"
+      data-testid="wallet-diagnostics"
     >
-      <span className="wallet-status-card__badge-dot" aria-hidden="true" />
-      {label}
-    </span>
+      <summary className="wallet-status-card__diagnostics-summary">
+        <span>{label}</span>
+        <span
+          className="wallet-status-card__diagnostics-summary-icon"
+          aria-hidden="true"
+        >
+          Details
+        </span>
+      </summary>
+      {diagnostics.length === 0 ? (
+        <p
+          className="wallet-status-card__diagnostics-empty"
+          data-testid="wallet-diagnostics-empty"
+        >
+          No diagnostic data available.
+        </p>
+      ) : (
+        <dl className="wallet-status-card__diagnostics-list">
+          {diagnostics.map((item) => (
+            <div
+              className={`wallet-status-card__diagnostics-item wallet-status-card__diagnostics-item--${item.tone ?? "neutral"}`}
+              key={item.label}
+            >
+              <dt>{sanitize(item.label)}</dt>
+              <dd>{formatDiagnosticValue(item.value)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </details>
   );
 }
 
@@ -189,12 +347,12 @@ function WalletStatusCardSkeleton({
   testId,
 }: WalletStatusCardSkeletonProps): React.JSX.Element {
   const containerClass = [
-    'wallet-status-card',
-    'wallet-status-card--skeleton',
+    "wallet-status-card",
+    "wallet-status-card--skeleton",
     className,
   ]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   return (
     <div
@@ -248,11 +406,21 @@ function ActionButton({
   onDisconnect,
   onRetry,
 }: WalletStatusCardProps): React.JSX.Element | null {
-  const effectiveCapabilities = capabilities ?? deriveCapabilities(status ?? 'DISCONNECTED');
+  const effectiveCapabilities =
+    capabilities ?? deriveCapabilities(status ?? "DISCONNECTED");
 
-  const handleConnect = useCallback(() => safeCall(onConnect, 'onConnect'), [onConnect]);
-  const handleDisconnect = useCallback(() => safeCall(onDisconnect, 'onDisconnect'), [onDisconnect]);
-  const handleRetry = useCallback(() => safeCall(onRetry, 'onRetry'), [onRetry]);
+  const handleConnect = useCallback(
+    () => safeCall(onConnect, "onConnect"),
+    [onConnect],
+  );
+  const handleDisconnect = useCallback(
+    () => safeCall(onDisconnect, "onDisconnect"),
+    [onDisconnect],
+  );
+  const handleRetry = useCallback(
+    () => safeCall(onRetry, "onRetry"),
+    [onRetry],
+  );
 
   if (effectiveCapabilities.isConnected) {
     return (
@@ -285,11 +453,17 @@ function ActionButton({
       <button
         className="wallet-status-card__btn wallet-status-card__btn--connect"
         onClick={handleConnect}
-        disabled={effectiveCapabilities.isConnecting || effectiveCapabilities.isReconnecting}
+        disabled={
+          effectiveCapabilities.isConnecting ||
+          effectiveCapabilities.isReconnecting
+        }
         data-testid="wallet-action-btn"
         type="button"
       >
-        {effectiveCapabilities.isConnecting || effectiveCapabilities.isReconnecting ? 'Connecting...' : 'Connect'}
+        {effectiveCapabilities.isConnecting ||
+        effectiveCapabilities.isReconnecting
+          ? "Connecting..."
+          : "Connect"}
       </button>
     );
   }
@@ -299,7 +473,7 @@ function ActionButton({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-const DEFAULT_STATUS: WalletStatus = 'DISCONNECTED';
+const DEFAULT_STATUS: WalletStatus = "DISCONNECTED";
 
 /**
  * WalletStatusCard — wallet state summary component.
@@ -346,9 +520,23 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
   onReconnect,
   reconnectPending = false,
   reconnectLabel,
+  reconnectProgress = 0,
+  reconnectProgressLabel,
+  lastUpdatedAt = null,
+  isRefreshing = false,
+  diagnostics,
+  diagnosticsLabel,
   className,
-  testId = 'wallet-status-card',
+  testId = "wallet-status-card",
 }) => {
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [sessionHistory, setSessionHistory] = useState<
+    WalletSessionHistoryEntry[]
+  >(() => WalletSessionService.getRecentSessionHistory());
+
+  useEffect(() => {
+    setSessionHistory(WalletSessionService.getRecentSessionHistory());
+  }, [status, address, network, provider?.name, lastUpdatedAt, droppedSession]);
   // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
     return <WalletStatusCardSkeleton className={className} testId={testId} />;
@@ -363,13 +551,27 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
 
   const sanitizedAddress = address ? sanitize(address) : null;
   const sanitizedNetwork = network ? sanitize(network) : null;
-  const sanitizedProviderName =
-    provider?.name ? sanitize(provider.name) : null;
+  const sanitizedProviderName = provider?.name ? sanitize(provider.name) : null;
+  const recentSessionLabel = useMemo(
+    () =>
+      sessionHistory.length === 1
+        ? "1 recent session"
+        : `${sessionHistory.length} recent sessions`,
+    [sessionHistory.length],
+  );
+  const historySummary = useMemo(
+    () => summarizeSessionHistory(sessionHistory),
+    [sessionHistory],
+  );
+  const activityRailItems = useMemo(
+    () => sessionHistory.slice(0, 4),
+    [sessionHistory],
+  );
 
   // ── Render ───────────────────────────────────────────────────────────────────
-  const containerClass = ['wallet-status-card', className]
+  const containerClass = ["wallet-status-card", className]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   return (
     <div
@@ -378,7 +580,7 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
       role="region"
       aria-label="Wallet status"
     >
-      {/* ── Header: badge + provider ── */}
+      {/* ── Header: badge + provider + environment ── */}
       <div className="wallet-status-card__header">
         <StatusBadge variant={badgeVariant} label={statusLabel} />
 
@@ -387,7 +589,40 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
             <span>{sanitizedProviderName}</span>
           </div>
         )}
+
+        {sanitizedNetwork !== null && (
+          <div className="wallet-status-card__environment">
+            <EnvironmentBadge environment={sanitizedNetwork} size="small" />
+          </div>
+        )}
       </div>
+
+      {/* ── Freshness row: last-updated + refresh indicator ── */}
+      {(lastUpdatedAt !== null || isRefreshing) && (
+        <div
+          className="wallet-status-card__freshness"
+          data-testid="wallet-freshness"
+        >
+          {isRefreshing ? (
+            <span
+              className="wallet-status-card__refresh-spinner"
+              aria-label="Refreshing balance"
+              data-testid="wallet-refresh-spinner"
+              role="status"
+            />
+          ) : (
+            lastUpdatedAt !== null && (
+              <span
+                className="wallet-status-card__last-updated"
+                data-testid="wallet-last-updated"
+                title={new Date(lastUpdatedAt).toLocaleString()}
+              >
+                {formatLastUpdated(lastUpdatedAt)}
+              </span>
+            )
+          )}
+        </div>
+      )}
 
       {/* ── Body: address + network ── */}
       <div className="wallet-status-card__body">
@@ -458,11 +693,13 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
       </div>
 
       {/* ── Dropped-session banner (distinct from network mismatch) ── */}
-      {droppedSession && status !== 'CONNECTED' && (
+      {droppedSession && status !== "CONNECTED" && (
         <DroppedSessionBanner
           onReconnect={onReconnect}
           pending={reconnectPending}
           label={reconnectLabel}
+          progress={reconnectProgress}
+          progressLabel={reconnectProgressLabel}
         />
       )}
 
@@ -474,10 +711,130 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
           label={networkRecoveryLabel}
         />
       )}
+
+      {sessionHistory.length > 0 && (
+        <div
+          className="wallet-status-card__history"
+          data-testid="wallet-session-history"
+        >
+          <div
+            className="wallet-status-card__activity"
+            aria-label="Recent wallet session activity"
+            data-testid="wallet-session-activity"
+          >
+            <ul
+              className="wallet-status-card__activity-rail"
+              role="list"
+              aria-label="Recent wallet actions"
+              data-testid="wallet-session-activity-rail"
+            >
+              {activityRailItems.map((entry) => {
+                const label = getSessionEventLabel(entry.type);
+                const tone = getSessionEventTone(entry.type);
+                return (
+                  <li
+                    key={entry.id}
+                    className={`wallet-status-card__activity-chip wallet-status-card__activity-chip--${tone}`}
+                    title={`${label} • ${formatSessionTime(entry.occurredAt)}`}
+                    aria-label={`${label} at ${formatSessionTime(entry.occurredAt)}`}
+                    data-testid={`wallet-session-activity-chip-${entry.type}`}
+                  >
+                    <span className="wallet-status-card__activity-chip-label">
+                      {label}
+                    </span>
+                    <span className="wallet-status-card__activity-chip-time">
+                      {new Date(entry.occurredAt).toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div
+              className="wallet-status-card__activity-summary"
+              data-testid="wallet-session-summary"
+              role="status"
+              aria-live="polite"
+            >
+              {historySummary.lastLabel !== null ? (
+                <>
+                  <span className="wallet-status-card__activity-summary-strong">
+                    Last:
+                  </span>{" "}
+                  {historySummary.lastLabel}
+                  {Object.keys(historySummary.counts).length > 0 ? (
+                    <span className="wallet-status-card__activity-summary-muted">
+                      {" "}
+                      •{" "}
+                      {Object.entries(historySummary.counts)
+                        .map(([type, count]) => {
+                          const label = getSessionEventLabel(
+                            type as WalletSessionHistoryEntry["type"],
+                          ).toLowerCase();
+                          return `${count} ${label}`;
+                        })
+                        .join(" • ")}
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                "No recent wallet actions"
+              )}
+            </div>
+          </div>
+
+          <button
+            className="wallet-status-card__history-toggle"
+            type="button"
+            aria-expanded={historyExpanded}
+            onClick={() => setHistoryExpanded((current) => !current)}
+          >
+            <span>{recentSessionLabel}</span>
+            <span
+              className="wallet-status-card__history-toggle-icon"
+              aria-hidden="true"
+            >
+              {historyExpanded ? "Hide" : "Show"}
+            </span>
+          </button>
+
+          {historyExpanded && (
+            <ul className="wallet-status-card__history-list">
+              {sessionHistory.map((entry) => (
+                <li key={entry.id} className="wallet-status-card__history-item">
+                  <div className="wallet-status-card__history-main">
+                    <span className="wallet-status-card__history-event">
+                      {getSessionEventLabel(entry.type)}
+                    </span>
+                    <span className="wallet-status-card__history-address">
+                      {entry.addressPreview}
+                    </span>
+                  </div>
+                  <div className="wallet-status-card__history-meta">
+                    <span>{entry.providerName}</span>
+                    <span>{entry.network}</span>
+                    <span>{formatSessionTime(entry.occurredAt)}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {diagnostics && (
+        <WalletDiagnosticsDisclosure
+          diagnostics={diagnostics}
+          label={diagnosticsLabel}
+        />
+      )}
     </div>
   );
 };
 
-WalletStatusCard.displayName = 'WalletStatusCard';
+WalletStatusCard.displayName = "WalletStatusCard";
 
 export default WalletStatusCard;

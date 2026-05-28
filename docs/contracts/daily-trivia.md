@@ -122,6 +122,40 @@ pub fn get_round_snapshot(env: Env) -> Result<RoundSnapshot, Error>
 
 `Result<RoundSnapshot, Error>`
 
+### `get_participant_answer_summary`
+Returns participation/correctness counters for the latest round.  If no round exists yet, returns an `Uninitialized` summary. If the latest round is closed, status is `Resolved` with final counters.
+
+```rust
+pub fn get_participant_answer_summary(env: Env) -> Result<ParticipantAnswerSummary, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Result<ParticipantAnswerSummary, Error>`
+
+### `get_reward_pool_snapshot`
+Returns reward-pool relevant values for the latest round.  If no round exists yet, returns an `Uninitialized` snapshot. During active rounds, distribution values remain zero until close.
+
+```rust
+pub fn get_reward_pool_snapshot(env: Env) -> Result<RewardPoolSnapshot, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Result<RewardPoolSnapshot, Error>`
+
 ### `reserve`
 ```rust
 pub fn reserve(env: Env, _admin: Address, game_id: u64, amount: i128)

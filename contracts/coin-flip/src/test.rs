@@ -420,3 +420,76 @@ fn derive_rng_result(env: &Env, server_seed: &BytesN<32>, request_id: u64, max: 
     ]);
     raw % max
 }
+
+// -------------------------------------------------------------------
+// House exposure snapshot tests
+// -------------------------------------------------------------------
+
+#[test]
+fn test_exposure_snapshot_empty() {
+    let env = Env::default();
+    let s = setup(&env);
+    let snap = s.flip_client.house_exposure_snapshot();
+    assert_eq!(snap.active_game_count, 0);
+    assert_eq!(snap.total_wagered, 0);
+    assert_eq!(snap.max_payout_liability, 0);
+}
+
+#[test]
+fn test_exposure_snapshot_single_active_game() {
+    let env = Env::default();
+    let s = setup(&env);
+    let player = Address::generate(&env);
+    s.token_sac.mint(&player, &500i128);
+
+    s.flip_client.place_bet(&player, &HEADS, &100, &1u64);
+
+    let snap = s.flip_client.house_exposure_snapshot();
+    assert_eq!(snap.active_game_count, 1);
+    assert_eq!(snap.total_wagered, 100);
+    // max_payout = 100 * (20_000 - 250) / 10_000 = 1_975_000 / 10_000 = 197
+    // (conservative integer division; actual resolve payout may be 198)
+    assert_eq!(snap.max_payout_liability, 197);
+}
+
+#[test]
+fn test_exposure_snapshot_multi_game_aggregation() {
+    let env = Env::default();
+    let s = setup(&env);
+    let p1 = Address::generate(&env);
+    let p2 = Address::generate(&env);
+    s.token_sac.mint(&p1, &500i128);
+    s.token_sac.mint(&p2, &500i128);
+
+    s.flip_client.place_bet(&p1, &HEADS, &100, &1u64);
+    s.flip_client.place_bet(&p2, &TAILS, &200, &2u64);
+
+    let snap = s.flip_client.house_exposure_snapshot();
+    assert_eq!(snap.active_game_count, 2);
+    assert_eq!(snap.total_wagered, 300);
+    // max_payout = 300 * 19_750 / 10_000 = 592 (integer division)
+    assert_eq!(snap.max_payout_liability, 592);
+}
+
+#[test]
+fn test_exposure_snapshot_resets_after_resolve() {
+    let env = Env::default();
+    let s = setup(&env);
+    let player = Address::generate(&env);
+    s.token_sac.mint(&player, &500i128);
+
+    s.flip_client.place_bet(&player, &HEADS, &100, &42u64);
+
+    let before = s.flip_client.house_exposure_snapshot();
+    assert_eq!(before.active_game_count, 1);
+
+    // Fulfill RNG and resolve so the exposure counter decrements
+    let srv = seed(&env, 0x01);
+    s.rng_client.fulfill_random(&s.oracle, &42u64, &srv);
+    s.flip_client.resolve_bet(&42u64);
+
+    let after = s.flip_client.house_exposure_snapshot();
+    assert_eq!(after.active_game_count, 0);
+    assert_eq!(after.total_wagered, 0);
+    assert_eq!(after.max_payout_liability, 0);
+}

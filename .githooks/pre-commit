@@ -18,7 +18,7 @@ if command -v cargo >/dev/null 2>&1; then
         [ -d "$crate_dir/src" ] || continue
         if echo "$STAGED" | grep -q "^contracts/$crate/"; then
             echo "🦀 Formatting $crate..."
-            (cd "$crate_dir" && cargo fmt --all)
+            (cd "$crate_dir" && cargo fmt)
             FORMATTED_ANY=1
         fi
     done
@@ -37,7 +37,7 @@ if echo "$STAGED" | grep -q "^backend/"; then
     fi
 fi
 
-# ── 3. Re-stage any files that were auto-formatted ───────────────────────────
-git add -u
+# ── 3. Re-stage only originally staged files that were auto-formatted ─────────
+echo "$STAGED" | while IFS= read -r f; do [ -n "$f" ] && git add "$f"; done
 
 echo "✅ Pre-commit checks passed!"

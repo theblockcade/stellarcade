@@ -91,6 +91,40 @@ pub fn get_pause_metadata(env: Env) -> Option<PauseMetadata>
 
 `Option<PauseMetadata>`
 
+### `paused_target_summary`
+Returns a deterministic list of paused targets. The current contract only supports a single global pause target.
+
+```rust
+pub fn paused_target_summary(env: Env) -> Vec<PausedTargetSummary>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Vec<PausedTargetSummary>`
+
+### `pause_window_snapshot`
+Returns a side-effect free snapshot of the active pause window.
+
+```rust
+pub fn pause_window_snapshot(env: Env) -> PauseWindowSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`PauseWindowSnapshot`
+
 ### `require_not_paused`
 Panics if the contract is paused. Call this at the top of any function that should be blocked during an emergency.  Usage from another contract: ```ignore use stellarcade_emergency_pause::require_not_paused; require_not_paused(&env); ```
 

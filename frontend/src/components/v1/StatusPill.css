@@ -1,0 +1,86 @@
+.status-pill {
+  --status-pill-bg: color-mix(in oklab, var(--surface-elevated, rgba(255, 255, 255, 0.08)) 92%, transparent);
+  --status-pill-border: color-mix(in oklab, var(--glass-border, rgba(255, 255, 255, 0.16)) 86%, transparent);
+  --status-pill-text: var(--text-main, #f5f7fb);
+  --status-pill-icon: currentColor;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.75rem;
+  max-width: 100%;
+  border: 1px solid var(--status-pill-border);
+  border-radius: 999px;
+  background: var(--status-pill-bg);
+  color: var(--status-pill-text);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.status-pill--default {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.status-pill--compact {
+  min-height: 1.45rem;
+  padding: 0.26rem 0.55rem;
+  font-size: 0.74rem;
+}
+
+.status-pill__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--status-pill-icon);
+  flex: 0 0 auto;
+}
+
+.status-pill__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-pill:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent, #7de2d1) 55%, white);
+  outline-offset: 2px;
+}
+
+.status-pill--success {
+  --status-pill-bg: color-mix(in oklab, #1b8f5a 20%, rgba(255, 255, 255, 0.04));
+  --status-pill-border: color-mix(in oklab, #34c37b 45%, rgba(255, 255, 255, 0.16));
+  --status-pill-text: #dff8eb;
+  --status-pill-icon: #8bf0b5;
+}
+
+.status-pill--pending {
+  --status-pill-bg: color-mix(in oklab, #0f7ea8 22%, rgba(255, 255, 255, 0.04));
+  --status-pill-border: color-mix(in oklab, #2db8f3 45%, rgba(255, 255, 255, 0.16));
+  --status-pill-text: #dff5ff;
+  --status-pill-icon: #8fdcff;
+}
+
+.status-pill--warning {
+  --status-pill-bg: color-mix(in oklab, #a86512 24%, rgba(255, 255, 255, 0.04));
+  --status-pill-border: color-mix(in oklab, #ffb357 48%, rgba(255, 255, 255, 0.16));
+  --status-pill-text: #fff1da;
+  --status-pill-icon: #ffd08f;
+}
+
+.status-pill--error {
+  --status-pill-bg: color-mix(in oklab, #a63d4e 24%, rgba(255, 255, 255, 0.04));
+  --status-pill-border: color-mix(in oklab, #ff6d87 50%, rgba(255, 255, 255, 0.16));
+  --status-pill-text: #ffe5ea;
+  --status-pill-icon: #ffabc1;
+}
+
+.status-pill--neutral {
+  --status-pill-bg: color-mix(in oklab, #3a455b 28%, rgba(255, 255, 255, 0.04));
+  --status-pill-border: color-mix(in oklab, #8ea1bf 35%, rgba(255, 255, 255, 0.16));
+  --status-pill-text: #eef3ff;
+  --status-pill-icon: #cdd8ea;
+}

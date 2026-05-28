@@ -1,0 +1,242 @@
+/**
+ * MetadataSection CSS Styles
+ *
+ * Styles for individual metadata sections within the sidebar.
+ */
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Section Container */
+/* ──────────────────────────────────────────────────────────────── */
+
+.metadata-section {
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  background-color: var(--bg-card, rgba(255, 255, 255, 0.05));
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+}
+
+.metadata-section:hover {
+  border-color: var(--accent-glow, rgba(0, 255, 204, 0.4));
+}
+
+.metadata-section.disabled {
+  opacity: 0.6;
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Section Header */
+/* ──────────────────────────────────────────────────────────────── */
+
+.metadata-section-header {
+  width: 100%;
+  padding: 0.875rem;
+  background: transparent;
+  border: none;
+  color: var(--text-main, #ffffff);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.metadata-section-header:hover:not(:disabled) {
+  background-color: rgba(0, 255, 204, 0.05);
+}
+
+.metadata-section-header:focus {
+  outline: 2px solid var(--accent, #00ffcc);
+  outline-offset: -2px;
+}
+
+.metadata-section-header:disabled {
+  cursor: not-allowed;
+}
+
+.section-title {
+  margin: 0;
+  flex: 1;
+}
+
+.toggle-icon {
+  display: inline-block;
+  transition: transform 0.2s ease-in-out;
+  color: var(--accent, #00ffcc);
+  font-size: 0.75rem;
+}
+
+.toggle-icon.open {
+  transform: rotate(90deg);
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Section Content */
+/* ──────────────────────────────────────────────────────────────── */
+
+.metadata-section-content {
+  padding: 0.875rem;
+  border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  animation: slideDown 0.15s ease-out;
+}
+
+.metadata-section-static {
+  padding: 0.875rem;
+}
+
+.metadata-section-static .section-title {
+  margin-bottom: 0.875rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Fields Grid */
+/* ──────────────────────────────────────────────────────────────── */
+
+.fields-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Individual Field */
+/* ──────────────────────────────────────────────────────────────── */
+
+.metadata-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.metadata-field:hover {
+  background-color: rgba(0, 255, 204, 0.05);
+}
+
+.metadata-field:focus-within {
+  background-color: rgba(0, 255, 204, 0.1);
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Field Label */
+/* ──────────────────────────────────────────────────────────────── */
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.field-label .help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  border-radius: 50%;
+  background-color: var(--accent, #00ffcc);
+  color: var(--bg-dark, #050505);
+  cursor: help;
+  opacity: 0.6;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.field-label .help-icon:hover {
+  opacity: 1;
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Field Value */
+/* ──────────────────────────────────────────────────────────────── */
+
+.field-value {
+  font-size: 0.9rem;
+  color: var(--text-main, #ffffff);
+  word-break: break-word;
+}
+
+.text-dim {
+  color: var(--text-dim, #a0a0a0);
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Loading State */
+/* ──────────────────────────────────────────────────────────────── */
+
+.metadata-field.loading {
+  pointer-events: none;
+}
+
+.field-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-line {
+  height: 10px;
+  width: 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Empty State */
+/* ──────────────────────────────────────────────────────────────── */
+
+.metadata-empty-state {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-dim, #a0a0a0);
+}
+
+.metadata-empty-state p {
+  margin: 0;
+  font-size: 0.85rem;
+}

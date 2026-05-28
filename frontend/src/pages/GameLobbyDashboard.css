@@ -1,0 +1,272 @@
+.game-lobby {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.game-lobby--with-mobile-footer {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+.game-lobby__mobile-action-footer {
+  margin: 0;
+}
+
+.lobby-header__delta {
+  margin-top: 0.6rem;
+}
+
+.lobby-content-grid {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.lobby-content-grid__main,
+.lobby-content-grid__rail {
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .lobby-content-grid {
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+  }
+
+  .lobby-content-grid__rail {
+    position: sticky;
+    top: 6.5rem;
+  }
+}
+
+.dashboard-mission-strip,
+.quick-action-surface,
+.wallet-session-activity-rail,
+.recoverable-error-panel {
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  background:
+    radial-gradient(circle at top left, rgba(0, 255, 204, 0.14), transparent 32%),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
+}
+
+.dashboard-mission-strip,
+.quick-action-surface,
+.wallet-session-activity-rail,
+.recoverable-error-panel {
+  padding: 1.2rem;
+}
+
+.recoverable-error-panel {
+  text-align: left;
+}
+
+.dashboard-mission-strip__header,
+.quick-action-surface__header,
+.wallet-session-activity-rail__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.dashboard-mission-strip__eyebrow,
+.quick-action-surface__eyebrow,
+.wallet-session-activity-rail__eyebrow,
+.recoverable-error-panel__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--accent, #00ffcc);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-mission-strip__title,
+.quick-action-surface__title,
+.wallet-session-activity-rail__title,
+.recoverable-error-panel__title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.dashboard-mission-strip__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dashboard-mission-strip__dismiss {
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  color: var(--text-main, #ffffff);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.dashboard-mission-strip__grid,
+.quick-action-surface__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.dashboard-mission-strip__card,
+.quick-action-surface__item,
+.wallet-session-activity-rail__item {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(3, 8, 11, 0.55);
+}
+
+.dashboard-mission-strip__card {
+  padding: 1rem;
+}
+
+.dashboard-mission-strip__card-header,
+.wallet-session-activity-rail__item-header,
+.quick-action-surface__item-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dashboard-mission-strip__card-step,
+.quick-action-surface__item-shortcut {
+  font-size: 0.75rem;
+  color: var(--text-dim, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dashboard-mission-strip__card h3 {
+  margin: 0.9rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.dashboard-mission-strip__card p,
+.quick-action-surface__subtitle,
+.wallet-session-activity-rail__summary,
+.wallet-session-activity-rail__detail,
+.recoverable-error-panel__message,
+.recoverable-error-panel__description {
+  margin: 0;
+  color: var(--text-dim, #a0a0a0);
+  line-height: 1.5;
+}
+
+.dashboard-mission-strip__action {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.quick-action-surface__item {
+  padding: 1rem;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.quick-action-surface__item:hover,
+.quick-action-surface__item:focus-visible {
+  border-color: rgba(0, 255, 204, 0.4);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.quick-action-surface__item:disabled,
+.recoverable-error-panel__button:disabled,
+.btn-play:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.quick-action-surface__item-label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+}
+
+.quick-action-surface__item-description {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--text-dim, #a0a0a0);
+  line-height: 1.45;
+}
+
+.wallet-session-activity-rail__list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.wallet-session-activity-rail__item {
+  padding: 0.95rem;
+}
+
+.wallet-session-activity-rail__summary {
+  margin-top: 0.55rem;
+  color: var(--text-main, #ffffff);
+}
+
+.wallet-session-activity-rail__detail {
+  margin-top: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.wallet-session-activity-rail__empty {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.9rem;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--text-dim, #a0a0a0);
+}
+
+.recoverable-error-panel__copy {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.recoverable-error-panel__message {
+  color: var(--text-main, #ffffff);
+}
+
+.recoverable-error-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.lobby-resume-banner {
+  margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+  .dashboard-mission-strip__header,
+  .quick-action-surface__header,
+  .wallet-session-activity-rail__header,
+  .dashboard-mission-strip__meta,
+  .wallet-session-activity-rail__item-header,
+  .quick-action-surface__item-topline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .game-lobby--with-mobile-footer {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+}

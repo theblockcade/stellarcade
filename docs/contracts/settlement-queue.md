@@ -1,5 +1,7 @@
 # settlement-queue
 
+Stable queue-backed snapshot for a settlement read.
+
 ## Public Methods
 
 ### `init`
@@ -186,4 +188,40 @@ pub fn queue_metrics(env: Env) -> QueueMetrics
 #### Return Type
 
 `QueueMetrics`
+
+### `queued_payout_snapshot`
+Returns a queue-backed snapshot for one settlement id.  Missing settlements return a predictable empty struct with `exists = false` and zero-value numeric fields.
+
+```rust
+pub fn queued_payout_snapshot(env: Env, settlement_id: Symbol) -> QueuedPayoutSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `settlement_id` | `Symbol` |
+
+#### Return Type
+
+`QueuedPayoutSnapshot`
+
+### `signer_readiness`
+Returns whether the provided signer is ready to administer the queue.  Pre-configuration reads return all readiness flags as `false` so callers can distinguish uninitialized state without trapping.
+
+```rust
+pub fn signer_readiness(env: Env, signer: Address) -> SignerReadiness
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `signer` | `Address` |
+
+#### Return Type
+
+`SignerReadiness`
 

@@ -836,6 +836,18 @@
                       "key": {
                         "vec": [
                           {
+                            "symbol": "ActiveGamesCount"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u32": 2
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
                             "symbol": "Admin"
                           }
                         ]
@@ -902,6 +914,18 @@
                       },
                       "val": {
                         "address": "CCABDO7UZXYE4W6GVSEGSNNZTKSLFQGKXXQTH6OX7M7GKZ4Z6CUJNGZN"
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "TotalActiveWager"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "i128": "300"
                       }
                     }
                   ]

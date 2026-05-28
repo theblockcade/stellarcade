@@ -15,8 +15,75 @@
 //!    call outcomes for auditability.
 
 use soroban_sdk::{
-    contract, contractevent, contractimpl, contracttype, Address, Env, Map, String,
+    contract, contractclient, contracterror, contractevent, contractimpl, contracttype, Address,
+    Env, Map, String,
 };
+
+#[contractclient(name = "ContractAddressRegistryClient")]
+pub trait ContractAddressRegistryContract {
+    fn resolve(env: Env, name: String) -> Result<Address, RegistryError>;
+}
+
+#[contractclient(name = "PrizePoolClient")]
+pub trait PrizePoolContract {
+    fn get_config_snapshot(env: Env) -> Result<PrizePoolConfigSnapshot, PrizePoolReadError>;
+}
+
+#[contractclient(name = "BalanceManagerClient")]
+pub trait BalanceManagerContract {
+    fn get_account_summary(env: Env, user: Address) -> AccountSummary;
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrizePoolConfigSnapshot {
+    pub admin: Address,
+    pub token: Address,
+    pub available_balance: i128,
+    pub reserved_amount: i128,
+    pub payouts_count: u64,
+    pub last_update_ledger: u32,
+}
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum PrizePoolReadError {
+    NotInitialized = 2,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AccountSummary {
+    pub exists: bool,
+    pub balance: i128,
+    pub reserved: i128,
+    pub last_update: u32,
+}
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum RegistryError {
+    AlreadyInitialized = 1,
+    NotInitialized = 2,
+    NotAuthorized = 3,
+    ContractNotFound = 4,
+    InvalidAddress = 5,
+    DuplicateRegistration = 6,
+    InvalidVersion = 7,
+    InvalidName = 8,
+}
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum CoreReadError {
+    RegistryNotInitialized = 1,
+    RegistryEntryMissing = 2,
+    RegistryLookupFailed = 3,
+    CoreReadFailed = 4,
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,6 +281,29 @@ impl ContractInteractionLibrary {
         log.get(log_id).expect("Log entry not found")
     }
 
+    // ── Registry-backed typed reads ─────────────────────────────────────────
+
+    pub fn read_prize_pool_config(
+        env: Env,
+        address_registry: Address,
+    ) -> Result<PrizePoolConfigSnapshot, CoreReadError> {
+        let prize_pool = resolve_core(&env, &address_registry, "prize-pool")?;
+        match PrizePoolClient::new(&env, &prize_pool).try_get_config_snapshot() {
+            Ok(Ok(snapshot)) => Ok(snapshot),
+            Ok(Err(_)) => Err(CoreReadError::CoreReadFailed),
+            Err(_) => Err(CoreReadError::CoreReadFailed),
+        }
+    }
+
+    pub fn read_balance_account_summary(
+        env: Env,
+        address_registry: Address,
+        user: Address,
+    ) -> Result<AccountSummary, CoreReadError> {
+        let balance = resolve_core(&env, &address_registry, "balance-management")?;
+        Ok(BalanceManagerClient::new(&env, &balance).get_account_summary(&user))
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     fn require_admin(env: &Env) {
@@ -226,12 +316,70 @@ impl ContractInteractionLibrary {
     }
 }
 
+fn resolve_core(env: &Env, address_registry: &Address, name: &str) -> Result<Address, CoreReadError> {
+    let registry = ContractAddressRegistryClient::new(env, address_registry);
+    let name = String::from_str(env, name);
+    match registry.try_resolve(&name) {
+        Ok(Ok(address)) => Ok(address),
+        Ok(Err(_)) => Err(CoreReadError::RegistryLookupFailed),
+        Err(Ok(RegistryError::NotInitialized)) => Err(CoreReadError::RegistryNotInitialized),
+        Err(Ok(RegistryError::ContractNotFound)) => Err(CoreReadError::RegistryEntryMissing),
+        Err(Ok(_)) => Err(CoreReadError::RegistryLookupFailed),
+        Err(Err(_)) => Err(CoreReadError::RegistryLookupFailed),
+    }
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Env};
+    use soroban_sdk::{contract, contracterror, contractimpl, testutils::Address as _, Address, Env};
+
+    #[contract]
+    struct MockRegistry;
+
+    #[contracterror]
+    #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+    #[repr(u32)]
+    enum MockRegistryError {
+        NotInitialized = 2,
+        ContractNotFound = 4,
+    }
+
+    #[contractimpl]
+    impl MockRegistry {
+        pub fn resolve(env: Env, name: String) -> Result<Address, MockRegistryError> {
+            let mode: u32 = env.storage().instance().get(&"mode").unwrap_or(0);
+            if mode == 1 {
+                return Err(MockRegistryError::NotInitialized);
+            }
+            let key = ("addr", name);
+            env.storage()
+                .instance()
+                .get(&key)
+                .ok_or(MockRegistryError::ContractNotFound)
+        }
+    }
+
+    #[contract]
+    struct MockPrizePool;
+
+    #[contractimpl]
+    impl MockPrizePool {
+        pub fn get_config_snapshot(env: Env) -> Result<PrizePoolConfigSnapshot, PrizePoolReadError> {
+            let admin: Address = env.storage().instance().get(&"admin").unwrap();
+            let token: Address = env.storage().instance().get(&"token").unwrap();
+            Ok(PrizePoolConfigSnapshot {
+                admin,
+                token,
+                available_balance: 10,
+                reserved_amount: 2,
+                payouts_count: 3,
+                last_update_ledger: 4,
+            })
+        }
+    }
 
     fn setup() -> (Env, ContractInteractionLibraryClient<'static>, Address) {
         let env = Env::default();
@@ -241,6 +389,26 @@ mod tests {
         let client = ContractInteractionLibraryClient::new(&env, &contract_id);
         client.init(&admin);
         (env, client, admin)
+    }
+
+    fn setup_registry_with_prize_pool(env: &Env) -> (Address, Address) {
+        let registry_id = env.register(MockRegistry, ());
+        let prize_pool_id = env.register(MockPrizePool, ());
+
+        env.as_contract(&registry_id, || {
+            env.storage()
+                .instance()
+                .set(&("addr", String::from_str(env, "prize-pool")), &prize_pool_id);
+        });
+
+        let pool_admin = Address::generate(env);
+        let token = Address::generate(env);
+        env.as_contract(&prize_pool_id, || {
+            env.storage().instance().set(&"admin", &pool_admin);
+            env.storage().instance().set(&"token", &token);
+        });
+
+        (registry_id, prize_pool_id)
     }
 
     #[test]
@@ -352,5 +520,35 @@ mod tests {
         let entry = client.get_contract(&name);
         assert_eq!(entry.version, 3);
         assert!(entry.active);
+    }
+
+    #[test]
+    fn typed_read_resolves_and_reads_prize_pool() {
+        let (env, client, _) = setup();
+        let (registry_id, _pool_id) = setup_registry_with_prize_pool(&env);
+
+        let snap = client.read_prize_pool_config(&registry_id);
+        assert_eq!(snap.available_balance, 10);
+        assert_eq!(snap.reserved_amount, 2);
+    }
+
+    #[test]
+    fn typed_read_missing_registry_entry_normalizes_error() {
+        let (env, client, _) = setup();
+        let registry_id = env.register(MockRegistry, ());
+        let err = client.try_read_prize_pool_config(&registry_id).unwrap_err().unwrap();
+        assert_eq!(err, CoreReadError::RegistryEntryMissing);
+    }
+
+    #[test]
+    fn typed_read_registry_not_initialized_normalizes_error() {
+        let (env, client, _) = setup();
+        let registry_id = env.register(MockRegistry, ());
+        env.as_contract(&registry_id, || {
+            env.storage().instance().set(&"mode", &1u32);
+        });
+
+        let err = client.try_read_prize_pool_config(&registry_id).unwrap_err().unwrap();
+        assert_eq!(err, CoreReadError::RegistryNotInitialized);
     }
 }

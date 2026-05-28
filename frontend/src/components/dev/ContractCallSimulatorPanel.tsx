@@ -1,21 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react";
 import {
   devClearContractSimResults,
   devListContractSimKeys,
   devParseMockResultPayload,
   devRegisterContractSimResult,
-} from '../../services/soroban-contract-dev';
-import { SorobanErrorCode } from '../../types/errors';
-import './ContractCallSimulatorPanel.css';
+} from "../../services/soroban-contract-dev";
+import { SorobanErrorCode } from "../../types/errors";
+import "./ContractCallSimulatorPanel.css";
 
-const CONTRACT_ADDR_PLACEHOLDER = 'C…56 chars';
+const CONTRACT_ADDR_PLACEHOLDER = "C…56 chars";
 
 interface SimulatorLogEntry {
   id: number;
   timestamp: string;
   contractId: string;
   method: string;
-  mode: 'success' | 'failure';
+  mode: "success" | "failure";
   payload: string;
   failureCode?: string;
 }
@@ -25,30 +25,44 @@ interface ContractSimulatorPreset {
   label: string;
   contractId: string;
   method: string;
-  mode: 'success' | 'failure';
+  mode: "success" | "failure";
   payload: string;
   failureCode?: SorobanErrorCode;
 }
 
 const PRESETS: ContractSimulatorPreset[] = [
   {
-    id: 'pool-state-success',
-    label: 'Pool state success',
-    contractId: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4',
-    method: 'get_pool_state',
-    mode: 'success',
+    id: "pool-state-success",
+    label: "Pool state success",
+    contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4",
+    method: "get_pool_state",
+    mode: "success",
     payload: '{"available":"100","reserved":"20"}',
   },
   {
-    id: 'coin-flip-fail',
-    label: 'Coin flip simulation failed',
-    contractId: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4',
-    method: 'play_coin_flip',
-    mode: 'failure',
-    payload: 'Simulation failed due to temporary RPC issue',
+    id: "coin-flip-fail",
+    label: "Coin flip simulation failed",
+    contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4",
+    method: "play_coin_flip",
+    mode: "failure",
+    payload: "Simulation failed due to temporary RPC issue",
     failureCode: SorobanErrorCode.SimulationFailed,
   },
 ];
+
+function HelperText({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <span id={id} className="contract-call-simulator__helper">
+      {children}
+    </span>
+  );
+}
 
 /**
  * Collapsible dev-only UI to register mocked Soroban simulate / invoke outcomes.
@@ -56,15 +70,15 @@ const PRESETS: ContractSimulatorPreset[] = [
  */
 export const ContractCallSimulatorPanel: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [contractId, setContractId] = useState('');
-  const [method, setMethod] = useState('');
-  const [mode, setMode] = useState<'success' | 'failure'>('success');
-  const [payload, setPayload] = useState('{}');
+  const [contractId, setContractId] = useState("");
+  const [method, setMethod] = useState("");
+  const [mode, setMode] = useState<"success" | "failure">("success");
+  const [payload, setPayload] = useState("{}");
   const [failureCode, setFailureCode] = useState<SorobanErrorCode>(
     SorobanErrorCode.RpcError,
   );
   const [status, setStatus] = useState<string | null>(null);
-  const [presetId, setPresetId] = useState('');
+  const [presetId, setPresetId] = useState("");
   const [logEntries, setLogEntries] = useState<SimulatorLogEntry[]>([]);
 
   const keys = useMemo(
@@ -75,12 +89,12 @@ export const ContractCallSimulatorPanel: React.FC = () => {
   const onRegister = () => {
     setStatus(null);
     const result = devParseMockResultPayload(mode, payload, failureCode);
-    if (!result.success && mode === 'success') {
+    if (!result.success && mode === "success") {
       setStatus(`Parse error: ${result.error.message}`);
       return;
     }
     if (!contractId.trim() || !method.trim()) {
-      setStatus('Contract ID and method are required.');
+      setStatus("Contract ID and method are required.");
       return;
     }
     devRegisterContractSimResult(contractId.trim(), method.trim(), result);
@@ -93,7 +107,7 @@ export const ContractCallSimulatorPanel: React.FC = () => {
         method: method.trim(),
         mode,
         payload,
-        failureCode: mode === 'failure' ? failureCode : undefined,
+        failureCode: mode === "failure" ? failureCode : undefined,
       },
     ]);
     setStatus(`Registered mock for ${method.trim()}.`);
@@ -101,18 +115,18 @@ export const ContractCallSimulatorPanel: React.FC = () => {
 
   const onClear = () => {
     devClearContractSimResults();
-    setStatus('Cleared all dev mocks.');
+    setStatus("Cleared all dev mocks.");
   };
 
   const applyPreset = (nextPresetId: string) => {
     setPresetId(nextPresetId);
     if (!nextPresetId) {
-      setContractId('');
-      setMethod('');
-      setMode('success');
-      setPayload('{}');
+      setContractId("");
+      setMethod("");
+      setMode("success");
+      setPayload("{}");
       setFailureCode(SorobanErrorCode.RpcError);
-      setStatus('Cleared preset values.');
+      setStatus("Cleared preset values.");
       return;
     }
 
@@ -141,18 +155,20 @@ export const ContractCallSimulatorPanel: React.FC = () => {
         onClick={() => setOpen((o) => !o)}
         data-testid="contract-call-simulator-toggle"
       >
-        {open ? '▼' : '▶'} Dev: contract mocks
+        {open ? "▼" : "▶"} Dev: contract mocks
       </button>
       {open && (
         <div className="contract-call-simulator__body">
           <p className="contract-call-simulator__hint">
-            Matches any <code>simulate</code> / <code>invoke</code> with the same contract id and method name.
+            Matches any <code>simulate</code> / <code>invoke</code> with the
+            same contract id and method name.
           </p>
           <label className="contract-call-simulator__field contract-call-simulator__preset-field">
             <span>Preset scenario</span>
             <select
               value={presetId}
               onChange={(e) => applyPreset(e.target.value)}
+              aria-describedby="contract-call-simulator-preset-helper"
               data-testid="contract-call-simulator-preset"
             >
               <option value="">Manual entry (no preset)</option>
@@ -162,6 +178,10 @@ export const ContractCallSimulatorPanel: React.FC = () => {
                 </option>
               ))}
             </select>
+            <HelperText id="contract-call-simulator-preset-helper">
+              Start from a known response shape, then override any field before
+              registering.
+            </HelperText>
           </label>
           <label className="contract-call-simulator__field">
             <span>Contract ID</span>
@@ -170,8 +190,12 @@ export const ContractCallSimulatorPanel: React.FC = () => {
               onChange={(e) => setContractId(e.target.value)}
               placeholder={CONTRACT_ADDR_PLACEHOLDER}
               spellCheck={false}
+              aria-describedby="contract-call-simulator-contract-helper"
               data-testid="contract-call-simulator-contract"
             />
+            <HelperText id="contract-call-simulator-contract-helper">
+              Use the exact contract address the page will simulate or invoke.
+            </HelperText>
           </label>
           <label className="contract-call-simulator__field">
             <span>Method</span>
@@ -180,8 +204,12 @@ export const ContractCallSimulatorPanel: React.FC = () => {
               onChange={(e) => setMethod(e.target.value)}
               placeholder="e.g. get_pool_state"
               spellCheck={false}
+              aria-describedby="contract-call-simulator-method-helper"
               data-testid="contract-call-simulator-method"
             />
+            <HelperText id="contract-call-simulator-method-helper">
+              Match the Soroban method name, including underscores.
+            </HelperText>
           </label>
           <fieldset className="contract-call-simulator__mode">
             <legend>Outcome</legend>
@@ -189,24 +217,24 @@ export const ContractCallSimulatorPanel: React.FC = () => {
               <input
                 type="radio"
                 name="ccsim-mode"
-                checked={mode === 'success'}
-                onChange={() => setMode('success')}
+                checked={mode === "success"}
+                onChange={() => setMode("success")}
                 data-testid="contract-call-simulator-mode-success"
-              />{' '}
+              />{" "}
               Success (JSON body)
             </label>
             <label>
               <input
                 type="radio"
                 name="ccsim-mode"
-                checked={mode === 'failure'}
-                onChange={() => setMode('failure')}
+                checked={mode === "failure"}
+                onChange={() => setMode("failure")}
                 data-testid="contract-call-simulator-mode-failure"
-              />{' '}
+              />{" "}
               Failure (message)
             </label>
           </fieldset>
-          {mode === 'failure' && (
+          {mode === "failure" && (
             <label className="contract-call-simulator__field">
               <span>Error code</span>
               <select
@@ -214,6 +242,7 @@ export const ContractCallSimulatorPanel: React.FC = () => {
                 onChange={(e) =>
                   setFailureCode(e.target.value as SorobanErrorCode)
                 }
+                aria-describedby="contract-call-simulator-failure-helper"
                 data-testid="contract-call-simulator-failure-code"
               >
                 <option value={SorobanErrorCode.RpcError}>RpcError</option>
@@ -227,17 +256,27 @@ export const ContractCallSimulatorPanel: React.FC = () => {
                   WalletNotConnected
                 </option>
               </select>
+              <HelperText id="contract-call-simulator-failure-helper">
+                Pick the error family that downstream UI should map into
+                fallback copy.
+              </HelperText>
             </label>
           )}
           <label className="contract-call-simulator__field">
-            <span>{mode === 'success' ? 'JSON data' : 'Error message'}</span>
+            <span>{mode === "success" ? "JSON data" : "Error message"}</span>
             <textarea
               value={payload}
               onChange={(e) => setPayload(e.target.value)}
               rows={6}
               spellCheck={false}
+              aria-describedby="contract-call-simulator-payload-helper"
               data-testid="contract-call-simulator-payload"
             />
+            <HelperText id="contract-call-simulator-payload-helper">
+              {mode === "success"
+                ? "Provide JSON that mirrors the decoded contract response."
+                : "Write the message callers should receive for the simulated failure."}
+            </HelperText>
           </label>
           <div className="contract-call-simulator__actions">
             <button
@@ -265,7 +304,10 @@ export const ContractCallSimulatorPanel: React.FC = () => {
             </p>
           )}
           {keys.length > 0 && (
-            <div className="contract-call-simulator__keys" data-testid="contract-call-simulator-keys">
+            <div
+              className="contract-call-simulator__keys"
+              data-testid="contract-call-simulator-keys"
+            >
               <strong>Active keys</strong>
               <ul>
                 {keys.map((k) => (
@@ -276,7 +318,10 @@ export const ContractCallSimulatorPanel: React.FC = () => {
           )}
 
           {/* Request-response log pane */}
-          <div className="contract-call-simulator__log" data-testid="contract-call-simulator-log">
+          <div
+            className="contract-call-simulator__log"
+            data-testid="contract-call-simulator-log"
+          >
             <div className="contract-call-simulator__log-header">
               <strong>Request Log ({logEntries.length})</strong>
               {logEntries.length > 0 && (
@@ -311,7 +356,9 @@ export const ContractCallSimulatorPanel: React.FC = () => {
                     <span className="contract-call-simulator__log-method">
                       {entry.method}
                     </span>
-                    <span className={`contract-call-simulator__log-badge contract-call-simulator__log-badge--${entry.mode}`}>
+                    <span
+                      className={`contract-call-simulator__log-badge contract-call-simulator__log-badge--${entry.mode}`}
+                    >
                       {entry.mode}
                     </span>
                   </li>

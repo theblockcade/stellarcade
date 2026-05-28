@@ -1,5 +1,7 @@
 # tournament-system
 
+Compact summary of a participant's journey through the tournament bracket.  Returned by `elimination_path`. Returns `Err(TournamentNotFound)` when the tournament does not exist and `Err(PlayerNotJoined)` when the participant has never joined.
+
 ## Public Methods
 
 ### `init`
@@ -183,6 +185,43 @@ pub fn get_next_matches(env: Env, id: u64) -> Result<soroban_sdk::Vec<Matchup>, 
 #### Return Type
 
 `Result<soroban_sdk::Vec<Matchup>, Error>`
+
+### `remaining_match_count`
+Returns the number of matches remaining in the current round.  Each match pairs two participants; a participant with no opponent receives a bye and counts as half a match (rounded up). Returns `Err(TournamentNotFound)` when the tournament does not exist.
+
+```rust
+pub fn remaining_match_count(env: Env, id: u64) -> Result<u32, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `id` | `u64` |
+
+#### Return Type
+
+`Result<u32, Error>`
+
+### `elimination_path`
+Returns a compact summary of a participant's elimination path.  Walks every round from 1 to the current round and checks whether the participant appeared in the `RoundParticipants` list. The result is deterministic and does not require reconstructing the full bracket off-chain.  Returns `Err(TournamentNotFound)` when the tournament does not exist. Returns `Err(PlayerNotJoined)` when the participant never joined.
+
+```rust
+pub fn elimination_path(env: Env, id: u64, player: Address) -> Result<EliminationPath, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `id` | `u64` |
+| `player` | `Address` |
+
+#### Return Type
+
+`Result<EliminationPath, Error>`
 
 ### `advance_round`
 ```rust

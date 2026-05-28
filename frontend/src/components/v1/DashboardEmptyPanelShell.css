@@ -1,0 +1,41 @@
+.dashboard-empty-panel-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px dashed var(--glass-border);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dashboard-empty-panel-shell__chip {
+  width: fit-content;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+.dashboard-empty-panel-shell__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dashboard-empty-panel-shell__description {
+  margin: 0;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.dashboard-empty-panel-shell__action {
+  width: fit-content;
+  border: 1px solid var(--glass-border);
+  background: rgba(125, 226, 209, 0.16);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}

@@ -443,3 +443,74 @@ fn last_price_freshness_handles_missing_prices() {
     assert_eq!(freshness.age_ledgers, 0);
     assert!(freshness.is_stale);
 }
+
+// --- source_config_snapshot ---
+
+#[test]
+fn source_config_snapshot_returns_configured_sources() {
+    let env = Env::default();
+    let contract_id = env.register(OracleIntegration, ());
+    let client = OracleIntegrationClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let oracle1 = Address::generate(&env);
+    let oracle2 = Address::generate(&env);
+
+    env.mock_all_auths();
+    let sources = vec![&env, oracle1.clone(), oracle2.clone()];
+    client.init(&admin, &sources);
+
+    let snapshot = client.source_config_snapshot().expect("snapshot present after init");
+    assert_eq!(snapshot.source_count, 2);
+    assert!(snapshot.sources.contains(&oracle1));
+    assert!(snapshot.sources.contains(&oracle2));
+}
+
+#[test]
+fn source_config_snapshot_returns_none_before_init() {
+    let env = Env::default();
+    let contract_id = env.register(OracleIntegration, ());
+    let client = OracleIntegrationClient::new(&env, &contract_id);
+
+    assert!(client.source_config_snapshot().is_none());
+}
+
+#[test]
+fn source_config_snapshot_count_matches_sources_length() {
+    let env = Env::default();
+    let (client, _, _, _, _) = setup_initialized(&env);
+
+    let snapshot = client.source_config_snapshot().expect("initialized");
+    assert_eq!(snapshot.source_count, snapshot.sources.len());
+}
+
+// --- update_policy_summary ---
+
+#[test]
+fn update_policy_summary_returns_correct_stale_threshold() {
+    let env = Env::default();
+    let (client, _, _, _, _) = setup_initialized(&env);
+
+    let summary = client.update_policy_summary();
+    // Matches the STALE_THRESHOLD_LEDGERS constant (20).
+    assert_eq!(summary.stale_threshold_ledgers, 20);
+}
+
+#[test]
+fn update_policy_summary_cadence_is_on_request() {
+    let env = Env::default();
+    let (client, _, _, _, _) = setup_initialized(&env);
+
+    let summary = client.update_policy_summary();
+    assert_eq!(summary.cadence, soroban_sdk::Symbol::new(&env, "on_request"));
+}
+
+#[test]
+fn update_policy_summary_is_deterministic_across_calls() {
+    let env = Env::default();
+    let (client, _, _, _, _) = setup_initialized(&env);
+
+    let s1 = client.update_policy_summary();
+    let s2 = client.update_policy_summary();
+    assert_eq!(s1.stale_threshold_ledgers, s2.stale_threshold_ledgers);
+    assert_eq!(s1.cadence, s2.cadence);
+}

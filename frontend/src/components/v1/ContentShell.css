@@ -1,0 +1,92 @@
+.content-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Header row ─────────────────────────────────────────────── */
+
+.content-shell__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.content-shell__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.content-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+/* ── Title sizing by semantic level ─────────────────────────── */
+
+.content-shell__title {
+  margin: 0;
+  line-height: 1.25;
+  color: var(--text-main, #f5f7fb);
+  font-weight: 700;
+}
+
+.content-shell__title--h1 {
+  font-size: 1.75rem;
+}
+
+.content-shell__title--h2 {
+  font-size: 1.25rem;
+}
+
+.content-shell__title--h3 {
+  font-size: 1.0625rem;
+}
+
+.content-shell__title--h4 {
+  font-size: 0.9375rem;
+}
+
+.content-shell__title--h5 {
+  font-size: 0.875rem;
+}
+
+.content-shell__title--h6 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.content-shell__description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #a8b5c8);
+  line-height: 1.5;
+}
+
+/* ── Body ───────────────────────────────────────────────────── */
+
+.content-shell__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .content-shell__header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .content-shell__actions {
+    flex-wrap: wrap;
+  }
+}

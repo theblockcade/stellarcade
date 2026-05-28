@@ -10,6 +10,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useContractEvents } from '../../hooks/v1/useContractEvents';
 import { ErrorNotice } from './ErrorNotice';
 import { EmptyStateBlock } from './EmptyStateBlock';
+import { EmptyResultCallout } from './EmptyResultCallout';
+import { StatusPill } from './StatusPill';
+import type { TimelineItemData } from './Timeline';
 import { toAppError } from '../../utils/v1/errorMapper';
 import {
   generateIdempotencyKey,
@@ -19,8 +22,19 @@ import {
   getPersistedEventFeedFilter,
   persistEventFeedFilter,
   clearEventFeedFilter,
+  deleteSavedFilterPreset,
+  getSavedFilterPresets,
+  saveFilterPreset,
+  getRecentFilters,
+  recordRecentFilter,
+  clearRecentFilters,
+  getTableDensityPreference,
+  persistTableDensityPreference,
+  type TableDensityPreference,
 } from '../../services/global-state-store';
+import type { RecentFilterEntry } from '../../services/global-state-store';
 import type { ContractEvent } from '../../types/contracts/events';
+import type { SavedFilterPreset } from '../../types/global-state';
 import './ContractEventFeed.css';
 
 export type EventSeverity = 'info' | 'warning' | 'error' | 'success';
@@ -53,6 +67,30 @@ const DEFAULT_LIST_HEIGHT_PX = 480;
 const DEFAULT_VIRTUALIZATION_THRESHOLD = 120;
 const DEFAULT_VIRTUAL_ITEM_HEIGHT_PX = 42;
 const DEFAULT_VIRTUAL_OVERSCAN = 6;
+
+/**
+ * Maps a ContractEvent to a TimelineItemData so callers can compose event
+ * history into any surface that accepts the shared Timeline API (e.g. audit
+ * views, transaction history panels).
+ */
+export function eventToTimelineItem(event: ContractEvent): TimelineItemData {
+  const timestamp = new Date(event.timestamp);
+  const timeLabel = Number.isNaN(timestamp.getTime())
+    ? undefined
+    : timestamp.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+  return {
+    id: event.id,
+    label: event.type ?? 'unknown',
+    status: 'idle',
+    timestamp: timeLabel ?? null,
+    metadata: event.contractId ? event.contractId.slice(0, 10) : null,
+  };
+}
 
 export function getEventSeverity(
   eventType: string | undefined,
@@ -98,6 +136,14 @@ export interface ContractEventFeedProps {
    * Use a custom value when multiple feeds share the same contractId.
    */
   feedScope?: string;
+  feedMode?: 'pagination' | 'infinite';
+  pageSize?: number;
+  presetScope?: string;
+  showFilterPresets?: boolean;
+  /** Show recent filter chip rail above the event list. Default true when persistFilters=true. */
+  showRecentFilters?: boolean;
+  densityScope?: string;
+  showDensityToggle?: boolean;
 }
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting' | 'idle';
@@ -114,17 +160,23 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, testId }) => {
     reconnecting: 'Reconnecting...',
     idle: 'Idle',
   };
+  const tones: Record<ConnectionStatus, 'success' | 'pending' | 'warning' | 'error' | 'neutral'> = {
+    connected: 'success',
+    disconnected: 'error',
+    reconnecting: 'warning',
+    idle: 'neutral',
+  };
 
   return (
-    <span
+    <StatusPill
+      tone={tones[status]}
+      label={labels[status]}
+      size="compact"
       className={`cef-status-badge cef-status-badge--${status}`}
-      data-testid={testId ? `${testId}-status` : 'cef-status'}
-      aria-live="polite"
-      aria-label={`Feed status: ${labels[status]}`}
-    >
-      <span className="cef-status-badge__dot" aria-hidden="true" />
-      {labels[status]}
-    </span>
+      testId={testId ? `${testId}-status` : 'cef-status'}
+      ariaLabel={`Feed status: ${labels[status]}`}
+      icon={<span className="cef-status-badge__dot" />}
+    />
   );
 };
 
@@ -216,14 +268,28 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
   virtualizedOverscan = DEFAULT_VIRTUAL_OVERSCAN,
   persistFilters = false,
   feedScope,
+  feedMode = 'pagination',
+  pageSize = 25,
+  presetScope,
+  showFilterPresets = true,
+  showRecentFilters,
+  densityScope,
+  showDensityToggle = true,
 }) => {
   // ── Filter persistence ─────────────────────────────────────────────────────
   // Stable scope key isolates persisted state so different feeds don't collide.
   const resolvedScope = feedScope ?? contractId;
+  const resolvedPresetScope = presetScope ?? resolvedScope;
+  const resolvedDensityScope = densityScope ?? `events-${resolvedScope}`;
 
   // Internal active-filter state used when persistFilters=true.
   // Null means "not yet initialised" (restored from storage on first render).
   const [persistedActiveFilters, setPersistedActiveFilters] = useState<string[] | null>(null);
+  const [presetName, setPresetName] = useState('');
+  const [savedPresets, setSavedPresets] = useState<SavedFilterPreset[]>([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [visiblePages, setVisiblePages] = useState(1);
   const filterInitialisedRef = useRef(false);
   const isContractIdValid =
     typeof contractId === 'string' && contractId.trim().length > 0;
@@ -250,6 +316,9 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
   const listRef = useRef<HTMLOListElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(DEFAULT_LIST_HEIGHT_PX);
+  const [density, setDensity] = useState<TableDensityPreference>(() =>
+    getTableDensityPreference(resolvedDensityScope),
+  );
 
   // Restore persisted filter state on mount (or when scope changes).
   useEffect(() => {
@@ -262,6 +331,14 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     filterInitialisedRef.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persistFilters, resolvedScope]);
+
+  useEffect(() => {
+    setDensity(getTableDensityPreference(resolvedDensityScope));
+  }, [resolvedDensityScope]);
+
+  useEffect(() => {
+    setSavedPresets(getSavedFilterPresets(resolvedPresetScope));
+  }, [resolvedPresetScope]);
 
   useEffect(() => {
     const prev = prevListeningRef.current;
@@ -347,6 +424,11 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
   ]);
 
   useEffect(() => {
+    setCurrentPage(1);
+    setVisiblePages(1);
+  }, [feedMode, filteredEvents, pageSize]);
+
+  useEffect(() => {
     if (!onNewEvent) return;
     const newCount = filteredEvents.length - prevEventCountRef.current;
     if (newCount > 0) {
@@ -380,6 +462,44 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     clear();
   }, [clear, persistFilters, resolvedScope]);
 
+  const currentActiveFilters = useMemo(() => {
+    if (persistFilters && persistedActiveFilters !== null) {
+      return persistedActiveFilters;
+    }
+    return (eventTypeFilters ?? [])
+      .filter((filter) => filter.active)
+      .map((filter) => filter.value);
+  }, [eventTypeFilters, persistFilters, persistedActiveFilters]);
+
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+
+    if (eventTypeFilter?.trim()) {
+      labels.push(`type: ${eventTypeFilter.trim()}`);
+    }
+
+    if (contractSourceFilter?.trim()) {
+      labels.push(`source: ${contractSourceFilter.trim().slice(0, 10)}`);
+    }
+
+    if (timeWindowMs !== undefined && timeWindowMs > 0) {
+      labels.push(`window: ${Math.round(timeWindowMs / 1000)}s`);
+    }
+
+    currentActiveFilters.forEach((value) => {
+      const match = eventTypeFilters?.find((filter) => filter.value === value);
+      labels.push(match?.label ?? value);
+    });
+
+    return labels;
+  }, [
+    contractSourceFilter,
+    currentActiveFilters,
+    eventTypeFilter,
+    eventTypeFilters,
+    timeWindowMs,
+  ]);
+
   /**
    * Persistence-aware filter toggle handler.
    * When persistFilters=true, updates internal persisted state and writes to
@@ -402,15 +522,134 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     [persistFilters, resolvedScope, onEventTypeFilterToggle],
   );
 
+  const applyPresetValues = useCallback(
+    (values: string[]) => {
+      const nextValues = values.filter((value): value is string => typeof value === 'string');
+      const currentValues = new Set(currentActiveFilters);
+      const targetValues = new Set(nextValues);
+      const knownValues = new Set((eventTypeFilters ?? []).map((filter) => filter.value));
+
+      knownValues.forEach((value) => {
+        const shouldBeActive = targetValues.has(value);
+        const isActive = currentValues.has(value);
+        if (shouldBeActive !== isActive) {
+          onEventTypeFilterToggle?.(value);
+        }
+      });
+
+      if (persistFilters) {
+        persistEventFeedFilter(resolvedScope, nextValues);
+        setPersistedActiveFilters(nextValues);
+      }
+    },
+    [currentActiveFilters, eventTypeFilters, onEventTypeFilterToggle, persistFilters, resolvedScope],
+  );
+
+  const handleSavePreset = useCallback(() => {
+    const saved = saveFilterPreset(resolvedPresetScope, presetName, currentActiveFilters);
+    if (!saved) {
+      return;
+    }
+
+    const nextPresets = getSavedFilterPresets(resolvedPresetScope);
+    setSavedPresets(nextPresets);
+    setSelectedPresetId(saved.id);
+    setPresetName('');
+  }, [currentActiveFilters, presetName, resolvedPresetScope]);
+
+  const handleRestorePreset = useCallback(() => {
+    const preset = savedPresets.find((entry) => entry.id === selectedPresetId);
+    if (!preset) {
+      return;
+    }
+    applyPresetValues(preset.values);
+  }, [applyPresetValues, savedPresets, selectedPresetId]);
+
+  const handleDeletePreset = useCallback(() => {
+    if (!selectedPresetId) {
+      return;
+    }
+    deleteSavedFilterPreset(resolvedPresetScope, selectedPresetId);
+    const nextPresets = getSavedFilterPresets(resolvedPresetScope);
+    setSavedPresets(nextPresets);
+    setSelectedPresetId('');
+  }, [resolvedPresetScope, selectedPresetId]);
+
+  // ── Recent filter chip rail (#478) ───────────────────────────────────────────
+  const resolvedShowRecent = showRecentFilters ?? persistFilters;
+  const [recentFilters, setRecentFilters] = useState<RecentFilterEntry[]>([]);
+
+  useEffect(() => {
+    if (!resolvedShowRecent) return;
+    setRecentFilters(getRecentFilters(resolvedScope));
+  }, [resolvedShowRecent, resolvedScope]);
+
+  // Record current active filters when they change (only when persistFilters)
+  useEffect(() => {
+    if (!resolvedShowRecent || !persistFilters) return;
+    if (!filterInitialisedRef.current) return;
+    if (currentActiveFilters.length === 0) return;
+    recordRecentFilter(resolvedScope, currentActiveFilters);
+    setRecentFilters(getRecentFilters(resolvedScope));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedShowRecent, persistFilters, resolvedScope, currentActiveFilters.join(',')]);
+
+  const handleApplyRecentFilter = useCallback(
+    (entry: RecentFilterEntry) => {
+      applyPresetValues(entry.values);
+      recordRecentFilter(resolvedScope, entry.values, entry.label);
+      setRecentFilters(getRecentFilters(resolvedScope));
+    },
+    [applyPresetValues, resolvedScope],
+  );
+
+  const handleClearRecentFilters = useCallback(() => {
+    clearRecentFilters(resolvedScope);
+    setRecentFilters([]);
+  }, [resolvedScope]);
+
+  const handleClearResultFilters = useCallback(() => {
+    if (currentActiveFilters.length > 0) {
+      applyPresetValues([]);
+    }
+  }, [applyPresetValues, currentActiveFilters.length]);
+
+  const handleDensityChange = useCallback(
+    (nextDensity: TableDensityPreference) => {
+      setDensity(nextDensity);
+      persistTableDensityPreference(resolvedDensityScope, nextDensity);
+    },
+    [resolvedDensityScope],
+  );
+
+  const totalPages =
+    filteredEvents.length > 0 ? Math.ceil(filteredEvents.length / pageSize) : 0;
+  const hasNextPage =
+    feedMode === 'infinite'
+      ? visiblePages < totalPages
+      : currentPage < totalPages;
+  const hasPreviousPage = feedMode === 'pagination' && currentPage > 1;
+  const renderedEvents =
+    feedMode === 'infinite'
+      ? filteredEvents.slice(0, visiblePages * pageSize)
+      : filteredEvents.slice(
+          Math.max(0, (currentPage - 1) * pageSize),
+          Math.max(0, (currentPage - 1) * pageSize) + pageSize,
+        );
+  const hasRawEvents = Array.isArray(rawEvents) && rawEvents.length > 0;
+  const hasActiveResultFilters = activeFilterLabels.length > 0;
+  const hasFilteredOutResults =
+    hasRawEvents && filteredEvents.length === 0 && hasActiveResultFilters;
+
   const shouldVirtualize =
-    filteredEvents.length >= virtualizationThreshold &&
+    renderedEvents.length >= virtualizationThreshold &&
     virtualizedItemHeight > 0;
 
   useEffect(() => {
     const listNode = listRef.current;
     if (!listNode) return;
     setViewportHeight(listNode.clientHeight || DEFAULT_LIST_HEIGHT_PX);
-  }, [shouldVirtualize, filteredEvents.length]);
+  }, [shouldVirtualize, renderedEvents.length]);
 
   useEffect(() => {
     if (!shouldVirtualize) {
@@ -422,7 +661,7 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
     if (!shouldVirtualize) {
       return {
         startIndex: 0,
-        endIndex: filteredEvents.length,
+        endIndex: renderedEvents.length,
         topSpacerHeight: 0,
         bottomSpacerHeight: 0,
       };
@@ -437,7 +676,7 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
       Math.floor(scrollTop / virtualizedItemHeight) - virtualizedOverscan,
     );
     const endIndex = Math.min(
-      filteredEvents.length,
+      renderedEvents.length,
       startIndex + visibleCount + virtualizedOverscan * 2,
     );
 
@@ -446,10 +685,10 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
       endIndex,
       topSpacerHeight: startIndex * virtualizedItemHeight,
       bottomSpacerHeight:
-        Math.max(0, filteredEvents.length - endIndex) * virtualizedItemHeight,
+        Math.max(0, renderedEvents.length - endIndex) * virtualizedItemHeight,
     };
   }, [
-    filteredEvents.length,
+    renderedEvents.length,
     scrollTop,
     shouldVirtualize,
     viewportHeight,
@@ -458,19 +697,35 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
   ]);
 
   const visibleEvents = shouldVirtualize
-    ? filteredEvents.slice(
+    ? renderedEvents.slice(
         virtualizationWindow.startIndex,
         virtualizationWindow.endIndex,
       )
-    : filteredEvents;
+    : renderedEvents;
 
   const handleListScroll = useCallback(
     (event: React.UIEvent<HTMLOListElement>) => {
-      if (!shouldVirtualize) return;
-      setScrollTop(event.currentTarget.scrollTop);
-      setViewportHeight(event.currentTarget.clientHeight || DEFAULT_LIST_HEIGHT_PX);
+      const nextScrollTop = event.currentTarget.scrollTop;
+      const nextViewportHeight =
+        event.currentTarget.clientHeight || DEFAULT_LIST_HEIGHT_PX;
+
+      if (shouldVirtualize) {
+        setScrollTop(nextScrollTop);
+        setViewportHeight(nextViewportHeight);
+      }
+
+      if (
+        feedMode === 'infinite' &&
+        hasNextPage
+      ) {
+        const distanceFromBottom =
+          event.currentTarget.scrollHeight - (nextScrollTop + nextViewportHeight);
+        if (distanceFromBottom <= 96) {
+          setVisiblePages((prev) => Math.min(totalPages, prev + 1));
+        }
+      }
     },
-    [shouldVirtualize],
+    [feedMode, hasNextPage, shouldVirtualize, totalPages],
   );
 
   if (!isContractIdValid) {
@@ -488,6 +743,7 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
 
   const rootClasses = [
     'cef',
+    density === 'compact' ? 'cef--compact' : '',
     isListening ? 'cef--listening' : 'cef--paused',
     className,
   ]
@@ -507,6 +763,34 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
         </div>
 
         <div className="cef__header-right">
+          {showDensityToggle && (
+            <div
+              className="cef__density-toggle"
+              role="group"
+              aria-label="Event density"
+              data-testid={`${testId}-density-toggle`}
+            >
+              <button
+                type="button"
+                className={`cef__density-button ${density === 'standard' ? 'is-active' : ''}`.trim()}
+                onClick={() => handleDensityChange('standard')}
+                aria-pressed={density === 'standard'}
+                data-testid={`${testId}-density-standard`}
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                className={`cef__density-button ${density === 'compact' ? 'is-active' : ''}`.trim()}
+                onClick={() => handleDensityChange('compact')}
+                aria-pressed={density === 'compact'}
+                data-testid={`${testId}-density-compact`}
+              >
+                Compact
+              </button>
+            </div>
+          )}
+
           <span className="cef__count" aria-live="polite" aria-atomic="true">
             {filteredEvents.length > 0
               ? `${filteredEvents.length} event${filteredEvents.length !== 1 ? 's' : ''}`
@@ -588,6 +872,102 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
         </div>
       )}
 
+      {resolvedShowRecent && recentFilters.length > 0 && (
+        <div
+          className="chip-rail"
+          role="toolbar"
+          aria-label="Recent filters"
+          data-testid={`${testId}-recent-filters`}
+        >
+          {recentFilters.map((entry, idx) => {
+            const chipKey = entry.values.join(',');
+            const isActive =
+              currentActiveFilters.length === entry.values.length &&
+              [...currentActiveFilters].sort().join(',') === [...entry.values].sort().join(',');
+            return (
+              <button
+                key={chipKey}
+                type="button"
+                className={`chip-rail__chip${isActive ? ' chip-rail__chip--active' : ''}`}
+                onClick={() => handleApplyRecentFilter(entry)}
+                aria-pressed={isActive}
+                data-testid={`${testId}-recent-chip-${idx}`}
+              >
+                {entry.label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="chip-rail__chip chip-rail__chip-remove"
+            onClick={handleClearRecentFilters}
+            aria-label="Clear recent filters"
+            data-testid={`${testId}-recent-clear`}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {showFilterPresets && eventTypeFilters && eventTypeFilters.length > 0 && (
+        <div className="cef__presets" data-testid={`${testId}-presets`}>
+          <label className="cef__preset-field">
+            <span className="cef__preset-label">Preset name</span>
+            <input
+              type="text"
+              className="cef__preset-input"
+              value={presetName}
+              onChange={(event) => setPresetName(event.target.value)}
+              placeholder="High-signal wins"
+              data-testid={`${testId}-preset-name`}
+            />
+          </label>
+          <button
+            type="button"
+            className="cef__preset-button"
+            onClick={handleSavePreset}
+            disabled={!presetName.trim() || currentActiveFilters.length === 0}
+            data-testid={`${testId}-preset-save`}
+          >
+            Save preset
+          </button>
+          <label className="cef__preset-field">
+            <span className="cef__preset-label">Saved presets</span>
+            <select
+              className="cef__preset-select"
+              value={selectedPresetId}
+              onChange={(event) => setSelectedPresetId(event.target.value)}
+              data-testid={`${testId}-preset-select`}
+            >
+              <option value="">Select preset</option>
+              {savedPresets.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="cef__preset-button"
+            onClick={handleRestorePreset}
+            disabled={!selectedPresetId}
+            data-testid={`${testId}-preset-restore`}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="cef__preset-button cef__preset-button--danger"
+            onClick={handleDeletePreset}
+            disabled={!selectedPresetId}
+            data-testid={`${testId}-preset-delete`}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+
       {mappedError && (
         <ErrorNotice
           error={mappedError}
@@ -598,17 +978,17 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
         />
       )}
 
-      {filteredEvents.length > 0 ? (
+      {renderedEvents.length > 0 ? (
         <>
           <span className="cef__sr-only" aria-live="polite" data-testid={`${testId}-virtualization`}>
             {shouldVirtualize
-              ? `Virtualized list showing ${visibleEvents.length} rows out of ${filteredEvents.length}.`
+              ? `Virtualized list showing ${visibleEvents.length} rows out of ${renderedEvents.length}.`
               : 'Standard list rendering active.'}
           </span>
           <ol
             ref={listRef}
-            className={`cef__event-list${shouldVirtualize ? ' cef__event-list--virtualized' : ''}`}
-            aria-label={`${filteredEvents.length} contract events`}
+            className={`cef__event-list sc-timeline sc-timeline--vertical${shouldVirtualize ? ' cef__event-list--virtualized' : ''}`}
+            aria-label={`${renderedEvents.length} contract events`}
             data-testid={`${testId}-list`}
             data-virtualized={shouldVirtualize ? 'true' : 'false'}
             reversed={!shouldVirtualize}
@@ -627,7 +1007,7 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
                 key={event.id}
                 event={event}
                 onClick={onEventClick}
-                severity={getEventSeverity(event.type, severityMapping)}
+                severity={getEventSeverity(event.type ?? undefined, severityMapping)}
                 testId={testId}
               />
             ))}
@@ -640,19 +1020,64 @@ export const ContractEventFeed: React.FC<ContractEventFeedProps> = ({
               />
             )}
           </ol>
+          {feedMode === 'pagination' && totalPages > 1 && (
+            <div className="cef__pager" data-testid={`${testId}-pager`}>
+              <button
+                type="button"
+                className="cef__preset-button"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={!hasPreviousPage}
+                data-testid={`${testId}-page-prev`}
+              >
+                Previous
+              </button>
+              <span className="cef__pager-label" data-testid={`${testId}-page-label`}>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="cef__preset-button"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={!hasNextPage}
+                data-testid={`${testId}-page-next`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          {feedMode === 'infinite' && (
+            <div className="cef__feed-status" data-testid={`${testId}-feed-status`}>
+              {hasNextPage
+                ? 'Scroll to load more events.'
+                : 'End of event feed'}
+            </div>
+          )}
         </>
       ) : (
         !mappedError && (
-          <EmptyStateBlock
-            icon={isListening ? 'radio' : 'pause'}
-            title={isListening ? 'Listening for events...' : 'Feed paused'}
-            description={
-              isListening
-                ? 'Events will appear here as they are emitted by the contract.'
-                : 'Press Resume to start receiving contract events.'
-            }
-            testId={`${testId}-empty`}
-          />
+          hasFilteredOutResults ? (
+            <EmptyResultCallout
+              title="No events match these filters"
+              activeFilters={activeFilterLabels}
+              onClear={
+                currentActiveFilters.length > 0
+                  ? handleClearResultFilters
+                  : undefined
+              }
+              testId={`${testId}-empty-results`}
+            />
+          ) : (
+            <EmptyStateBlock
+              icon={isListening ? 'radio' : 'pause'}
+              title={isListening ? 'Listening for events...' : 'Feed paused'}
+              description={
+                isListening
+                  ? 'Events will appear here as they are emitted by the contract.'
+                  : 'Press Resume to start receiving contract events.'
+              }
+              testId={`${testId}-empty`}
+            />
+          )
         )
       )}
     </section>

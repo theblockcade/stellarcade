@@ -1,0 +1,78 @@
+/**
+ * StateDisplay CSS Styles
+ *
+ * Styles for loading, empty, error, and disabled states.
+ */
+
+/* ──────────────────────────────────────────────────────────────── */
+/* State Display Container */
+/* ──────────────────────────────────────────────────────────────── */
+
+.state-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  min-height: 200px;
+  border-radius: 8px;
+  background-color: var(--bg-card, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* State-specific styling */
+/* ──────────────────────────────────────────────────────────────── */
+
+.state-display.state-empty {
+  color: var(--text-dim, #a0a0a0);
+}
+
+.state-display.state-loading {
+  color: var(--accent, #00ffcc);
+}
+
+.state-display.state-error {
+  color: #ef4444;
+}
+
+.state-display.state-disabled {
+  color: var(--text-dim, #a0a0a0);
+  opacity: 0.75;
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Icon */
+/* ──────────────────────────────────────────────────────────────── */
+
+.state-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.state-icon.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Message */
+/* ──────────────────────────────────────────────────────────────── */
+
+.state-message {
+  font-size: 0.95rem;
+  font-weight: 500;
+  max-width: 200px;
+  word-break: break-word;
+}

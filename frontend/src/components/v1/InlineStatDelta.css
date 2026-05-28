@@ -1,0 +1,32 @@
+.inline-stat-delta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.inline-stat-delta__value {
+  font-weight: 700;
+}
+
+.inline-stat-delta__label {
+  color: var(--text-dim, #a0a0a0);
+}
+
+.inline-stat-delta--up .inline-stat-delta__value {
+  color: #34d399;
+}
+
+.inline-stat-delta--down .inline-stat-delta__value {
+  color: #f87171;
+}
+
+.inline-stat-delta--flat .inline-stat-delta__value {
+  color: #cbd5e1;
+}
+
+.inline-stat-delta--empty .inline-stat-delta__value,
+.inline-stat-delta--loading .inline-stat-delta__value {
+  color: var(--text-dim, #a0a0a0);
+}

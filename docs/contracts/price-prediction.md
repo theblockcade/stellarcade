@@ -140,3 +140,39 @@ pub fn get_bet(env: Env, round_id: u64, player: Address) -> Result<BetData, Erro
 
 `Result<BetData, Error>`
 
+### `participant_summary`
+Return a compact participant summary for a round.  Missing rounds return `has_round = false` and an empty participant list.
+
+```rust
+pub fn participant_summary(env: Env, round_id: u64) -> RoundParticipantSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `round_id` | `u64` |
+
+#### Return Type
+
+`RoundParticipantSummary`
+
+### `settlement_preview`
+Preview settlement using the round's current wagers and the oracle's current price feed. Before final settlement this view is provisional.
+
+```rust
+pub fn settlement_preview(env: Env, round_id: u64) -> SettlementPreview
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `round_id` | `u64` |
+
+#### Return Type
+
+`SettlementPreview`
+

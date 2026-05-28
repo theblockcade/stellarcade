@@ -1,5 +1,7 @@
 # ai-generated-game
 
+Read model returned by `get_session_snapshot`.  Exposes enough state for a client to resume an in-progress session without leaking sensitive prompt internals. The `prompt_hash` field is the SHA-256 commitment stored at game creation — it is safe to expose for verification purposes but does NOT reveal the underlying prompt content.  Fields intentionally omitted (redacted): - Raw prompt / config payload (never stored on-chain; only the hash is kept) - Oracle result payload (stored off-chain; not part of on-chain state) - Internal reward-claim flags (private accounting detail)
+
 ## Public Methods
 
 ### `init`
@@ -82,6 +84,24 @@ pub fn resolve_ai_game(env: Env, oracle: Address, game_id: u64, result_payload: 
 #### Return Type
 
 `Result<(), Error>`
+
+### `get_session_snapshot`
+Returns a stable read-only snapshot of a session for client resume flows.  Safe to call without authentication — no sensitive internals are exposed. Returns a deterministic `Missing` snapshot when the game_id is unknown, so callers never need to handle a hard error for a simple lookup.
+
+```rust
+pub fn get_session_snapshot(env: Env, game_id: u64) -> SessionSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `game_id` | `u64` |
+
+#### Return Type
+
+`SessionSnapshot`
 
 ### `claim_ai_reward`
 Authorizes player to claim rewards mapped after oracle validation finishes.

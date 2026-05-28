@@ -78,6 +78,44 @@ pub struct RoundData {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RoundSnapshotStatus {
+    Uninitialized = 0,
+    Open = 1,
+    Finalized = 2,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundSnapshot {
+    pub status: RoundSnapshotStatus,
+    pub round_id: u64,
+    pub opened_at: u64,
+    pub deadline: u64,
+    pub now: u64,
+    pub answer_window_open: bool,
+    pub reward_amount: i128,
+    pub winner_count: u32,
+    pub payout_per_winner: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LeaderboardEntry {
+    pub player: Address,
+    pub correct: bool,
+    pub timestamp: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LeaderboardSnapshot {
+    pub status: RoundSnapshotStatus,
+    pub round_id: u64,
+    pub entries: soroban_sdk::Vec<LeaderboardEntry>,
+}
+
+#[contracttype]
 #[derive(Clone)]
 pub struct Submission {
     pub answer_hash: BytesN<32>,
@@ -91,8 +129,10 @@ pub enum DataKey {
     Admin,
     PrizePoolContract,
     BalanceContract,
+    LatestRoundId,
     Round(u64),
     Submission(u64, Address),
+    Leaderboard(u64),
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +238,7 @@ impl SpeedTrivia {
             opened_at: now,
         };
         env.storage().persistent().set(&key, &round);
+        env.storage().instance().set(&DataKey::LatestRoundId, &round_id);
 
         QuestionOpened {
             round_id,
@@ -266,6 +307,20 @@ impl SpeedTrivia {
         };
         env.storage().persistent().set(&submission_key, &submission);
 
+        let mut leaderboard: soroban_sdk::Vec<LeaderboardEntry> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Leaderboard(round_id))
+            .unwrap_or_else(|| soroban_sdk::Vec::new(&env));
+        leaderboard.push_back(LeaderboardEntry {
+            player: player.clone(),
+            correct,
+            timestamp,
+        });
+        env.storage()
+            .persistent()
+            .set(&DataKey::Leaderboard(round_id), &leaderboard);
+
         AnswerSubmitted {
             round_id,
             player,
@@ -311,6 +366,7 @@ impl SpeedTrivia {
         round.status = RoundStatus::Finalized;
         round.payout_per_winner = payout_per_winner;
         env.storage().persistent().set(&key, &round);
+        env.storage().instance().set(&DataKey::LatestRoundId, &round_id);
 
         RoundFinalized {
             round_id,
@@ -390,6 +446,95 @@ impl SpeedTrivia {
     pub fn get_round(env: Env, round_id: u64) -> Option<RoundData> {
         env.storage().persistent().get(&DataKey::Round(round_id))
     }
+
+    pub fn get_round_snapshot(env: Env) -> RoundSnapshot {
+        let now = env.ledger().timestamp();
+
+        let Some(round_id) = env.storage().instance().get::<DataKey, u64>(&DataKey::LatestRoundId) else {
+            return RoundSnapshot {
+                status: RoundSnapshotStatus::Uninitialized,
+                round_id: 0,
+                opened_at: 0,
+                deadline: 0,
+                now,
+                answer_window_open: false,
+                reward_amount: 0,
+                winner_count: 0,
+                payout_per_winner: 0,
+            };
+        };
+
+        let Some(round) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, RoundData>(&DataKey::Round(round_id))
+        else {
+            return RoundSnapshot {
+                status: RoundSnapshotStatus::Uninitialized,
+                round_id,
+                opened_at: 0,
+                deadline: 0,
+                now,
+                answer_window_open: false,
+                reward_amount: 0,
+                winner_count: 0,
+                payout_per_winner: 0,
+            };
+        };
+
+        let status = match round.status {
+            RoundStatus::Open => RoundSnapshotStatus::Open,
+            RoundStatus::Finalized => RoundSnapshotStatus::Finalized,
+        };
+
+        let answer_window_open = round.status == RoundStatus::Open && now <= round.deadline;
+
+        RoundSnapshot {
+            status,
+            round_id,
+            opened_at: round.opened_at,
+            deadline: round.deadline,
+            now,
+            answer_window_open,
+            reward_amount: round.reward_amount,
+            winner_count: round.winner_count,
+            payout_per_winner: round.payout_per_winner,
+        }
+    }
+
+    pub fn get_leaderboard_snapshot(env: Env) -> LeaderboardSnapshot {
+        let Some(round_id) = env.storage().instance().get::<DataKey, u64>(&DataKey::LatestRoundId) else {
+            return LeaderboardSnapshot {
+                status: RoundSnapshotStatus::Uninitialized,
+                round_id: 0,
+                entries: soroban_sdk::Vec::new(&env),
+            };
+        };
+
+        let Some(round) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, RoundData>(&DataKey::Round(round_id))
+        else {
+            return LeaderboardSnapshot {
+                status: RoundSnapshotStatus::Uninitialized,
+                round_id,
+                entries: soroban_sdk::Vec::new(&env),
+            };
+        };
+
+        let status = match round.status {
+            RoundStatus::Open => RoundSnapshotStatus::Open,
+            RoundStatus::Finalized => RoundSnapshotStatus::Finalized,
+        };
+
+        let entries = read_leaderboard(&env, round_id);
+        LeaderboardSnapshot {
+            status,
+            round_id,
+            entries,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -435,6 +580,42 @@ fn get_balance_contract(env: &Env) -> Result<Address, Error> {
         .instance()
         .get(&DataKey::BalanceContract)
         .ok_or(Error::NotInitialized)
+}
+
+fn read_leaderboard(env: &Env, round_id: u64) -> soroban_sdk::Vec<LeaderboardEntry> {
+    let raw: soroban_sdk::Vec<LeaderboardEntry> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::Leaderboard(round_id))
+        .unwrap_or_else(|| soroban_sdk::Vec::new(env));
+
+    // Selection-sort style ordering to avoid relying on std.
+    // Order by timestamp asc, then by player address (stable tie-break).
+    let mut working = raw;
+    let mut sorted: soroban_sdk::Vec<LeaderboardEntry> = soroban_sdk::Vec::new(env);
+    while working.len() > 0 {
+        let mut best_idx: u32 = 0;
+        let mut best = working.get(0).unwrap();
+
+        for i in 1..working.len() {
+            let candidate = working.get(i).unwrap();
+            if candidate.timestamp < best.timestamp {
+                best = candidate;
+                best_idx = i;
+            } else if candidate.timestamp == best.timestamp {
+                let best_str = best.player.to_string();
+                let cand_str = candidate.player.to_string();
+                if cand_str < best_str {
+                    best = candidate;
+                    best_idx = i;
+                }
+            }
+        }
+
+        sorted.push_back(best);
+        working.remove(best_idx);
+    }
+    sorted
 }
 
 // ---------------------------------------------------------------------------
@@ -628,5 +809,82 @@ mod test {
 
         let result = client.try_claim_reward(&player, &1);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn snapshot_empty_state_when_no_round() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let trivia_id = env.register(SpeedTrivia, ());
+        let client = SpeedTriviaClient::new(&env, &trivia_id);
+
+        let snap = client.get_round_snapshot();
+        assert_eq!(snap.status, RoundSnapshotStatus::Uninitialized);
+
+        let lb = client.get_leaderboard_snapshot();
+        assert_eq!(lb.status, RoundSnapshotStatus::Uninitialized);
+        assert_eq!(lb.entries.len(), 0);
+    }
+
+    #[test]
+    fn snapshot_reflects_active_round_timing() {
+        let env = Env::default();
+        let (client, _admin, player, _trivia_id, _balance) = setup(&env);
+
+        let deadline = env.ledger().timestamp() + 100;
+        let payload = Bytes::from_array(&env, &[9, 9]);
+        let commitment = hash_answer(&env, &payload);
+        client.open_question(&7, &commitment, &deadline, &100);
+
+        let snap = client.get_round_snapshot();
+        assert_eq!(snap.status, RoundSnapshotStatus::Open);
+        assert_eq!(snap.round_id, 7);
+        assert_eq!(snap.answer_window_open, true);
+
+        // move past deadline -> window closed but round still open
+        env.ledger().set_timestamp(deadline + 1);
+        let snap2 = client.get_round_snapshot();
+        assert_eq!(snap2.status, RoundSnapshotStatus::Open);
+        assert_eq!(snap2.answer_window_open, false);
+
+        // ensure leaderboard has an entry after a submission
+        env.ledger().set_timestamp(deadline);
+        client.submit_answer(&player, &7, &payload, &env.ledger().timestamp());
+        let lb = client.get_leaderboard_snapshot();
+        assert_eq!(lb.round_id, 7);
+        assert_eq!(lb.entries.len(), 1);
+    }
+
+    #[test]
+    fn leaderboard_orders_by_timestamp_then_address() {
+        let env = Env::default();
+        let (client, _admin, _player, _trivia_id, _balance) = setup(&env);
+
+        let p1 = Address::generate(&env);
+        let p2 = Address::generate(&env);
+
+        let deadline = env.ledger().timestamp() + 1000;
+        let payload = Bytes::from_array(&env, &[1]);
+        let commitment = hash_answer(&env, &payload);
+        client.open_question(&2, &commitment, &deadline, &100);
+
+        // submit same timestamp for both to force tie-break
+        let ts = env.ledger().timestamp();
+        client.submit_answer(&p1, &2, &payload, &ts);
+        client.submit_answer(&p2, &2, &payload, &ts);
+
+        let lb = client.get_leaderboard_snapshot();
+        assert_eq!(lb.entries.len(), 2);
+
+        let e0 = lb.entries.get(0).unwrap();
+        let e1 = lb.entries.get(1).unwrap();
+        assert_eq!(e0.timestamp, ts);
+        assert_eq!(e1.timestamp, ts);
+
+        // deterministic tie-break: lexicographic address string
+        let s0 = e0.player.to_string();
+        let s1 = e1.player.to_string();
+        assert!(s0 <= s1);
     }
 }

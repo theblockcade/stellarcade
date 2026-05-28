@@ -191,3 +191,38 @@ pub fn get_config_snapshot(env: Env) -> Result<PrizePoolConfigSnapshot, Error>
 
 `Result<PrizePoolConfigSnapshot, Error>`
 
+### `get_prize_allocation_summary`
+Returns a per-game reservation snapshot.  Missing game ids return a zeroed response with `exists = false`.
+
+```rust
+pub fn get_prize_allocation_summary(env: Env, game_id: u64) -> Result<PrizeAllocationSummary, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `game_id` | `u64` |
+
+#### Return Type
+
+`Result<PrizeAllocationSummary, Error>`
+
+### `get_claim_pressure`
+Returns a contract-wide payout-demand summary.  `reserved_share_bps` uses floor rounding and returns `0` when the pool has no tracked balance, which gives consumers a stable zero-value convention for empty or freshly initialized state.
+
+```rust
+pub fn get_claim_pressure(env: Env) -> Result<ClaimPressure, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Result<ClaimPressure, Error>`
+

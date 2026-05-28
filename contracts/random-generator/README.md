@@ -177,3 +177,72 @@ cargo fmt
 - `Fulfilled` with `caller`, `max`, `result`, and `server_seed`.
 
 Duplicate or missing fulfillment attempts also emit `RandomFulfillmentRejected { request_id, reason }` before returning an error, which improves request-trace debugging.
+
+---
+
+## Configuration & Requester Visibility
+
+### `get_config() -> Result<GeneratorConfig, Error>`
+
+Returns a stable snapshot of the generator's operational configuration. This is a read-only, side-effect-free accessor designed for operational tooling.
+
+```rust
+pub struct GeneratorConfig {
+    pub admin:            Address,
+    pub oracle:           Address,
+    pub persistent_ttl:   u32,
+    pub min_max_bound:    u64,
+    pub entropy_version:  Option<String>,
+}
+```
+
+**Fields:**
+- `admin` — Address of the contract administrator
+- `oracle` — Address of the oracle authorized to fulfill randomness requests
+- `persistent_ttl` — Persistent storage TTL in ledgers (518,400 ≈ 30 days)
+- `min_max_bound` — Minimum allowed value for the `max` parameter (always 2)
+- `entropy_version` — Current entropy metadata version string, if set
+
+**Extensibility:** The config shape is designed to be extensible. New generator policy fields can be added in future versions without breaking existing consumers.
+
+---
+
+### `get_requester_summary(caller: Address) -> RequesterSummary`
+
+Returns a per-requester sequencing summary showing their request history. This is a deterministic, side-effect-free read operation.
+
+```rust
+pub struct RequesterSummary {
+    pub caller:           Address,
+    pub total_requests:   u64,
+    pub pending_count:    u64,
+    pub fulfilled_count:  u64,
+}
+```
+
+**Fields:**
+- `caller` — The caller address this summary is for
+- `total_requests` — Total number of requests made by this caller (pending + fulfilled)
+- `pending_count` — Number of requests currently pending fulfillment
+- `fulfilled_count` — Number of requests that have been fulfilled
+
+**Missing-requester behavior:** For callers that have never made requests (or are not authorized), returns a summary with all counts at zero. This allows operational tooling to check any address without error handling.
+
+**Side-effect guarantee:** Multiple calls with the same `caller` always return identical results. The operation performs no writes and does not modify storage TTLs.
+
+---
+
+## Storage
+
+| Key | Storage Type | Description |
+|---|---|---|
+| `Admin` | `instance()` | Admin address |
+| `Oracle` | `instance()` | Oracle address |
+| `EntropyMetadata` | `instance()` | Entropy source metadata (optional) |
+| `AuthorizedCaller(addr)` | `persistent()` | Presence flag for whitelisted callers |
+| `PendingRequest(id)` | `persistent()` | `PendingEntry { caller, max }` |
+| `FulfilledRequest(id)` | `persistent()` | `FulfilledEntry { caller, max, server_seed, result }` |
+| `RequesterPendingCount(addr)` | `persistent()` | Per-requester pending request counter |
+| `RequesterFulfilledCount(addr)` | `persistent()` | Per-requester fulfilled request counter |
+
+All persistent entries have TTL bumped to ~30 days (`518_400` ledgers at 5 s/ledger) on every write.

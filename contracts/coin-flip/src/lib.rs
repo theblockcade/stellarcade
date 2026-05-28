@@ -72,6 +72,10 @@ pub enum DataKey {
     HouseEdgeBps,
     Game(u64),
     PlayerRecentGames(Address),
+    /// Running count of unresolved (active) games.
+    ActiveGamesCount,
+    /// Sum of wagers across all currently unresolved games.
+    TotalActiveWager,
 }
 
 #[contracttype]
@@ -92,6 +96,28 @@ pub struct PlayerGameHistoryPage {
     pub start: u32,
     pub limit: u32,
     pub game_ids: Vec<u64>,
+}
+
+/// Snapshot of the house's current exposure across all unresolved games.
+///
+/// `max_payout_liability` is the maximum token amount the house must transfer
+/// if every active game resolves in the player's favour.  The formula is:
+///
+/// ```text
+/// max_payout_liability = total_wagered * (2 * 10_000 - house_edge_bps) / 10_000
+/// ```
+///
+/// The value resets to zero naturally as games are resolved.  No admin action
+/// is needed between rounds.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HouseExposureSnapshot {
+    /// Number of games that have been placed but not yet resolved.
+    pub active_game_count: u32,
+    /// Sum of all wagers across currently unresolved games.
+    pub total_wagered: i128,
+    /// Worst-case token payout if every active game is won by the player.
+    pub max_payout_liability: i128,
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +247,9 @@ impl CoinFlip {
         );
         push_recent_game(&env, &player, game_id);
 
+        // Update aggregate exposure counters.
+        add_active_exposure(&env, wager);
+
         BetPlaced {
             game_id,
             player,
@@ -308,6 +337,9 @@ impl CoinFlip {
             );
         }
 
+        // Reduce aggregate exposure now that this game is settled.
+        subtract_active_exposure(&env, game.wager);
+
         BetResolved {
             game_id,
             player: game.player,
@@ -365,6 +397,53 @@ impl CoinFlip {
             game_ids,
         })
     }
+
+    /// Return the current house exposure across all unresolved games.
+    ///
+    /// The snapshot is derived entirely from aggregate counters updated by
+    /// `place_bet` and `resolve_bet`, so it requires no off-chain scanning.
+    /// `max_payout_liability` reflects the worst-case payout if every active
+    /// game is won by the player (after applying the configured house edge).
+    /// Returns zeroed fields when no games are currently active.
+    pub fn house_exposure_snapshot(env: Env) -> Result<HouseExposureSnapshot, Error> {
+        require_initialized(&env)?;
+
+        let active_game_count: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ActiveGamesCount)
+            .unwrap_or(0u32);
+        let total_wagered: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalActiveWager)
+            .unwrap_or(0i128);
+
+        let max_payout_liability = if total_wagered == 0 {
+            0i128
+        } else {
+            let house_edge_bps: i128 = env
+                .storage()
+                .instance()
+                .get(&DataKey::HouseEdgeBps)
+                .unwrap();
+            // max payout = total_wagered * (20_000 - house_edge_bps) / 10_000
+            total_wagered
+                .checked_mul(
+                    (2 * BASIS_POINTS_DIVISOR)
+                        .checked_sub(house_edge_bps)
+                        .ok_or(Error::Overflow)?,
+                )
+                .and_then(|v| v.checked_div(BASIS_POINTS_DIVISOR))
+                .ok_or(Error::Overflow)?
+        };
+
+        Ok(HouseExposureSnapshot {
+            active_game_count,
+            total_wagered,
+            max_payout_liability,
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -383,6 +462,48 @@ fn get_token(env: &Env) -> Address {
         .instance()
         .get(&DataKey::Token)
         .expect("CoinFlip: token not set")
+}
+
+/// Increment aggregate exposure counters when a bet is placed.
+fn add_active_exposure(env: &Env, wager: i128) {
+    let count: u32 = env
+        .storage()
+        .instance()
+        .get(&DataKey::ActiveGamesCount)
+        .unwrap_or(0u32);
+    let wagered: i128 = env
+        .storage()
+        .instance()
+        .get(&DataKey::TotalActiveWager)
+        .unwrap_or(0i128);
+    env.storage().instance().set(
+        &DataKey::ActiveGamesCount,
+        &count.checked_add(1).expect("Overflow"),
+    );
+    env.storage().instance().set(
+        &DataKey::TotalActiveWager,
+        &wagered.checked_add(wager).expect("Overflow"),
+    );
+}
+
+/// Decrement aggregate exposure counters when a bet is resolved.
+fn subtract_active_exposure(env: &Env, wager: i128) {
+    let count: u32 = env
+        .storage()
+        .instance()
+        .get(&DataKey::ActiveGamesCount)
+        .unwrap_or(0u32);
+    let wagered: i128 = env
+        .storage()
+        .instance()
+        .get(&DataKey::TotalActiveWager)
+        .unwrap_or(0i128);
+    env.storage()
+        .instance()
+        .set(&DataKey::ActiveGamesCount, &count.saturating_sub(1));
+    env.storage()
+        .instance()
+        .set(&DataKey::TotalActiveWager, &wagered.saturating_sub(wager));
 }
 
 fn push_recent_game(env: &Env, player: &Address, game_id: u64) {

@@ -1,0 +1,120 @@
+/* Recent-surface shortcuts (#788) — kept lean so it slots into the existing
+ * detail-page layouts without imposing colour decisions; uses CSS variables
+ * the rest of the v1 components already reference.
+ */
+.recent-surface-shortcuts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+    border-radius: 0.75rem;
+    background: var(--color-surface, rgba(8, 17, 31, 0.5));
+}
+
+.recent-surface-shortcuts__heading {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.recent-surface-shortcuts__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.recent-surface-shortcuts__item {
+    display: flex;
+}
+
+.recent-surface-shortcuts__shortcut {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex: 1;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    text-align: left;
+    font-size: 0.875rem;
+    color: var(--color-text, rgba(255, 255, 255, 0.85));
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+        border-color 120ms ease,
+        background 120ms ease;
+}
+
+.recent-surface-shortcuts__shortcut:hover,
+.recent-surface-shortcuts__shortcut:focus-visible {
+    border-color: var(--color-border-focus, rgba(251, 191, 36, 0.45));
+    background: var(--color-surface-hover, rgba(255, 255, 255, 0.04));
+    outline: none;
+}
+
+.recent-surface-shortcuts__shortcut[disabled],
+.recent-surface-shortcuts__shortcut[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.recent-surface-shortcuts__label {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-surface-shortcuts__hint {
+    font-size: 0.75rem;
+    color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+    font-variant-numeric: tabular-nums;
+}
+
+.recent-surface-shortcuts__empty {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+    font-style: italic;
+}
+
+.recent-surface-shortcuts__list--loading {
+    pointer-events: none;
+}
+
+.recent-surface-shortcuts__skeleton {
+    height: 2rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.12) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 200% 100%;
+    animation: recent-surface-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .recent-surface-shortcuts__skeleton {
+        animation: none;
+        background: rgba(255, 255, 255, 0.08);
+    }
+}
+
+@keyframes recent-surface-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}

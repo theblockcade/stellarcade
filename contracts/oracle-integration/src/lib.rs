@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, Address, Bytes, BytesN,
-    Env, Vec,
+    Env, Symbol, Vec,
 };
 
 #[contract]
@@ -36,6 +36,29 @@ pub struct OracleRequest {
 pub struct LatestPriceData {
     pub payload: Bytes,
     pub updated_ledger: u32,
+}
+
+/// Snapshot of the configured oracle source addresses at read time.
+/// Returns `None` from `source_config_snapshot` when the contract has not been initialized.
+#[derive(Clone)]
+#[contracttype]
+pub struct OracleSourceSnapshot {
+    /// Whitelisted oracle addresses that may fulfill data requests.
+    pub sources: Vec<Address>,
+    /// Number of configured sources (convenience field for clients).
+    pub source_count: u32,
+}
+
+/// Summary of the update cadence and staleness policy in effect.
+/// Deterministic: the same value is returned on every call.
+#[derive(Clone)]
+#[contracttype]
+pub struct UpdatePolicySummary {
+    /// Number of ledgers after which a price is considered stale.
+    pub stale_threshold_ledgers: u32,
+    /// Describes when updates occur. `"on_request"` means data is fetched
+    /// per-request rather than on a fixed schedule.
+    pub cadence: Symbol,
 }
 
 #[derive(Clone)]
@@ -297,6 +320,43 @@ impl OracleIntegration {
         }
 
         result
+    }
+
+    // ───────── SOURCE CONFIG SNAPSHOT ─────────
+
+    /// Returns a snapshot of the configured oracle source addresses.
+    ///
+    /// Returns `None` when the contract has not been initialized; callers should
+    /// treat a `None` result as "no sources configured" and not attempt data
+    /// requests until the contract is initialized.
+    pub fn source_config_snapshot(env: Env) -> Option<OracleSourceSnapshot> {
+        let sources: Option<Vec<Address>> = env
+            .storage()
+            .instance()
+            .get(&DataKey::OracleSources);
+
+        sources.map(|s| {
+            let source_count = s.len();
+            OracleSourceSnapshot {
+                sources: s,
+                source_count,
+            }
+        })
+    }
+
+    // ───────── UPDATE POLICY SUMMARY ─────────
+
+    /// Returns a deterministic summary of the staleness and update policy.
+    ///
+    /// The summary is safe to cache by clients: it does not change after
+    /// initialization and does not require any feed-specific parameters.
+    /// The `cadence` field is `"on_request"` — data is pulled per-request
+    /// rather than pushed on a fixed schedule.
+    pub fn update_policy_summary(env: Env) -> UpdatePolicySummary {
+        UpdatePolicySummary {
+            stale_threshold_ledgers: STALE_THRESHOLD_LEDGERS,
+            cadence: Symbol::new(&env, "on_request"),
+        }
     }
 
     pub fn last_price_freshness(env: Env, feed_id: BytesN<32>) -> PriceFreshness {

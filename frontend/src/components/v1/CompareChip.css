@@ -1,0 +1,56 @@
+.compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim, #a0a0a0);
+  font-family: var(--font-family, inherit);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.compare-chip:focus-visible {
+  outline: 2px solid var(--accent, #00ffcc);
+  outline-offset: 2px;
+}
+
+.compare-chip:hover:not(.compare-chip--disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-main, #ffffff);
+}
+
+.compare-chip--selected {
+  background: var(--accent-glow, rgba(0, 255, 204, 0.1));
+  border-color: var(--accent, #00ffcc);
+  color: var(--text-main, #ffffff);
+}
+
+.compare-chip--selected .compare-chip__value {
+  color: var(--accent, #00ffcc);
+}
+
+.compare-chip--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.compare-chip__label {
+  line-height: 1.2;
+}
+
+.compare-chip__value {
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-dim, #a0a0a0);
+  line-height: 1.2;
+}

@@ -120,3 +120,20 @@ pub fn treasury_state(env: Env) -> Result<TreasuryState, Error>
 
 `Result<TreasuryState, Error>`
 
+### `policy_snapshot`
+Returns treasury policy and signer-threshold metadata.
+
+```rust
+pub fn policy_snapshot(env: Env) -> Result<TreasuryPolicySnapshot, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Result<TreasuryPolicySnapshot, Error>`
+

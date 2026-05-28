@@ -136,3 +136,67 @@ pub fn get_call_log(env: Env, log_id: u64) -> CallRecord
 
 `CallRecord`
 
+### `read_prize_pool_config`
+```rust
+pub fn read_prize_pool_config(env: Env, address_registry: Address) -> Result<PrizePoolConfigSnapshot, CoreReadError>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `address_registry` | `Address` |
+
+#### Return Type
+
+`Result<PrizePoolConfigSnapshot, CoreReadError>`
+
+### `read_balance_account_summary`
+```rust
+pub fn read_balance_account_summary(env: Env, address_registry: Address, user: Address) -> Result<AccountSummary, CoreReadError>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `address_registry` | `Address` |
+| `user` | `Address` |
+
+#### Return Type
+
+`Result<AccountSummary, CoreReadError>`
+
+### `resolve`
+```rust
+pub fn resolve(env: Env, name: String) -> Result<Address, MockRegistryError>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `name` | `String` |
+
+#### Return Type
+
+`Result<Address, MockRegistryError>`
+
+### `get_config_snapshot`
+```rust
+pub fn get_config_snapshot(env: Env) -> Result<PrizePoolConfigSnapshot, PrizePoolReadError>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Result<PrizePoolConfigSnapshot, PrizePoolReadError>`
+

@@ -1,430 +1,381 @@
-/**
- * Typed API SDK — StellarCade Backend Client
- *
- * Production-grade HTTP client for all StellarCade backend REST endpoints.
- * Follows the same conventions as `SorobanContractClient`:
- *
- * - **Result envelopes**: every method returns `ApiResult<T>` — never throws.
- * - **Error normalization**: raw HTTP responses are mapped to `AppError` via
- *   the shared `mapApiError()` / `mapRpcError()` functions.
- * - **Retry with backoff**: transient failures (5xx, 429, network errors) are
- *   retried up to `MAX_RETRIES` times with exponential backoff; 4xx errors
- *   (client mistakes) are terminal and never retried.
- * - **Auth propagation**: a `SessionStore` interface is injected so the client
- *   stays independently testable without coupling to `GlobalState`.
- * - **Input validation**: required fields are checked before any network call;
- *   invalid inputs return an `API_VALIDATION_ERROR` immediately.
- * - **UI-agnostic**: no React imports; hooks can wrap this via `useAsyncAction`.
- *
- * @module services/typed-api-sdk
- */
-
-import { mapApiError, mapRpcError } from "../utils/v1/errorMapper";
-import { ErrorDomain, ErrorSeverity } from "../types/errors";
-import type { AppError } from "../types/errors";
-import type {
-  ApiClientError,
+import {
   ApiErrorCategory,
-  ApiResult,
-  CreateProfileRequest,
-  CreateProfileResponse,
-  DepositResponse,
-  GetGamesResponse,
-  GetProfileResponse,
-  PlayGameRequest,
-  PlayGameResponse,
-  WithdrawResponse,
-  WalletAmountRequest,
-} from "../types/api-client";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
+  type ApiClientError,
+  type ApiRequestOptions,
+  type ApiResult,
+  type CreateProfileRequest,
+  type CreateProfileResponse,
+  type DepositResponse,
+  type Game,
+  type GetGameByIdResponse,
+  type GetGamesResponse,
+  type GetProfileResponse,
+  type PlayGameRequest,
+  type PlayGameResponse,
+  type UpdateProfileRequest,
+  type UpdateProfileResponse,
+  type WalletAmountRequest,
+  type WithdrawResponse,
+} from '../types/api-client';
+import { ErrorDomain, ErrorSeverity, type ApiErrorCode } from '../types/errors';
 
 const MAX_RETRIES = 3;
-const INITIAL_BACKOFF_MS = 500;
+const INITIAL_BACKOFF_MS = 300;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+interface SessionStore {
+  getToken(): string | null;
+}
+
+interface ApiClientConfig {
+  baseUrl?: string;
+  sessionStore?: SessionStore;
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function normalizeApiClientError(
-  error: AppError,
-  overrides: {
-    category?: ApiErrorCategory;
-    status?: number;
-    originalMessage?: string;
-  } = {},
-): ApiClientError {
-  const category =
-    overrides.category ??
-    inferApiErrorCategory(error, overrides.status);
-
+function makeClientError(params: {
+  code: ApiErrorCode;
+  message: string;
+  category: (typeof ApiErrorCategory)[keyof typeof ApiErrorCategory];
+  severity: (typeof ErrorSeverity)[keyof typeof ErrorSeverity];
+  status?: number;
+  originalMessage?: string;
+}): ApiClientError {
   return {
-    ...error,
-    severity: inferApiErrorSeverity(error, category, overrides.status),
-    category,
-    ...(overrides.status !== undefined ? { status: overrides.status } : {}),
-    originalMessage: overrides.originalMessage ?? error.message,
+    code: params.code,
+    message: params.message,
+    category: params.category,
+    severity: params.severity,
+    domain: ErrorDomain.API,
+    status: params.status,
+    originalMessage: params.originalMessage,
   };
 }
 
-function inferApiErrorCategory(
-  error: AppError,
-  status?: number,
-): ApiErrorCategory {
-  if (
-    error.code === "API_VALIDATION_ERROR" ||
-    status === 400 ||
-    status === 422
-  ) {
-    return "validation";
-  }
-
-  if (
-    error.code === "API_UNAUTHORIZED" ||
-    error.code === "API_FORBIDDEN" ||
-    status === 401 ||
-    status === 403
-  ) {
-    return "auth";
-  }
-
-  if (error.code === "API_NETWORK_ERROR") {
-    return "network";
-  }
-
-  if (
-    error.code === "API_RATE_LIMITED" ||
-    error.code === "API_SERVER_ERROR" ||
-    (status !== undefined && status >= 500)
-  ) {
-    return "server";
-  }
-
-  return "unknown";
+function makeUnauthorizedError(): ApiClientError {
+  return makeClientError({
+    code: 'API_UNAUTHORIZED',
+    message: 'Authentication required.',
+    category: ApiErrorCategory.AUTH,
+    severity: ErrorSeverity.TERMINAL,
+    status: 401,
+  });
 }
 
-function inferApiErrorSeverity(
-  error: AppError,
-  category: ApiErrorCategory,
-  status?: number,
-): ErrorSeverity {
-  if (
-    category === "unknown" &&
-    status !== undefined &&
-    status < 500
-  ) {
-    return ErrorSeverity.TERMINAL;
+function mapApiError(status: number, body: Record<string, unknown>): ApiClientError {
+  const nestedError = (body.error ?? {}) as Record<string, unknown>;
+  const message =
+    (typeof nestedError.message === 'string' && nestedError.message) ||
+    (typeof body.message === 'string' && body.message) ||
+    `Request failed with status ${status}`;
+
+  if (status === 400) {
+    return makeClientError({
+      code: 'API_VALIDATION_ERROR',
+      message: 'Validation failed.',
+      category: ApiErrorCategory.VALIDATION,
+      severity: ErrorSeverity.TERMINAL,
+      status,
+      originalMessage: message,
+    });
   }
 
-  return error.severity;
+  if (status === 401) {
+    return makeClientError({
+      code: 'API_UNAUTHORIZED',
+      message: 'Authentication required.',
+      category: ApiErrorCategory.AUTH,
+      severity: ErrorSeverity.TERMINAL,
+      status,
+      originalMessage: message,
+    });
+  }
+
+  if (status === 403) {
+    return makeClientError({
+      code: 'API_FORBIDDEN',
+      message: 'You are not allowed to perform this action.',
+      category: ApiErrorCategory.AUTH,
+      severity: ErrorSeverity.TERMINAL,
+      status,
+      originalMessage: message,
+    });
+  }
+
+  if (status === 404) {
+    return makeClientError({
+      code: 'API_NOT_FOUND',
+      message: 'Requested resource was not found.',
+      category: ApiErrorCategory.UNKNOWN,
+      severity: ErrorSeverity.TERMINAL,
+      status,
+      originalMessage: message,
+    });
+  }
+
+  if (status === 429) {
+    return makeClientError({
+      code: 'API_RATE_LIMITED',
+      message: 'Too many requests. Please try again.',
+      category: ApiErrorCategory.SERVER,
+      severity: ErrorSeverity.RETRYABLE,
+      status,
+      originalMessage: message,
+    });
+  }
+
+  if (status >= 500) {
+    return makeClientError({
+      code: 'API_SERVER_ERROR',
+      message: 'Server error. Please try again.',
+      category: ApiErrorCategory.SERVER,
+      severity: ErrorSeverity.RETRYABLE,
+      status,
+      originalMessage: message,
+    });
+  }
+
+  return makeClientError({
+    code: 'API_UNKNOWN',
+    message,
+    category: ApiErrorCategory.UNKNOWN,
+    severity: ErrorSeverity.TERMINAL,
+    status,
+    originalMessage: message,
+  });
+}
+
+function mapRpcError(err: unknown, timedOut: boolean): ApiClientError {
+  if (timedOut) {
+    return makeClientError({
+      code: 'API_REQUEST_TIMEOUT',
+      message: 'Request timed out.',
+      category: ApiErrorCategory.NETWORK,
+      severity: ErrorSeverity.TERMINAL,
+      originalMessage: 'Request timed out.',
+    });
+  }
+
+  if (err instanceof DOMException && err.name === 'AbortError') {
+    return makeClientError({
+      code: 'API_ABORTED',
+      message: 'Request was cancelled.',
+      category: ApiErrorCategory.NETWORK,
+      severity: ErrorSeverity.TERMINAL,
+      originalMessage: err.message,
+    });
+  }
+
+  const message = err instanceof Error ? err.message : 'Network error';
+  return makeClientError({
+    code: 'API_NETWORK_ERROR',
+    message: 'Network request failed.',
+    category: ApiErrorCategory.NETWORK,
+    severity: ErrorSeverity.RETRYABLE,
+    originalMessage: message,
+  });
+}
+
+function dispatchApiTrace(_data: unknown): void {
+  // no-op stub for local diagnostics hook
 }
 
 function makeValidationError(message: string): ApiClientError {
-  return normalizeApiClientError({
-    code: "API_VALIDATION_ERROR",
-    domain: ErrorDomain.API,
-    severity: ErrorSeverity.USER_ACTIONABLE,
+  return makeClientError({
+    code: 'API_VALIDATION_ERROR',
     message,
+    category: ApiErrorCategory.VALIDATION,
+    severity: ErrorSeverity.TERMINAL,
   });
 }
 
-function makeUnauthorizedError(): ApiClientError {
-  return normalizeApiClientError({
-    code: "API_UNAUTHORIZED",
-    domain: ErrorDomain.API,
-    severity: ErrorSeverity.USER_ACTIONABLE,
-    message: "Authentication required. Please sign in again.",
-  });
-}
-
-// ── SessionStore interface ────────────────────────────────────────────────────
-
-/**
- * Minimal auth token provider injected into `ApiClient`.
- *
- * Pass a thin adapter over `GlobalState` in production:
- * ```typescript
- * const sessionStore: SessionStore = { getToken: () => selectAuth(globalState).token };
- * ```
- * In tests, use a plain object:
- * ```typescript
- * const sessionStore: SessionStore = { getToken: () => 'test-token' };
- * ```
- */
-export interface SessionStore {
-  /** Returns the current JWT, or null when the user is not authenticated. */
-  getToken(): string | null;
-}
-
-// ── ApiClient options ─────────────────────────────────────────────────────────
-
-export interface ApiClientOptions {
-  /**
-   * Base URL for all API requests.
-   * Defaults to `'/api'` (relative), which works with the Vite dev proxy and
-   * same-origin deployments.
-   */
-  baseUrl?: string;
-  /**
-   * Token provider. When omitted, authenticated endpoints return
-   * `API_UNAUTHORIZED` without making a network call.
-   */
-  sessionStore?: SessionStore;
-}
-
-// ── ApiClient ─────────────────────────────────────────────────────────────────
-
-/**
- * Centralized typed HTTP client for the StellarCade backend API.
- *
- * @example
- * ```typescript
- * const client = new ApiClient({
- *   baseUrl: '/api',
- *   sessionStore: { getToken: () => authToken },
- * });
- *
- * const result = await client.getGames();
- * if (result.success) {
- *   console.log(result.data); // Game[]
- * } else {
- *   console.error(result.error.code); // e.g. 'API_SERVER_ERROR'
- * }
- * ```
- */
 export class ApiClient {
   private readonly _baseUrl: string;
-  private readonly _sessionStore: SessionStore | undefined;
+  private readonly _sessionStore?: SessionStore;
 
-  constructor(opts: ApiClientOptions = {}) {
-    this._baseUrl = opts.baseUrl ?? "/api";
-    this._sessionStore = opts.sessionStore;
+  constructor();
+  constructor(baseUrl: string, sessionStore?: SessionStore);
+  constructor(config: ApiClientConfig);
+  constructor(arg1?: string | ApiClientConfig, arg2?: SessionStore) {
+    if (typeof arg1 === 'string') {
+      this._baseUrl = arg1;
+      this._sessionStore = arg2;
+      return;
+    }
+
+    this._baseUrl = arg1?.baseUrl ?? '';
+    this._sessionStore = arg1?.sessionStore;
   }
 
-  // ── Core request primitive ─────────────────────────────────────────────────
+  async getGames(opts?: ApiRequestOptions): Promise<ApiResult<GetGamesResponse>> {
+    return this._request('GET', '/games', undefined, false, opts);
+  }
 
-  /**
-   * Execute an HTTP request with retry, error mapping, and auth injection.
-   *
-   * @param method - HTTP method ('GET' | 'POST')
-   * @param path - Path relative to baseUrl (e.g. '/games')
-   * @param body - Optional JSON request body (POST only)
-   * @param requiresAuth - When true, the request requires a valid JWT
-   */
+  async getGameById(gameId: string, opts?: ApiRequestOptions): Promise<ApiResult<GetGameByIdResponse>> {
+    if (!gameId.trim()) {
+      return { success: false, error: makeValidationError('Game id is required.') };
+    }
+    return this._request('GET', `/games/${encodeURIComponent(gameId)}`, undefined, false, opts);
+  }
+
+  async playGame(input: PlayGameRequest, opts?: ApiRequestOptions): Promise<ApiResult<PlayGameResponse>> {
+    if (!input.gameId.trim()) {
+      return { success: false, error: makeValidationError('Game id is required.') };
+    }
+    if (input.wager !== undefined && input.wager <= 0) {
+      return { success: false, error: makeValidationError('Wager must be greater than zero.') };
+    }
+    return this._request('POST', '/games/play', input, true, opts);
+  }
+
+  async getProfile(opts?: ApiRequestOptions): Promise<ApiResult<GetProfileResponse>> {
+    return this._request('GET', '/users/profile', undefined, true, opts);
+  }
+
+  async createProfile(input: CreateProfileRequest, opts?: ApiRequestOptions): Promise<ApiResult<CreateProfileResponse>> {
+    if (!input.address.trim()) {
+      return { success: false, error: makeValidationError('Address is required.') };
+    }
+    return this._request('POST', '/users/create', input, false, opts);
+  }
+
+  async updateProfile(input: UpdateProfileRequest, opts?: ApiRequestOptions): Promise<ApiResult<UpdateProfileResponse>> {
+    if (!input.address.trim() || !input.username.trim()) {
+      return { success: false, error: makeValidationError('Address and username are required.') };
+    }
+    return this._request('POST', '/users/update', input, true, opts);
+  }
+
+  async deposit(input: WalletAmountRequest, opts?: ApiRequestOptions): Promise<ApiResult<DepositResponse>> {
+    if (input.amount <= 0) {
+      return { success: false, error: makeValidationError('Amount must be greater than zero.') };
+    }
+    return this._request('POST', '/wallet/deposit', input, true, opts);
+  }
+
+  async withdraw(input: WalletAmountRequest, opts?: ApiRequestOptions): Promise<ApiResult<WithdrawResponse>> {
+    if (input.amount <= 0) {
+      return { success: false, error: makeValidationError('Amount must be greater than zero.') };
+    }
+    return this._request('POST', '/wallet/withdraw', input, true, opts);
+  }
+
   private async _request<T>(
-    method: "GET" | "POST",
+    method: 'GET' | 'POST',
     path: string,
     body: unknown,
     requiresAuth: boolean,
+    opts: ApiRequestOptions = {},
   ): Promise<ApiResult<T>> {
-    // ── Auth precondition ────────────────────────────────────────────────────
     const token = this._sessionStore?.getToken() ?? null;
+
     if (requiresAuth && token === null) {
       return { success: false, error: makeUnauthorizedError() };
     }
 
-    // ── Build headers ────────────────────────────────────────────────────────
+    if (opts.signal?.aborted) {
+      return {
+        success: false,
+        error: makeClientError({
+          code: 'API_ABORTED',
+          message: 'Request was cancelled.',
+          category: ApiErrorCategory.NETWORK,
+          severity: ErrorSeverity.TERMINAL,
+          originalMessage: 'Request was cancelled.',
+        }),
+      };
+    }
+
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
+
     if (token !== null) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const controller = new AbortController();
+    let timedOut = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    if (opts.timeout !== undefined) {
+      timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, opts.timeout);
+    }
+
+    if (opts.signal) {
+      opts.signal.addEventListener('abort', () => {
+        controller.abort(opts.signal?.reason);
+      });
     }
 
     const url = `${this._baseUrl}${path}`;
-
-    // ── Retry loop ───────────────────────────────────────────────────────────
     let lastError: ApiClientError | undefined;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
       if (attempt > 0) {
         await sleep(INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1));
       }
 
-      let response: Response;
       try {
-        response = await fetch(url, {
+        dispatchApiTrace({ method, path, attempt: attempt + 1 });
+
+        const response = await fetch(url, {
           method,
           headers,
           ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+          signal: controller.signal,
         });
-      } catch (networkErr) {
-        // Network failure (fetch threw) — map and retry
-        const mappedNetErr = normalizeApiClientError(
-          mapRpcError(networkErr, { url, attempt }),
-          {
-            category: "network",
-            originalMessage:
-              networkErr instanceof Error ? networkErr.message : String(networkErr),
-          },
-        );
-        lastError = mappedNetErr;
-        if (mappedNetErr.severity === ErrorSeverity.RETRYABLE) continue;
-        return { success: false, error: mappedNetErr };
+
+        if (response.ok) {
+          const data = (await response.json()) as T;
+          if (timeoutId) clearTimeout(timeoutId);
+          return { success: true, data };
+        }
+
+        let errorBody: Record<string, unknown>;
+        try {
+          errorBody = (await response.json()) as Record<string, unknown>;
+        } catch {
+          errorBody = { status: response.status };
+        }
+
+        const mapped = mapApiError(response.status, errorBody);
+        lastError = mapped;
+
+        if (mapped.severity !== ErrorSeverity.RETRYABLE) {
+          if (timeoutId) clearTimeout(timeoutId);
+          return { success: false, error: mapped };
+        }
+      } catch (err: unknown) {
+        const mapped = mapRpcError(err, timedOut);
+        lastError = mapped;
+
+        if (mapped.severity !== ErrorSeverity.RETRYABLE) {
+          if (timeoutId) clearTimeout(timeoutId);
+          return { success: false, error: mapped };
+        }
       }
+    }
 
-      if (response.ok) {
-        const data = (await response.json()) as T;
-        return { success: true, data };
-      }
-
-      // Parse error body — backend emits { error: { message, code, status } }
-      // or { message }. We pass the parsed object to mapApiError.
-      let errorBody: unknown;
-      try {
-        errorBody = await response.json();
-      } catch {
-        errorBody = { status: response.status };
-      }
-
-      // Attach the HTTP status to whatever shape was returned so mapApiError
-      // can pattern-match on it consistently.
-      const rawWithStatus =
-        typeof errorBody === "object" && errorBody !== null
-          ? {
-              ...(errorBody as Record<string, unknown>),
-              status: response.status,
-            }
-          : { status: response.status };
-
-      const mapped = normalizeApiClientError(
-        mapApiError(rawWithStatus, {
-          url,
-          attempt,
-          status: response.status,
+    if (timeoutId) clearTimeout(timeoutId);
+    return {
+      success: false,
+      error:
+        lastError ??
+        makeClientError({
+          code: 'API_UNKNOWN',
+          message: 'Unknown API error.',
+          category: ApiErrorCategory.UNKNOWN,
+          severity: ErrorSeverity.TERMINAL,
         }),
-        {
-          status: response.status,
-          originalMessage:
-            typeof errorBody === "object" &&
-            errorBody !== null &&
-            "message" in (errorBody as Record<string, unknown>) &&
-            typeof (errorBody as Record<string, unknown>).message === "string"
-              ? ((errorBody as Record<string, unknown>).message as string)
-              : undefined,
-        },
-      );
-      lastError = mapped;
-
-      // Only retry RETRYABLE errors (5xx, 429, network)
-      if (mapped.severity !== ErrorSeverity.RETRYABLE) {
-        return { success: false, error: mapped };
-      }
-    }
-
-    return { success: false, error: lastError! };
-  }
-
-  // ── Public endpoint methods ────────────────────────────────────────────────
-
-  /**
-   * Retrieve all available games.
-   * `GET /api/games` — no auth required.
-   */
-  async getGames(): Promise<ApiResult<GetGamesResponse>> {
-    return this._request<GetGamesResponse>("GET", "/games", undefined, false);
-  }
-
-  /**
-   * Play a game session.
-   * `POST /api/games/play` — auth required.
-   *
-   * @param req - `{ gameId, wager? }` — gameId must be non-empty.
-   */
-  async playGame(req: PlayGameRequest): Promise<ApiResult<PlayGameResponse>> {
-    if (!req.gameId || req.gameId.trim() === "") {
-      return {
-        success: false,
-        error: makeValidationError(
-          "gameId is required and must be a non-empty string.",
-        ),
-      };
-    }
-    if (req.wager !== undefined && req.wager <= 0) {
-      return {
-        success: false,
-        error: makeValidationError("wager must be greater than zero."),
-      };
-    }
-    return this._request<PlayGameResponse>("POST", "/games/play", req, true);
-  }
-
-  /**
-   * Fetch the authenticated user's profile.
-   * `GET /api/users/profile` — auth required.
-   */
-  async getProfile(): Promise<ApiResult<GetProfileResponse>> {
-    return this._request<GetProfileResponse>(
-      "GET",
-      "/users/profile",
-      undefined,
-      true,
-    );
-  }
-
-  /**
-   * Create a new user profile.
-   * `POST /api/users/create` — no auth required.
-   *
-   * @param req - `{ address, username? }` — address must be non-empty.
-   */
-  async createProfile(
-    req: CreateProfileRequest,
-  ): Promise<ApiResult<CreateProfileResponse>> {
-    if (!req.address || req.address.trim() === "") {
-      return {
-        success: false,
-        error: makeValidationError(
-          "address is required and must be a non-empty string.",
-        ),
-      };
-    }
-    return this._request<CreateProfileResponse>(
-      "POST",
-      "/users/create",
-      req,
-      false,
-    );
-  }
-
-  /**
-   * Deposit funds into the user's wallet.
-   * `POST /api/wallet/deposit` — auth required.
-   *
-   * @param req - `{ amount }` — must be greater than zero.
-   */
-  async deposit(req: WalletAmountRequest): Promise<ApiResult<DepositResponse>> {
-    if (!req.amount || req.amount <= 0) {
-      return {
-        success: false,
-        error: makeValidationError("amount must be greater than zero."),
-      };
-    }
-    return this._request<DepositResponse>("POST", "/wallet/deposit", req, true);
-  }
-
-  /**
-   * Withdraw funds from the user's wallet.
-   * `POST /api/wallet/withdraw` — auth required.
-   *
-   * @param req - `{ amount }` — must be greater than zero.
-   */
-  async withdraw(
-    req: WalletAmountRequest,
-  ): Promise<ApiResult<WithdrawResponse>> {
-    if (!req.amount || req.amount <= 0) {
-      return {
-        success: false,
-        error: makeValidationError("amount must be greater than zero."),
-      };
-    }
-    return this._request<WithdrawResponse>(
-      "POST",
-      "/wallet/withdraw",
-      req,
-      true,
-    );
+    };
   }
 }
+
+export type { ApiResult, ApiRequestOptions, ApiClientError };
+export type { Game };

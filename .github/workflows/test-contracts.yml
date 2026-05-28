@@ -15,7 +15,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          toolchain: 1.91.0
+          targets: wasm32v1-none,wasm32-unknown-unknown
+
+      - name: Ensure wasm target
+        run: rustup target add wasm32v1-none
 
       - name: Cache Cargo
         uses: actions/cache@v4
@@ -29,26 +33,42 @@ jobs:
       - name: Build Contracts
         run: |
           cd contracts/shared && cargo build --release
-          cd ../prize-pool && cargo build --target wasm32-unknown-unknown --release
-          cd ../random-generator && cargo build --target wasm32-unknown-unknown --release
-          cd ../coin-flip && cargo build --target wasm32-unknown-unknown --release
-          cd ../multiplayer-room && cargo build --target wasm32-unknown-unknown --release
-          cd ../pattern-puzzle && cargo build --target wasm32-unknown-unknown --release
-          cd ../emergency-pause && cargo build --target wasm32-unknown-unknown --release
-          cd ../governance && cargo build --target wasm32-unknown-unknown --release
-          cd ../contract-role-registry && cargo build --target wasm32-unknown-unknown --release
+          cd ../prize-pool && cargo build --target wasm32v1-none --release
+          cd ../random-generator && cargo build --target wasm32v1-none --release
+          cd ../coin-flip && cargo build --target wasm32v1-none --release
+          cd ../multiplayer-room && cargo build --target wasm32v1-none --release
+          cd ../pattern-puzzle && cargo build --target wasm32v1-none --release
+          cd ../emergency-pause && cargo build --target wasm32v1-none --release
+          cd ../governance && cargo build --target wasm32v1-none --release
+          cd ../contract-role-registry && cargo build --target wasm32v1-none --release
+          cd ../campaign-claims && cargo build --target wasm32v1-none --release
+          cd ../fee-shield && cargo build --target wasm32v1-none --release
+          cd ../streak-ladder && cargo build --target wasm32v1-none --release
+          cd ../creator-drops && cargo build --target wasm32v1-none --release
+          cd ../escrow-ledger && cargo build --target wasm32v1-none --release
+          cd ../attendance-pass && cargo build --target wasm32v1-none --release
+          cd ../fanout-distributor && cargo build --target wasm32v1-none --release
+          cd ../vote-escrow && cargo build --target wasm32v1-none --release
 
       - name: Run Tests
         run: |
-          cd contracts/shared && cargo test
-          cd ../prize-pool && cargo test
-          cd ../random-generator && cargo test
-          cd ../coin-flip && cargo test
-          cd ../multiplayer-room && cargo test
-          cd ../pattern-puzzle && cargo test
-          cd ../emergency-pause && cargo test
-          cd ../governance && cargo test
-          cd ../contract-role-registry && cargo test
+          cd contracts/shared && cargo test --locked
+          cd ../prize-pool && cargo test --locked
+          cd ../random-generator && cargo test --locked
+          cd ../coin-flip && cargo test --locked
+          cd ../multiplayer-room && cargo test --locked
+          cd ../pattern-puzzle && cargo test --locked
+          cd ../emergency-pause && cargo test --locked
+          cd ../governance && cargo test --locked
+          cd ../contract-role-registry && cargo test --locked
+          cd ../campaign-claims && cargo test --locked
+          cd ../fee-shield && cargo test --locked
+          cd ../streak-ladder && cargo test --locked
+          cd ../creator-drops && cargo test --locked
+          cd ../escrow-ledger && cargo test --locked
+          cd ../attendance-pass && cargo test --locked
+          cd ../fanout-distributor && cargo test --locked
+          cd ../vote-escrow && cargo test --locked
 
       - name: Verify Contract Documentation
         run: |

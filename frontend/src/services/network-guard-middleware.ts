@@ -12,6 +12,7 @@ import type {
   ProviderNetworkSnapshot,
 } from "../types/network-guard-middleware";
 import { NetworkGuardError } from "../types/network-guard-middleware";
+import { dispatchApiTrace } from "../types/api-trace";
 
 const inFlightOperations = new Set<string>();
 
@@ -189,10 +190,36 @@ export async function withNetworkGuard<T>(
   operation: () => Promise<T>,
 ): Promise<T> {
   const lock = assertOperationNotDuplicated(input);
+  const traceId = `guard-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const startTime = Date.now();
+
+  dispatchApiTrace({
+    traceId,
+    source: "NetworkGuard",
+    method: "GuardOperation",
+    url: lock ? `operation:${lock}` : "operation:anonymous",
+    startTime,
+    endTime: null,
+    durationMs: null,
+    status: "pending",
+  });
 
   try {
     await assertSupportedNetworkBeforeOperation(input);
-    return await operation();
+    const result = await operation();
+    
+    dispatchApiTrace({
+      traceId,
+      source: "NetworkGuard",
+      method: "GuardOperation",
+      url: lock ? `operation:${lock}` : "operation:anonymous",
+      startTime,
+      endTime: Date.now(),
+      durationMs: Date.now() - startTime,
+      status: "success",
+    });
+
+    return result;
   } catch (err) {
     const isQueueableError =
       err instanceof NetworkGuardError &&
@@ -201,6 +228,18 @@ export async function withNetworkGuard<T>(
         err.code === "NETWORK_MISSING");
 
     if (isQueueableError && input.isIdempotent && input.resumeOnNetworkRecovery) {
+      dispatchApiTrace({
+        traceId,
+        source: "NetworkGuard",
+        method: "GuardOperation",
+        url: lock ? `operation:${lock}` : "operation:anonymous",
+        startTime,
+        endTime: Date.now(),
+        durationMs: Date.now() - startTime,
+        status: "cancelled", // Considered cancelled/queued
+        errorData: new Error("Queued waiting for network changes"),
+      });
+
       return new Promise<T>((resolve, reject) => {
         queuedActions.push({
           operation,
@@ -210,6 +249,19 @@ export async function withNetworkGuard<T>(
         });
       });
     }
+
+    dispatchApiTrace({
+      traceId,
+      source: "NetworkGuard",
+      method: "GuardOperation",
+      url: lock ? `operation:${lock}` : "operation:anonymous",
+      startTime,
+      endTime: Date.now(),
+      durationMs: Date.now() - startTime,
+      status: "error",
+      errorData: err,
+    });
+
     throw err;
   } finally {
     if (lock) {
@@ -238,4 +290,98 @@ export async function resumeQueuedNetworkActions(): Promise<void> {
 
 export function clearNetworkGuardOperationLocks(): void {
   inFlightOperations.clear();
+}
+
+// ── Offline detection and queued refresh (#480) ────────────────────────────────
+
+type ConnectivityListener = (online: boolean) => void;
+
+const connectivityListeners = new Set<ConnectivityListener>();
+let pendingRefreshCount = 0;
+let refreshStormGuard = false;
+
+/**
+ * Returns true when the browser reports offline status.
+ * Falls back to true (online) when navigator.onLine is unavailable.
+ */
+export function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+    ? !navigator.onLine
+    : false;
+}
+
+/**
+ * Subscribe to connectivity changes. Returns an unsubscribe function.
+ * Listener receives `true` when online, `false` when offline.
+ */
+export function onConnectivityChange(listener: ConnectivityListener): () => void {
+  connectivityListeners.add(listener);
+
+  const handleOnline = () => {
+    for (const fn of connectivityListeners) fn(true);
+  };
+  const handleOffline = () => {
+    for (const fn of connectivityListeners) fn(false);
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+  }
+
+  return () => {
+    connectivityListeners.delete(listener);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    }
+  };
+}
+
+/**
+ * Enqueue a refresh to execute once connectivity returns.
+ * Returns the current count of pending refreshes.
+ * Prevents duplicate refresh storms via debounce.
+ */
+export function enqueueRefreshOnReconnect(refreshFn: () => Promise<void>): number {
+  pendingRefreshCount++;
+  const currentCount = pendingRefreshCount;
+
+  const unsubscribe = onConnectivityChange(async (online) => {
+    if (!online) return;
+    unsubscribe();
+
+    // Storm guard: batch-execute with a small delay to prevent duplicates
+    if (refreshStormGuard) return;
+    refreshStormGuard = true;
+
+    try {
+      await refreshFn();
+    } catch (err) {
+      console.error('[NetworkGuard] Queued refresh failed:', err);
+    } finally {
+      pendingRefreshCount = Math.max(0, pendingRefreshCount - 1);
+      // Release storm guard after a short cooldown
+      setTimeout(() => {
+        refreshStormGuard = false;
+      }, 500);
+    }
+  });
+
+  return currentCount;
+}
+
+/**
+ * Returns the number of queued refresh operations waiting for reconnection.
+ */
+export function getPendingRefreshCount(): number {
+  return pendingRefreshCount;
+}
+
+/**
+ * Reset pending refresh count (for testing or cleanup).
+ */
+export function resetPendingRefreshCount(): void {
+  pendingRefreshCount = 0;
+  refreshStormGuard = false;
 }

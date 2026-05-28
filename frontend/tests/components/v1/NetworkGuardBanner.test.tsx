@@ -487,6 +487,27 @@ describe("NetworkGuardBanner", () => {
         screen.queryByTestId("network-guard-banner"),
       ).not.toBeInTheDocument();
     });
+
+    it("disables actionable controls when actionsDisabled is true", () => {
+      const mockSwitch = vi.fn();
+      const mockRetry = vi.fn();
+      render(
+        <NetworkGuardBanner
+          {...mockDefaultProps}
+          isSupported={false}
+          onSwitchNetwork={mockSwitch}
+          onRetryNetworkCheck={mockRetry}
+          actionsDisabled={true}
+          actionsDisabledReason="Network switching managed by your org policy."
+        />,
+      );
+
+      expect(screen.getByTestId("network-switch-button")).toBeDisabled();
+      expect(screen.getByTestId("network-retry-button")).toBeDisabled();
+      expect(screen.getByTestId("network-actions-disabled-reason")).toHaveTextContent(
+        "managed by your org policy",
+      );
+    });
   });
 
   describe("Accessibility", () => {

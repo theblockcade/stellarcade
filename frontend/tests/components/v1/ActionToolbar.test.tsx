@@ -99,4 +99,18 @@ describe('ActionToolbar', () => {
         render(<ActionToolbar actions={[actionWithIcon]} />);
         expect(screen.getByTestId('test-icon')).toBeInTheDocument();
     });
+    it('renders the core toolbar class for desktop styling', () => {
+        render(<ActionToolbar actions={mockActions} />);
+        const toolbar = screen.getByRole('toolbar');
+        
+        expect(toolbar).toHaveClass('stellarcade-action-toolbar');
+        expect(toolbar).not.toHaveClass('stellarcade-action-toolbar--mobile-sticky');
+    });
+
+    it('renders the sticky mobile footer class when enabled', () => {
+        render(<ActionToolbar actions={mockActions} mobileSticky={true} />);
+        const toolbar = screen.getByRole('toolbar');
+
+        expect(toolbar).toHaveClass('stellarcade-action-toolbar--mobile-sticky');
+    });
 });

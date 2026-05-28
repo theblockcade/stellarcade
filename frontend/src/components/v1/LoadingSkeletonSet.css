@@ -18,16 +18,23 @@
 
 /* ── Pulse animation ─────────────────────────────────────────────── */
 @keyframes stellarcade-skeleton-pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.4; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* ── Base skeleton ───────────────────────────────────────────────── */
 .stellarcade-skeleton {
   background-color: var(--sk-base-color);
   border-radius: var(--sk-radius-sm);
-  animation: stellarcade-skeleton-pulse var(--sk-pulse-duration) var(--sk-pulse-easing) infinite;
+  animation: stellarcade-skeleton-pulse var(--sk-pulse-duration)
+    var(--sk-pulse-easing) infinite;
 }
 
 /* ── Reduced-motion: disable pulse animation automatically ───────── */
@@ -63,10 +70,18 @@
 }
 
 /* ── Token-driven radius utility classes ─────────────────────────── */
-.stellarcade-skeleton--radius-sm  { border-radius: var(--sk-radius-sm); }
-.stellarcade-skeleton--radius-md  { border-radius: var(--sk-radius-md); }
-.stellarcade-skeleton--radius-lg  { border-radius: var(--sk-radius-lg); }
-.stellarcade-skeleton--radius-circle { border-radius: var(--sk-radius-circle); }
+.stellarcade-skeleton--radius-sm {
+  border-radius: var(--sk-radius-sm);
+}
+.stellarcade-skeleton--radius-md {
+  border-radius: var(--sk-radius-md);
+}
+.stellarcade-skeleton--radius-lg {
+  border-radius: var(--sk-radius-lg);
+}
+.stellarcade-skeleton--radius-circle {
+  border-radius: var(--sk-radius-circle);
+}
 
 /* ── Card layout ─────────────────────────────────────────────────── */
 .stellarcade-skeleton-card {
@@ -155,4 +170,20 @@
 .dark .stellarcade-empty-state {
   color: #94a3b8;
   border-color: #475569;
+}
+
+.stellarcade-page-skeleton-orchestrator {
+  display: contents;
+}
+
+.stellarcade-page-skeleton-orchestrator__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

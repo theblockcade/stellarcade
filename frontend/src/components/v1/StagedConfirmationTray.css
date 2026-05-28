@@ -1,0 +1,250 @@
+.sct-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+  padding: 0 0.5rem;
+}
+
+/* ── Tray ───────────────────────────────────────────────────────────────── */
+
+.sct {
+  --sct-bg: #0e0f11;
+  --sct-border: rgba(255, 255, 255, 0.1);
+  --sct-radius: 16px 16px 0 0;
+  --sct-primary: #a78bfa;
+  --sct-primary-hover: #c4b5fd;
+
+  width: 100%;
+  max-width: 540px;
+  background: var(--sct-bg);
+  border: 1px solid var(--sct-border);
+  border-radius: var(--sct-radius);
+  padding: 1.25rem 1.5rem 1.75rem;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+/* ── Progress strip ─────────────────────────────────────────────────────── */
+
+.sct__progress {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sct__progress-bar {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--sct-primary);
+  border-radius: 1px;
+  transition: width 300ms ease;
+}
+
+.sct__step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.sct__step--active {
+  color: var(--sct-primary);
+  font-weight: 600;
+}
+
+.sct__step--done {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sct__step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.sct__step--done .sct__step-num::after {
+  content: '✓';
+  font-size: 0.65rem;
+}
+
+.sct__step--done .sct__step-num { visibility: hidden; position: relative; }
+.sct__step--done .sct__step-num::after { visibility: visible; position: absolute; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.sct__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sct__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.sct__risk {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.sct__risk--low      { color: #4ade80; border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.07); }
+.sct__risk--medium   { color: #facc15; border-color: rgba(250,204,21,0.35); background: rgba(250,204,21,0.07); }
+.sct__risk--high     { color: #fb923c; border-color: rgba(251,146,60,0.35); background: rgba(251,146,60,0.07); }
+.sct__risk--critical { color: #f87171; border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.07); }
+
+/* ── Fields (review stage) ──────────────────────────────────────────────── */
+
+.sct__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.sct__field {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.85rem;
+}
+
+.sct__field:last-child { border-bottom: none; }
+
+.sct__field-label { color: rgba(255, 255, 255, 0.5); }
+.sct__field-value { color: #ffffff; font-weight: 500; text-align: right; }
+
+.sct__field--sensitive .sct__field-value {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+/* ── Confirm stage ──────────────────────────────────────────────────────── */
+
+.sct__confirm-prompt {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.sct__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sct__checkbox { accent-color: var(--sct-primary); width: 1rem; height: 1rem; cursor: pointer; }
+
+/* ── Done stage ─────────────────────────────────────────────────────────── */
+
+.sct__done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.sct__processing {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.sct__spinner {
+  display: inline-block;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--sct-primary);
+  border-radius: 50%;
+  animation: sct-spin 0.75s linear infinite;
+}
+
+@keyframes sct-spin { to { transform: rotate(360deg); } }
+
+.sct__outcome {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.sct__outcome--success { color: #4ade80; }
+.sct__outcome--error   { color: #f87171; }
+
+.sct__outcome-icon { font-size: 1.1rem; }
+
+/* ── Action buttons ─────────────────────────────────────────────────────── */
+
+.sct__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.sct__btn {
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+.sct__btn--primary {
+  background: var(--sct-primary);
+  color: #0e0f11;
+}
+
+.sct__btn--primary:hover { background: var(--sct-primary-hover); }
+.sct__btn--primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.sct__btn--secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sct__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}

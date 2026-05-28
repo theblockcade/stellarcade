@@ -2,8 +2,8 @@
 
 use super::*;
 use soroban_sdk::{
-    testutils::Ledger,
     testutils::Address as _,
+    testutils::Ledger,
     token::{StellarAssetClient, TokenClient},
     Address, Env,
 };
@@ -178,8 +178,8 @@ fn test_partial_release_leaves_reservation() {
     client.release(&admin, &1u64, &200i128); // return 200, leave 400 reserved
 
     let state = client.get_pool_state();
-    assert_eq!(state.available, 600);  // 400 original + 200 released
-    assert_eq!(state.reserved, 400);   // 600 - 200
+    assert_eq!(state.available, 600); // 400 original + 200 released
+    assert_eq!(state.reserved, 400); // 600 - 200
 }
 
 #[test]
@@ -394,7 +394,7 @@ fn test_metrics_uninitialized_rejected() {
 fn test_metrics_initial_state() {
     let env = Env::default();
     let (client, _, _, _) = setup(&env);
-    
+
     let metrics = client.get_prize_pool_metrics();
     assert_eq!(metrics.available_balance, 0);
     assert_eq!(metrics.reserved_amount, 0);
@@ -423,7 +423,7 @@ fn test_metrics_after_reserve_release_payout() {
     env.mock_all_auths();
 
     client.fund(&funder, &5_000i128);
-    
+
     // Reserve
     env.ledger().set_sequence_number(200);
     client.reserve(&admin, &1u64, &2_000i128);
@@ -492,4 +492,62 @@ fn test_config_snapshot_accuracy() {
     assert_eq!(snapshot.reserved_amount, 500);
     assert_eq!(snapshot.payouts_count, 0);
     assert_eq!(snapshot.last_update_ledger, 55);
+}
+
+#[test]
+fn test_prize_allocation_summary_happy_path() {
+    let env = Env::default();
+    let (client, admin, funder, _) = setup(&env);
+    env.mock_all_auths();
+
+    client.fund(&funder, &2_000i128);
+    client.reserve(&admin, &11u64, &1_200i128);
+    client.release(&admin, &11u64, &200i128);
+
+    let summary = client.get_prize_allocation_summary(&11u64);
+    assert!(summary.exists);
+    assert_eq!(summary.total_allocated, 1_200);
+    assert_eq!(summary.amount_distributed, 200);
+    assert_eq!(summary.remaining_amount, 1_000);
+    assert!(!summary.fully_distributed);
+}
+
+#[test]
+fn test_prize_allocation_summary_missing_game_is_predictable() {
+    let env = Env::default();
+    let (client, _, _, _) = setup(&env);
+
+    let summary = client.get_prize_allocation_summary(&404u64);
+    assert!(!summary.exists);
+    assert_eq!(summary.total_allocated, 0);
+    assert_eq!(summary.remaining_amount, 0);
+    assert!(summary.fully_distributed);
+}
+
+#[test]
+fn test_claim_pressure_empty_pool_returns_zero_ratio() {
+    let env = Env::default();
+    let (client, _, _, _) = setup(&env);
+
+    let pressure = client.get_claim_pressure();
+    assert_eq!(pressure.available_balance, 0);
+    assert_eq!(pressure.reserved_amount, 0);
+    assert_eq!(pressure.tracked_balance, 0);
+    assert_eq!(pressure.reserved_share_bps, 0);
+}
+
+#[test]
+fn test_claim_pressure_tracks_reserved_share() {
+    let env = Env::default();
+    let (client, admin, funder, _) = setup(&env);
+    env.mock_all_auths();
+
+    client.fund(&funder, &1_000i128);
+    client.reserve(&admin, &5u64, &250i128);
+
+    let pressure = client.get_claim_pressure();
+    assert_eq!(pressure.available_balance, 750);
+    assert_eq!(pressure.reserved_amount, 250);
+    assert_eq!(pressure.tracked_balance, 1_000);
+    assert_eq!(pressure.reserved_share_bps, 2_500);
 }

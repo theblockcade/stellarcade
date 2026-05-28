@@ -1,0 +1,51 @@
+.resume-task-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-card, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--accent, #00ffcc);
+  border-radius: 8px;
+  color: var(--text-main, #ffffff);
+  box-shadow: 0 4px 12px var(--accent-glow, rgba(0, 255, 204, 0.1));
+}
+
+.resume-task-banner__text {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.resume-task-banner__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.resume-task-banner__btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.resume-task-banner__btn--primary {
+  background: var(--accent, #00ffcc);
+  color: #000;
+}
+.resume-task-banner__btn--primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 8px var(--accent-glow, rgba(0, 255, 204, 0.4));
+}
+
+.resume-task-banner__btn--dismiss {
+  background: transparent;
+  color: var(--text-dim, #a0a0a0);
+}
+.resume-task-banner__btn--dismiss:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main, #fff);
+}

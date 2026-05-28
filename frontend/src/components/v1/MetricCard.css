@@ -1,0 +1,205 @@
+.mc {
+  --mc-bg: rgba(255, 255, 255, 0.04);
+  --mc-border: rgba(255, 255, 255, 0.08);
+  --mc-label-color: rgba(255, 255, 255, 0.55);
+  --mc-value-color: #ffffff;
+  --mc-caption-color: rgba(255, 255, 255, 0.4);
+  --mc-error-bg: rgba(248, 113, 113, 0.08);
+  --mc-error-border: rgba(248, 113, 113, 0.3);
+  --mc-error-text: #fca5a5;
+  --mc-retry-color: #f87171;
+  --mc-up-color: #4ade80;
+  --mc-down-color: #f87171;
+  --mc-neutral-color: rgba(255, 255, 255, 0.4);
+  --mc-skeleton-bg: rgba(255, 255, 255, 0.07);
+  --mc-skeleton-shimmer: rgba(255, 255, 255, 0.13);
+  --mc-radius: 10px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--mc-bg);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.mc:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Label ────────────────────────────────────────────────────────────────── */
+
+.mc__label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mc-label-color);
+}
+
+/* ── Body / Value ─────────────────────────────────────────────────────────── */
+
+.mc__body {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mc__value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--mc-value-color);
+  letter-spacing: -0.02em;
+}
+
+/* ── Trend ────────────────────────────────────────────────────────────────── */
+
+.mc__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+}
+
+.mc__trend--up {
+  color: var(--mc-up-color);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.mc__trend--down {
+  color: var(--mc-down-color);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.mc__trend--neutral {
+  color: var(--mc-neutral-color);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mc__trend-icon {
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+/* ── Caption ──────────────────────────────────────────────────────────────── */
+
+.mc__caption {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--mc-caption-color);
+  line-height: 1.4;
+}
+
+/* ── Loading ──────────────────────────────────────────────────────────────── */
+
+.mc__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.mc__skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--mc-skeleton-bg) 25%,
+    var(--mc-skeleton-shimmer) 50%,
+    var(--mc-skeleton-bg) 75%
+  );
+  background-size: 200% 100%;
+  animation: mc-shimmer 1.4s ease-in-out infinite;
+}
+
+.mc__skeleton--value {
+  height: 2rem;
+  width: 55%;
+}
+
+.mc__skeleton--caption {
+  height: 0.8rem;
+  width: 70%;
+}
+
+@keyframes mc-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Error ────────────────────────────────────────────────────────────────── */
+
+.mc__error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--mc-error-bg);
+  border: 1px solid var(--mc-error-border);
+  border-radius: 6px;
+}
+
+.mc__error-text {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--mc-error-text);
+  line-height: 1.4;
+}
+
+.mc__retry {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--mc-retry-color);
+  background: transparent;
+  border: 1px solid var(--mc-error-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.mc__retry:hover {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.mc__retry:focus-visible {
+  outline: 2px solid var(--mc-retry-color);
+  outline-offset: 2px;
+}
+
+/* ── Empty ────────────────────────────────────────────────────────────────── */
+
+.mc__empty {
+  display: flex;
+  align-items: center;
+  padding-top: 0.1rem;
+}
+
+.mc__empty-dash {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.18);
+  line-height: 1;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .mc {
+    padding: 1rem;
+  }
+
+  .mc__value {
+    font-size: 1.6rem;
+  }
+}

@@ -273,3 +273,59 @@ fn test_queue_metrics_after_head_advances() {
     assert_eq!(metrics.depth, 2);
     assert_eq!(metrics.oldest_pending, Some(second));
 }
+
+#[test]
+fn test_queued_payout_snapshot_happy_path() {
+    let s = setup();
+    let user = Address::generate(&s.env);
+    let settlement_id = symbol_short!("qs1");
+
+    s.client
+        .enqueue_settlement(&settlement_id, &user, &250, &symbol_short!("rank"));
+
+    let snapshot = s.client.queued_payout_snapshot(&settlement_id);
+    assert!(snapshot.exists);
+    assert_eq!(snapshot.account, Some(user));
+    assert_eq!(snapshot.amount, 250);
+    assert_eq!(snapshot.queue_index, Some(0));
+    assert_eq!(snapshot.queue_position, Some(0));
+    assert!(snapshot.in_queue);
+    assert_eq!(snapshot.queue_depth, 1);
+}
+
+#[test]
+fn test_queued_payout_snapshot_missing_is_predictable() {
+    let s = setup();
+    let snapshot = s.client.queued_payout_snapshot(&symbol_short!("miss"));
+
+    assert!(!snapshot.exists);
+    assert_eq!(snapshot.amount, 0);
+    assert_eq!(snapshot.queue_index, None);
+    assert!(!snapshot.in_queue);
+}
+
+#[test]
+fn test_signer_readiness_happy_path() {
+    let s = setup();
+
+    let readiness = s.client.signer_readiness(&s.admin);
+    assert!(readiness.initialized);
+    assert!(readiness.signer_matches_admin);
+    assert!(readiness.reward_contract_configured);
+    assert!(readiness.treasury_contract_configured);
+    assert!(readiness.can_administer_queue);
+}
+
+#[test]
+fn test_signer_readiness_preconfiguration() {
+    let env = Env::default();
+    let contract_id = env.register(SettlementQueue, ());
+    let client = SettlementQueueClient::new(&env, &contract_id);
+    let signer = Address::generate(&env);
+
+    let readiness = client.signer_readiness(&signer);
+    assert!(!readiness.initialized);
+    assert!(!readiness.signer_matches_admin);
+    assert!(!readiness.can_administer_queue);
+    assert_eq!(readiness.queue_depth, 0);
+}

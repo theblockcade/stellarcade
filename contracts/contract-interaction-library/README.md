@@ -37,6 +37,13 @@ All other StellarCade contracts can resolve peer addresses through this registry
 | `log_call(callee_name, caller, success) -> u64` | Any contract | Append a call record and return its ID. |
 | `get_call_log(log_id) -> CallRecord` | Anyone | Fetch a log entry by ID. |
 
+### Registry-backed typed reads
+
+| Method | Caller | Description |
+|---|---|---|
+| `read_prize_pool_config(address_registry) -> Result<PrizePoolConfigSnapshot, CoreReadError>` | Anyone | Resolve `prize-pool` from the registry and return its config snapshot. |
+| `read_balance_account_summary(address_registry, user) -> Result<AccountSummary, CoreReadError>` | Anyone | Resolve `balance-management` from the registry and return a stable user account summary. |
+
 ## ContractEntry Fields
 
 | Field | Type | Description |
@@ -97,6 +104,12 @@ All other StellarCade contracts can resolve peer addresses through this registry
 - Other contracts should call `resolve(name)` at invocation time rather than caching addresses to benefit from upgrades.
 - `log_call` may be called by any credentialed address — the contract itself performs `caller.require_auth()`.
 - Backend services should index the `logged` event stream for off-chain analytics.
+
+## Typed-read integration pattern
+
+- **Address resolution**: callers pass the on-chain address of the Contract Address Registry as `address_registry`.
+- **Normalized lookup failures**: helpers return `Result<_, CoreReadError>` so callers can handle registry lookup problems consistently.
+- **Thin behavior**: helpers only resolve a contract address and forward a typed read to that target contract; they should not embed application policy.
 
 ## Dependencies
 

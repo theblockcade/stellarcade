@@ -1,0 +1,79 @@
+.pending-action-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--text-main, #ffffff);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+  flex-wrap: wrap;
+}
+
+.pending-action-chip__copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.pending-action-chip__eyebrow {
+  color: #fbbf24;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pending-action-chip__label {
+  font-size: 0.95rem;
+}
+
+.pending-action-chip__detail {
+  color: var(--text-dim, #a0a0a0);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.pending-action-chip__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pending-action-chip__button {
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.85rem;
+}
+
+.pending-action-chip__button--primary {
+  background: #fbbf24;
+  color: #111827;
+  font-weight: 700;
+}
+
+.pending-action-chip__button--dismiss {
+  background: transparent;
+  color: var(--text-dim, #a0a0a0);
+}
+
+.pending-action-chip__button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+@media (max-width: 640px) {
+  .pending-action-chip {
+    border-radius: 1rem;
+    align-items: flex-start;
+  }
+
+  .pending-action-chip__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

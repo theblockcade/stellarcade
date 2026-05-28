@@ -173,3 +173,38 @@ pub fn get_request_status(env: Env, request_id: u64) -> Result<RequestStatus, Er
 
 `Result<RequestStatus, Error>`
 
+### `get_config`
+Return a stable snapshot of the generator's operational configuration.  This is a read-only, side-effect-free accessor designed for operational tooling. The config shape is extensible for future generator policy fields.
+
+```rust
+pub fn get_config(env: Env) -> Result<GeneratorConfig, Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Result<GeneratorConfig, Error>`
+
+### `get_requester_summary`
+Return a per-requester sequencing summary showing their request history.  This is a deterministic, side-effect-free read operation. For missing requesters (never authorized or no requests), returns a summary with all counts at zero.
+
+```rust
+pub fn get_requester_summary(env: Env, caller: Address) -> RequesterSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `caller` | `Address` |
+
+#### Return Type
+
+`RequesterSummary`
+

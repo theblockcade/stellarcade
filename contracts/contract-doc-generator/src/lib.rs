@@ -142,6 +142,8 @@ impl DocGenerator {
             types: Vec::new(),
             events: Vec::new(),
         };
+        let fn_name_regex = Regex::new(r"fn\s+([a-zA-Z0-9_]+)").unwrap();
+        let struct_name_regex = Regex::new(r"struct\s+([a-zA-Z0-9_]+)").unwrap();
 
         let mut lines = content.lines().peekable();
         let mut current_docs = Vec::new();
@@ -153,8 +155,8 @@ impl DocGenerator {
                 continue;
             }
 
-            if trimmed.starts_with("///") {
-                current_docs.push(trimmed[3..].trim().to_string());
+            if let Some(doc_line) = trimmed.strip_prefix("///") {
+                current_docs.push(doc_line.trim().to_string());
                 continue;
             }
 
@@ -170,7 +172,6 @@ impl DocGenerator {
 
             // Detect Methods
             if trimmed.contains("pub fn") {
-                let name_regex = Regex::new(r"fn\s+([a-zA-Z0-9_]+)").unwrap();
                 // Capture multi-line signatures (common in contract methods).
                 let mut signature = trimmed.to_string();
                 while !signature.contains('{') {
@@ -196,7 +197,7 @@ impl DocGenerator {
                     .replace(", )", ")")
                     .replace(" )", ")");
 
-                if let Some(cap) = name_regex.captures(&normalized_signature) {
+                if let Some(cap) = fn_name_regex.captures(&normalized_signature) {
                     let (parameters, return_type) = self.extract_params_and_return(&normalized_signature);
                     doc.methods.push(MethodDoc {
                         name: cap[1].to_string(),
@@ -211,25 +212,22 @@ impl DocGenerator {
             // Detect Events (marked with #[contractevent])
             // Since we skipped #[ earlier, we need to check if the NEXT line is an event struct
             // Actually, let's look back or handle decorators specifically
-            if trimmed.contains("struct") {
-                 if !current_docs.is_empty() {
-                    let name_regex = Regex::new(r"struct\s+([a-zA-Z0-9_]+)").unwrap();
-                    if let Some(cap) = name_regex.captures(trimmed) {
-                        let struct_name = cap[1].to_string();
-                        if struct_name.contains("Event") || struct_name.contains("Claimed") {
-                            doc.events.push(EventDoc {
-                                name: struct_name,
-                                description: Some(current_docs.join(" ")),
-                            });
-                        } else {
-                            doc.types.push(TypeDoc {
-                                name: struct_name,
-                                description: Some(current_docs.join(" ")),
-                                fields: Vec::new(),
-                            });
-                        }
+            if trimmed.contains("struct") && !current_docs.is_empty() {
+                if let Some(cap) = struct_name_regex.captures(trimmed) {
+                    let struct_name = cap[1].to_string();
+                    if struct_name.contains("Event") || struct_name.contains("Claimed") {
+                        doc.events.push(EventDoc {
+                            name: struct_name,
+                            description: Some(current_docs.join(" ")),
+                        });
+                    } else {
+                        doc.types.push(TypeDoc {
+                            name: struct_name,
+                            description: Some(current_docs.join(" ")),
+                            fields: Vec::new(),
+                        });
                     }
-                 }
+                }
             }
 
             current_docs.clear();
@@ -303,7 +301,7 @@ impl DocGenerator {
                         for p in &m.parameters {
                             content.push_str(&format!("| `{}` | `{}` |\n", p.name, p.type_name));
                         }
-                        content.push_str("\n");
+                        content.push('\n');
                     }
 
                     if let Some(rt) = &m.return_type {
@@ -318,7 +316,7 @@ impl DocGenerator {
                 for e in &doc.events {
                     content.push_str(&format!("- **{}**: {}\n", e.name, e.description.as_deref().unwrap_or("No description")));
                 }
-                content.push_str("\n");
+                content.push('\n');
             }
 
             fs::write(file_path, content).map_err(|e| e.to_string())?;

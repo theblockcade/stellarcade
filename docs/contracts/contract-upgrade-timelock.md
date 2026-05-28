@@ -1,5 +1,7 @@
 # contract-upgrade-timelock
 
+Snapshot returned by `get_queued_upgrade`. `None` when no upgrade is queued (never queued or already cleared). When `Some`, `is_ready` is `true` iff the current ledger timestamp >= `eta`.
+
 ## Public Methods
 
 ### `init`
@@ -82,4 +84,22 @@ pub fn upgrade_state(env: Env, upgrade_id: u64) -> UpgradeRecord
 #### Return Type
 
 `UpgradeRecord`
+
+### `get_queued_upgrade`
+Returns a single-read snapshot of the queued upgrade for `upgrade_id`.  Returns `None` when no record exists or the upgrade is no longer in `Queued` status (executed or cancelled).  When `Some`, `is_ready` is `true` iff the current ledger timestamp has reached or passed `eta`.
+
+```rust
+pub fn get_queued_upgrade(env: Env, upgrade_id: u64) -> Option<QueuedUpgradeView>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `upgrade_id` | `u64` |
+
+#### Return Type
+
+`Option<QueuedUpgradeView>`
 

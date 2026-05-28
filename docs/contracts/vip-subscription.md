@@ -101,3 +101,39 @@ pub fn status_of(env: Env, user: Address) -> SubscriptionStatus
 
 `SubscriptionStatus`
 
+### `subscription_status`
+Return a frontend-friendly subscription status for `user`.  Missing users return `NeverSubscribed`, while expired users retain their stored `plan_id` and `expires_at` for renewal messaging.
+
+```rust
+pub fn subscription_status(env: Env, user: Address) -> UserSubscriptionStatus
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`UserSubscriptionStatus`
+
+### `renewal_preview`
+Preview the effect of renewing the user's current subscription now.  This accessor never mutates state. Active subscriptions preview a stacked renewal from the current expiry; expired subscriptions preview a renewal starting from `now`; never-subscribed users return `can_renew = false`.
+
+```rust
+pub fn renewal_preview(env: Env, user: Address) -> RenewalPreview
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`RenewalPreview`
+

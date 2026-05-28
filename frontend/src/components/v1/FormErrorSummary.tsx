@@ -42,6 +42,11 @@ export interface FormErrorSummaryProps {
   isPendingSubmit?: boolean;
   /** Label shown in the pending indicator. @default 'Submitting…' */
   pendingLabel?: string;
+  /** 
+   * Optional callback to intercept jump link clicks (e.g., for multi-step forms
+   * where the field may be on another, currently hidden step). 
+   */
+  onFocusJump?: (field: string) => void;
 }
 
 function fieldToDomId(prefix: string, field: string): string {
@@ -57,11 +62,17 @@ export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
   testId = 'form-error-summary',
   isPendingSubmit = false,
   pendingLabel = 'Submitting…',
+  onFocusJump,
 }) => {
   const baseId = useId().replace(/:/g, '');
 
   const focusField = useCallback(
     (field: string) => {
+      if (onFocusJump) {
+        onFocusJump(field);
+        return;
+      }
+      
       const id = fieldToDomId(fieldIdPrefix, field);
       const el = document.getElementById(id);
       if (el && 'focus' in el && typeof (el as HTMLElement).focus === 'function') {
@@ -73,7 +84,7 @@ export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
         }
       }
     },
-    [fieldIdPrefix],
+    [fieldIdPrefix, onFocusJump],
   );
 
   const onKeyJump = useCallback(

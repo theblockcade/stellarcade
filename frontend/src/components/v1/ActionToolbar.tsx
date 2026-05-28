@@ -22,6 +22,8 @@ export interface ToolbarAction {
     isLoading?: boolean;
     /** Whether the action is disabled. */
     isDisabled?: boolean;
+    /** Optional reason shown near the button when it is disabled. */
+    disabledReason?: string;
     /** Optional icon component or string. */
     icon?: React.ReactNode;
 }
@@ -34,6 +36,8 @@ export interface ActionToolbarProps {
     actions: ToolbarAction[];
     /** Layout orientation. @default 'horizontal' */
     orientation?: 'horizontal' | 'vertical';
+    /** Pins the toolbar to a sticky mobile footer when the viewport is narrow. */
+    mobileSticky?: boolean;
     /** Optional CSS class name for custom styling. */
     className?: string;
     /** Optional test ID for automation. @default 'action-toolbar' */
@@ -49,6 +53,7 @@ export interface ActionToolbarProps {
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     actions,
     orientation = 'horizontal',
+    mobileSticky = false,
     className = '',
     testId = 'action-toolbar'
 }) => {
@@ -89,7 +94,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
 
     return (
         <div
-            className={`stellarcade-action-toolbar stellarcade-action-toolbar--${orientation} ${className}`}
+            className={`stellarcade-action-toolbar stellarcade-action-toolbar--${orientation} ${mobileSticky ? 'stellarcade-action-toolbar--mobile-sticky' : ''} ${className}`}
             role="toolbar"
             aria-label="Action Toolbar"
             data-testid={testId}
@@ -98,27 +103,43 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
             {actions.map((action, index) => {
                 const isItemDisabled = action.isDisabled || action.isLoading;
                 const intentClass = `stellarcade-toolbar-item--${action.intent || 'secondary'}`;
+                const reasonId = (action.isDisabled && !action.isLoading && action.disabledReason)
+                    ? `${testId}-item-${action.id}-reason`
+                    : undefined;
 
                 return (
-                    <button
-                        key={action.id}
-                        type="button"
-                        className={`stellarcade-toolbar-item ${intentClass} ${action.isLoading ? 'stellarcade-toolbar-item--loading' : ''}`}
-                        onClick={() => !isItemDisabled && action.onClick()}
-                        disabled={isItemDisabled}
-                        onKeyDown={(e) => handleKeyDown(e, index)}
-                        tabIndex={0}
-                        data-testid={`${testId}-item-${action.id}`}
-                        aria-busy={action.isLoading}
-                        title={action.label}
-                    >
-                        {action.isLoading ? (
-                            <span className="stellarcade-toolbar-spinner" aria-hidden="true" />
-                        ) : (
-                            action.icon && <span className="stellarcade-toolbar-icon">{action.icon}</span>
+                    <div key={action.id} className="stellarcade-toolbar-item-wrapper">
+                        <button
+                            type="button"
+                            className={`stellarcade-toolbar-item ${intentClass} ${action.isLoading ? 'stellarcade-toolbar-item--loading' : ''}`}
+                            onClick={() => !isItemDisabled && action.onClick()}
+                            disabled={isItemDisabled}
+                            onKeyDown={(e) => handleKeyDown(e, index)}
+                            tabIndex={0}
+                            data-testid={`${testId}-item-${action.id}`}
+                            aria-busy={action.isLoading}
+                            aria-describedby={reasonId}
+                            title={action.label}
+                        >
+                            {action.isLoading ? (
+                                <span className="stellarcade-toolbar-spinner" aria-hidden="true" />
+                            ) : (
+                                action.icon && <span className="stellarcade-toolbar-icon">{action.icon}</span>
+                            )}
+                            <span className="stellarcade-toolbar-label">{action.label}</span>
+                        </button>
+                        {reasonId && (
+                            <p
+                                id={reasonId}
+                                data-testid={reasonId}
+                                className="stellarcade-toolbar-disabled-reason"
+                                role="status"
+                                aria-live="polite"
+                            >
+                                {action.disabledReason}
+                            </p>
                         )}
-                        <span className="stellarcade-toolbar-label">{action.label}</span>
-                    </button>
+                    </div>
                 )
             })}
         </div>

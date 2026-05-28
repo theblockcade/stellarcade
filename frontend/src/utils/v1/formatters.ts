@@ -325,3 +325,61 @@ export function formatDate(
     return fallback;
   }
 }
+
+/**
+ * Format a transaction timestamp for receipt display.
+ *
+ * Returns a full date-time string suitable for receipts (e.g., "Mar 29, 2026, 3:45 PM").
+ * Accepts ms or seconds (if value < 1e12, treated as seconds). Invalid input returns fallback.
+ */
+export function formatTxTimestamp(
+  timestamp: number | null | undefined,
+  options: FormatDateOptions = {},
+): string {
+  return formatDate(timestamp, {
+    ...options,
+    dateStyle: options.dateStyle ?? "medium",
+    timeStyle: options.timeStyle ?? "short",
+  });
+}
+
+/**
+ * Truncate a transaction hash for receipt display.
+ *
+ * Returns a shortened hash (e.g., "GABC...xyz1").
+ * Validates hash-like shape (length 12-64, base32 chars). Invalid input returns FALLBACK_ADDRESS.
+ */
+export function truncateHash(
+  hash: string | null | undefined,
+  options: FormatAddressOptions = {},
+): string {
+  return formatAddress(hash, {
+    startChars: options.startChars ?? 8,
+    endChars: options.endChars ?? 8,
+    separator: options.separator ?? "...",
+  });
+}
+
+/**
+ * Format a value for display alongside a copy affordance.
+ *
+ * Returns `{ display, full }` where `display` is truncated for inline
+ * rendering and `full` is the raw value to copy. Callers can use `display`
+ * as visible text and hand `full` to `useCopyFeedback.copy()`.
+ */
+export function formatCopyableValue(
+  value: string | null | undefined,
+  options: FormatAddressOptions & { label?: string } = {},
+): { display: string; full: string; ariaLabel: string } {
+  const full = typeof value === "string" ? value.trim() : "";
+  if (!full) {
+    return { display: FALLBACK_ADDRESS, full: "", ariaLabel: "Nothing to copy" };
+  }
+  const display = formatAddress(full, {
+    startChars: options.startChars ?? 6,
+    endChars: options.endChars ?? 4,
+    separator: options.separator ?? "…",
+  });
+  const label = options.label ?? "value";
+  return { display, full, ariaLabel: `Copy ${label} ${display}` };
+}

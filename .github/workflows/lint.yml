@@ -21,14 +21,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.91.0
           components: clippy
       - name: Run Clippy
         run: |
-          cd contracts/shared && cargo clippy -- -D warnings
-          cd ../prize-pool && cargo clippy -- -D warnings
-          cd ../random-generator && cargo clippy -- -D warnings
-          cd ../coin-flip && cargo clippy -- -D warnings
-          cd ../multiplayer-room && cargo clippy -- -D warnings
-          cd ../pattern-puzzle && cargo clippy -- -D warnings
-          cd ../emergency-pause && cargo clippy -- -D warnings
-          cd ../governance && cargo clippy -- -D warnings
+          cd contracts/shared && cargo clippy --locked -- -D warnings
+          cd ../prize-pool && cargo clippy --locked -- -D warnings
+          cd ../random-generator && cargo clippy --locked -- -D warnings
+          cd ../coin-flip && cargo clippy --locked -- -D warnings
+          cd ../multiplayer-room && cargo clippy --locked -- -D warnings
+          cd ../pattern-puzzle && cargo clippy --locked -- -D warnings
+          cd ../emergency-pause && cargo clippy --locked -- -D warnings
+          cd ../governance && cargo clippy --locked -- -D warnings
+          cd ../campaign-claims && cargo clippy --locked -- -D warnings
+          cd ../fee-shield && cargo clippy --locked -- -D warnings
+          cd ../streak-ladder && cargo clippy --locked -- -D warnings
+          cd ../creator-drops && cargo clippy --locked -- -D warnings

@@ -16,6 +16,8 @@ import {
   RejectedSignatureError,
   StaleSessionError,
   WalletSessionError,
+  WalletSessionRefreshPhase,
+  type WalletSessionRefreshState,
 } from "../../../src/types/wallet-session";
 import type { WalletSessionMeta, WalletProviderInfo } from "../../../src/types/wallet-session";
 
@@ -34,12 +36,22 @@ type Subscriber = (
   state: WalletSessionState,
   meta?: WalletSessionMeta | null,
   error?: Error | null,
+  refreshState?: WalletSessionRefreshState,
+  sessionDropped?: boolean,
 ) => void;
 
 class MockWalletSessionService {
   private subscriber: Subscriber | null = null;
   private _state: WalletSessionState = WalletSessionState.DISCONNECTED;
   private _meta: WalletSessionMeta | null = null;
+  private _refreshState: WalletSessionRefreshState = {
+    phase: WalletSessionRefreshPhase.IDLE,
+    trigger: "silent",
+    attempt: 0,
+    maxAttempts: 1,
+    terminal: false,
+  };
+  private _sessionDropped = false;
 
   getState() {
     return this._state;
@@ -49,10 +61,18 @@ class MockWalletSessionService {
     return this._meta;
   }
 
+  getRefreshState() {
+    return { ...this._refreshState };
+  }
+
+  getSessionDropped() {
+    return this._sessionDropped;
+  }
+
   subscribe(fn: Subscriber) {
     this.subscriber = fn;
     // Mirror real service: call subscriber immediately with current state
-    fn(this._state, this._meta, null);
+    fn(this._state, this._meta, null, this.getRefreshState(), this._sessionDropped);
     return () => {
       this.subscriber = null;
     };
@@ -63,11 +83,21 @@ class MockWalletSessionService {
     state: WalletSessionState,
     meta: WalletSessionMeta | null,
     error: Error | null = null,
+    refreshState: WalletSessionRefreshState = this.getRefreshState(),
+    sessionDropped = this._sessionDropped,
   ) {
     this._state = state;
     this._meta = meta;
+    this._refreshState = refreshState;
+    this._sessionDropped = sessionDropped;
     if (this.subscriber) {
-      this.subscriber(state, meta, error);
+      this.subscriber(
+        state,
+        meta,
+        error,
+        this.getRefreshState(),
+        this._sessionDropped,
+      );
     }
   }
 

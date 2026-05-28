@@ -21,6 +21,7 @@ export const ErrorDomain = {
   API:      'api',
   WALLET:   'wallet',
   CONTRACT: 'contract',
+  UI:       'ui',
   UNKNOWN:  'unknown',
 } as const;
 
@@ -56,6 +57,8 @@ export type ApiErrorCode =
   | 'API_VALIDATION_ERROR'
   | 'API_RATE_LIMITED'
   | 'API_SERVER_ERROR'
+  | 'API_REQUEST_TIMEOUT'
+  | 'API_ABORTED'
   | 'API_UNKNOWN';
 
 export type WalletErrorCode =
@@ -88,11 +91,17 @@ export type ContractErrorCode =
   | 'CONTRACT_UNAUTHORIZED_CALLER'
   | 'CONTRACT_UNKNOWN';
 
+export type UiErrorCode =
+  | 'CLIPBOARD_NOT_SUPPORTED'
+  | 'CLIPBOARD_ERROR'
+  | 'UI_UNKNOWN';
+
 export type AppErrorCode =
   | RpcErrorCode
   | ApiErrorCode
   | WalletErrorCode
   | ContractErrorCode
+  | UiErrorCode
   | 'UNKNOWN';
 
 export interface AppError {
@@ -113,6 +122,14 @@ export interface AppError {
   retryAfterMs?: number;
   /** Structured API error details for support/QA workflows. */
   apiDetails?: ApiErrorDetails;
+  /** UI action associated with the error (e.g., 'Please try again') */
+  action?: string;
+  /** Diagnostic debug properties */
+  debug?: {
+    originalError?: unknown;
+    context?: Record<string, unknown>;
+    retryAfterMs?: number;
+  };
 }
 
 /** Structured error details returned by backend API responses. */
