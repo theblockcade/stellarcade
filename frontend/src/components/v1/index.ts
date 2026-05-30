@@ -464,3 +464,37 @@ export {
   default as EntityActionShortcutsDefault,
 } from "./EntityActionShortcuts";
 export type { EntityActionShortcutsProps } from "./EntityActionShortcuts";
+
+export {
+  InlineAlertTray,
+  default as InlineAlertTrayDefault,
+} from "./InlineAlertTray";
+export type {
+  InlineAlertTrayProps,
+  InlineAlertTrayAction,
+  AlertTrayVariant,
+} from "./InlineAlertTray";
+
+export {
+  PreferenceDraftIndicator,
+  default as PreferenceDraftIndicatorDefault,
+} from "./PreferenceDraftIndicator";
+export type { PreferenceDraftIndicatorProps } from "./PreferenceDraftIndicator";
+
+export {
+  RelatedRecordActionRow,
+  default as RelatedRecordActionRowDefault,
+} from "./RelatedRecordActionRow";
+export type {
+  RelatedRecordActionRowProps,
+  RelatedRecordAction,
+} from "./RelatedRecordActionRow";
+
+export {
+  GuidedActionFooter,
+  default as GuidedActionFooterDefault,
+} from "./GuidedActionFooter";
+export type {
+  GuidedActionFooterProps,
+  GuidedAction,
+} from "./GuidedActionFooter";

@@ -1,0 +1,100 @@
+.contract-detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 16px);
+  padding: var(--space-md, 16px);
+  background-color: var(--surface-base, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-lg, 12px);
+  font-family: var(--font-family, inherit);
+}
+
+.contract-detail-sidebar--error {
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.contract-detail-sidebar__error {
+  text-align: center;
+  color: var(--text-error, #ef4444);
+}
+
+.contract-detail-sidebar__error button {
+  margin-top: var(--space-sm, 12px);
+  padding: 8px 16px;
+  background-color: var(--accent, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  font-size: var(--font-size-sm, 14px);
+  font-weight: 500;
+}
+
+.contract-detail-sidebar__error button:hover {
+  background-color: var(--accent-hover, #60a5fa);
+}
+
+.contract-detail-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-sm, 12px);
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+}
+
+.contract-detail-sidebar__title {
+  font-size: var(--font-size-base, 16px);
+  font-weight: 600;
+  color: var(--text-main, #ffffff);
+  margin: 0;
+}
+
+.contract-detail-sidebar__count {
+  font-size: var(--font-size-sm, 14px);
+  font-weight: 500;
+  color: var(--text-secondary, #a8b5c8);
+  background-color: var(--surface-elevated, rgba(255, 255, 255, 0.06));
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.contract-detail-sidebar__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 12px);
+}
+
+.contract-detail-sidebar__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg, 24px);
+  gap: var(--space-sm, 12px);
+  color: var(--text-secondary, #a8b5c8);
+}
+
+.contract-detail-sidebar__loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: contract-detail-sidebar-spinner 0.8s linear infinite;
+}
+
+@keyframes contract-detail-sidebar-spinner {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .contract-detail-sidebar {
+    padding: var(--space-sm, 12px);
+  }
+
+  .contract-detail-sidebar__title {
+    font-size: var(--font-size-sm, 14px);
+  }
+}
