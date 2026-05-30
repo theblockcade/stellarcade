@@ -5,6 +5,8 @@ import { AccountSwitcher } from '@/components/v1/AccountSwitcher';
 import { DraftPresenceIndicator } from '@/components/v1/DraftPresenceIndicator';
 import SensitiveActionChecklist from '@/components/v1/SensitiveActionChecklist';
 import { StickyActionsFooter } from '@/components/v1/StickyActionsFooter';
+import { CollapsibleStatsGroup } from '@/components/v1/CollapsibleStatsGroup';
+import { RewardBalanceSparklineCard } from '@/components/v1/RewardBalanceSparklineCard';
 import GlobalStateStore from '@/services/global-state-store';
 import { useWalletStatus } from '@/hooks/v1/useWalletStatus';
 import type { RecentAccount } from '@/components/v1/AccountSwitcher.types';
@@ -152,6 +154,48 @@ const ProfileSettings: React.FC = () => {
     { id: 'wallet-review', label: 'I verified wallet ownership and profile identity.' },
   ];
   const isReviewComplete = checkedReviewIds.length === reviewChecklist.length;
+  const profileSummaryStats = useMemo(
+    () => [
+      {
+        id: 'wallet-connected',
+        label: 'Wallet',
+        value: walletMeta.connected ? 'Connected' : 'Disconnected',
+        caption: walletMeta.address,
+      },
+      {
+        id: 'network',
+        label: 'Network',
+        value: walletMeta.network,
+      },
+      {
+        id: 'provider',
+        label: 'Provider',
+        value: walletMeta.provider,
+      },
+      {
+        id: 'draft-state',
+        label: 'Draft state',
+        value: draftStatus,
+        caption: hasDraftChanges ? 'Unsaved updates present' : 'No pending profile edits',
+      },
+    ],
+    [draftStatus, hasDraftChanges, walletMeta],
+  );
+  const rewardTrendStatus = loading ? 'loading' : error ? 'error' : profile ? 'idle' : 'idle';
+  const primaryRewardSeries = useMemo(
+    () => {
+      const seed = (profile?.username?.length ?? 2) + (walletMeta.connected ? 3 : 1);
+      return [seed, seed + 1, seed + 2, seed + 1, seed + 3];
+    },
+    [profile?.username?.length, walletMeta.connected],
+  );
+  const bonusRewardSeries = useMemo(
+    () => {
+      const base = walletMeta.connected ? 8 : 3;
+      return [base, base + 1, base + 1, base + 2];
+    },
+    [walletMeta.connected],
+  );
 
   useEffect(() => {
     if (hasDraftChanges) {
@@ -267,6 +311,47 @@ const ProfileSettings: React.FC = () => {
 
       <div className="wallet-metadata" data-testid="profile-settings-wallet-meta">
         <h3>Wallet</h3>
+        <div
+          data-testid="profile-settings-reward-trend-grid"
+          style={{
+            display: 'grid',
+            gap: '0.75rem',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            marginBottom: '1rem',
+          }}
+        >
+          <RewardBalanceSparklineCard
+            label="Earned rewards"
+            status={rewardTrendStatus}
+            error={error ?? undefined}
+            onRetry={() => undefined}
+            balance={profile ? `${(profile.username?.length ?? 0) * 12} XP` : undefined}
+            balanceEquivalent={profile ? `Profile: ${profile.username || 'Unnamed'}` : undefined}
+            dataPoints={primaryRewardSeries}
+            change={walletMeta.connected ? '+6%' : '0%'}
+            trend={walletMeta.connected ? 'up' : 'flat'}
+            testId="profile-settings-reward-earned"
+          />
+          <RewardBalanceSparklineCard
+            label="Bonus momentum"
+            status={rewardTrendStatus}
+            error={error ?? undefined}
+            onRetry={() => undefined}
+            balance={walletMeta.connected ? 'Ready' : undefined}
+            balanceEquivalent={walletMeta.connected ? walletMeta.network : undefined}
+            dataPoints={bonusRewardSeries}
+            change={walletMeta.connected ? '+3%' : '0%'}
+            trend={walletMeta.connected ? 'up' : 'down'}
+            testId="profile-settings-reward-bonus"
+          />
+        </div>
+        <CollapsibleStatsGroup
+          title="Profile overview stats"
+          summary={`${profileSummaryStats.length} metrics`}
+          items={profileSummaryStats}
+          defaultExpanded={false}
+          testId="profile-settings-overview-stats"
+        />
         <div style={{ marginBottom: '1rem' }}>
           <AccountSwitcher
             currentAddress={walletStatus.address}

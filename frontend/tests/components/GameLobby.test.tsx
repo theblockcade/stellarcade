@@ -316,4 +316,21 @@ describe("GameLobby", () => {
       "neutral",
     );
   });
+
+  it("renders compact expandable stats and reward trend fallback when no games are loaded", async () => {
+    (ApiClient as any).prototype.getGames.mockResolvedValue({
+      success: true,
+      data: [],
+    });
+
+    render(<GameLobby />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("lobby-compact-stats")).toBeInTheDocument();
+      expect(screen.getByTestId("lobby-reward-trend-loading")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("lobby-compact-stats-toggle"));
+    expect(screen.getByTestId("lobby-compact-stats-panel")).not.toHaveAttribute("hidden");
+  });
 });
