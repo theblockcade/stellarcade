@@ -134,11 +134,10 @@ export const ContractDetailSidebar: React.FC<ContractDetailSidebarProps> = ({
 
       <div className="contract-detail-sidebar__content">
         {isLoading ? (
-          <>
-            <RelatedRecordActionRow id="loading-1" title="Loading..." isLoading />
-            <RelatedRecordActionRow id="loading-2" title="Loading..." isLoading />
-            <RelatedRecordActionRow id="loading-3" title="Loading..." isLoading />
-          </>
+          <div className="contract-detail-sidebar__loading">
+            <div className="contract-detail-sidebar__loading-spinner" />
+            <p>Loading related contracts...</p>
+          </div>
         ) : relatedContracts.length === 0 ? (
           <RelatedRecordActionRow
             id="empty"
