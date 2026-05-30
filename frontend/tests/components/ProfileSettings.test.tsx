@@ -2,20 +2,22 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfileSettings, { profileStore } from '@/pages/ProfileSettings';
 
+const walletStatusState = vi.hoisted((): any => ({
+  address: 'GTEST1234567890',
+  network: 'TESTNET',
+  provider: 'WalletProvider',
+  capabilities: { isConnected: true },
+  status: 'connected',
+  error: null,
+  lastUpdatedAt: Date.now(),
+  refresh: vi.fn(),
+  connect: vi.fn(),
+  disconnect: vi.fn(),
+  isRefreshing: false,
+}));
+
 vi.mock('@/hooks/v1/useWalletStatus', () => ({
-  useWalletStatus: () => ({
-    address: 'GTEST1234567890',
-    network: 'TESTNET',
-    provider: 'WalletProvider',
-    capabilities: { isConnected: true },
-    status: 'connected',
-    error: null,
-    lastUpdatedAt: Date.now(),
-    refresh: vi.fn(),
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    isRefreshing: false,
-  }),
+  useWalletStatus: () => walletStatusState,
 }));
 
 const mockGetProfile = vi.fn();
@@ -35,6 +37,13 @@ vi.mock('@/services/typed-api-sdk', () => ({
 describe('ProfileSettings page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    walletStatusState.address = 'GTEST1234567890';
+    walletStatusState.network = 'TESTNET';
+    walletStatusState.provider = 'WalletProvider';
+    walletStatusState.capabilities = { isConnected: true };
+    walletStatusState.status = 'connected';
+    walletStatusState.error = null;
+    walletStatusState.lastUpdatedAt = Date.now();
     profileStore.dispatch({ type: 'AUTH_SET', payload: { userId: 'test', token: 'test-jwt-token' } });
     profileStore.dispatch({ type: 'PROFILE_CLEAR' });
   });
@@ -79,6 +88,37 @@ describe('ProfileSettings page', () => {
       expect(
         screen.getByTestId('profile-settings-actions-footer'),
       ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('profile-settings-reward-trend-grid'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('profile-settings-overview-stats'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('renders mini reward trend cards with empty fallback when wallet is disconnected', async () => {
+    mockGetProfile.mockResolvedValueOnce({
+      success: true,
+      data: {
+        address: 'GABC123',
+        username: 'alice',
+        createdAt: '2025-01-01T12:00:00Z',
+      },
+    });
+
+    walletStatusState.address = null;
+    walletStatusState.network = null;
+    walletStatusState.provider = null;
+    walletStatusState.capabilities = { isConnected: false };
+    walletStatusState.status = 'disconnected';
+    walletStatusState.lastUpdatedAt = null;
+
+    render(<ProfileSettings />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-settings-reward-earned')).toBeInTheDocument();
+      expect(screen.getByTestId('profile-settings-reward-bonus-empty')).toBeInTheDocument();
     });
   });
 
