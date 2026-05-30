@@ -1,0 +1,150 @@
+.related-record-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  padding: 4px;
+  background-color: var(--surface-base, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 8px);
+  font-family: var(--font-family, inherit);
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.related-record-action-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 12px);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  border: none;
+  text-align: left;
+  transition: all 0.2s ease;
+  color: inherit;
+  font-family: inherit;
+}
+
+.related-record-action-row__main--clickable {
+  cursor: pointer;
+  appearance: none;
+}
+
+.related-record-action-row__main--clickable:hover {
+  background-color: var(--surface-elevated, rgba(255, 255, 255, 0.06));
+}
+
+.related-record-action-row--loading {
+  padding: 12px;
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.related-record-action-row__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 6px);
+  background-color: color-mix(in oklab, var(--accent, #3b82f6) 15%, transparent);
+  color: var(--accent, #3b82f6);
+}
+
+.related-record-action-row__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.related-record-action-row__title {
+  font-size: var(--font-size-sm, 14px);
+  font-weight: 500;
+  color: var(--text-main, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.related-record-action-row__subtitle {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--text-secondary, #a8b5c8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.related-record-action-row__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding-right: 4px;
+}
+
+/* Show actions on hover or focus-within */
+.related-record-action-row:hover .related-record-action-row__actions,
+.related-record-action-row:focus-within .related-record-action-row__actions {
+  opacity: 1;
+}
+
+/* On mobile, always show actions */
+@media (max-width: 768px) {
+  .related-record-action-row__actions {
+    opacity: 1;
+  }
+}
+
+.related-record-action-row__btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #a8b5c8);
+  transition: all 0.15s ease;
+}
+
+.related-record-action-row__btn:hover:not(:disabled) {
+  background-color: var(--surface-elevated, rgba(255, 255, 255, 0.08));
+  color: var(--text-main, #ffffff);
+}
+
+.related-record-action-row__btn--primary {
+  background-color: color-mix(in oklab, var(--accent, #3b82f6) 15%, transparent);
+  color: var(--accent, #3b82f6);
+}
+
+.related-record-action-row__btn--primary:hover:not(:disabled) {
+  background-color: color-mix(in oklab, var(--accent, #3b82f6) 25%, transparent);
+  color: var(--accent-hover, #60a5fa);
+}
+
+.related-record-action-row__btn--danger {
+  color: var(--color-error-text, #ef4444);
+}
+
+.related-record-action-row__btn--danger:hover:not(:disabled) {
+  background-color: color-mix(in oklab, var(--color-error-text, #ef4444) 15%, transparent);
+}
+
+.related-record-action-row__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
