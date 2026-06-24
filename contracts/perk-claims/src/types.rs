@@ -34,3 +34,16 @@ pub struct ThresholdGap {
     /// Progress toward the threshold in basis points (0..10_000), integer floor.
     pub progress_bps: u32,
 }
+
+/// Detailed summary of a perk's claim status.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClaimStatusSummary {
+    pub perk_exists: bool,
+    pub threshold: u32,
+    pub queued_count: u32,
+    pub claimed_count: u32,
+    pub is_active: bool,
+    pub cooldown_delay: u64,
+    pub is_threshold_met: bool,
+}
