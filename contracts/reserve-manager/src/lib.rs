@@ -7,8 +7,11 @@ mod storage;
 mod test;
 
 use soroban_sdk::{contract, contractimpl, contractevent, Address, Env, Vec, contracterror};
-use crate::types::{ManagerConfig, ReserveState, ReserveStatus, ReserveSnapshot};
+use crate::types::{ManagerConfig, ManagerThresholdSummary, ReserveState, ReserveStatus, ReserveSnapshot};
 use crate::storage::{get_config, set_config, get_assets, set_assets, get_reserve_state, set_reserve_state};
+
+/// Sweep cooldown expressed in ledgers (2_880 ≈ 4 hours at 5 s/ledger).
+const SWEEP_COOLDOWN_LEDGERS: u32 = 2_880;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -130,5 +133,51 @@ impl ReserveManager {
     /// Returns whether the manager is paused.
     pub fn is_paused(env: Env) -> bool {
         get_config(&env).map(|c| c.is_paused).unwrap_or(true)
+    }
+
+    /// Return the sweep cooldown in ledgers.
+    ///
+    /// The sweep cooldown is the minimum gap between successive treasury sweeps.
+    /// It is a fixed contract constant so consumers share a single source of truth.
+    pub fn sweep_cooldown_ledgers(_env: Env) -> u32 {
+        SWEEP_COOLDOWN_LEDGERS
+    }
+
+    /// Return a threshold health summary across all managed reserves.
+    ///
+    /// Counts healthy, below-target, and critical reserves, and the number that
+    /// meet or exceed their target balance. Returns zero counts when uninitialized.
+    pub fn manager_threshold_summary(env: Env) -> ManagerThresholdSummary {
+        let config = get_config(&env);
+        let is_paused = config.as_ref().map(|c| c.is_paused).unwrap_or(false);
+        let assets = get_assets(&env);
+
+        let mut healthy_count = 0u32;
+        let mut below_target_count = 0u32;
+        let mut critical_count = 0u32;
+
+        for asset in assets.iter() {
+            if let Some(state) = get_reserve_state(&env, &asset) {
+                match state.status {
+                    ReserveStatus::Healthy => healthy_count = healthy_count.saturating_add(1),
+                    ReserveStatus::BelowTarget => below_target_count = below_target_count.saturating_add(1),
+                    ReserveStatus::Critical => critical_count = critical_count.saturating_add(1),
+                    ReserveStatus::Paused => {}
+                }
+            }
+        }
+
+        let total_assets = assets.len();
+        let at_or_above_threshold_count = healthy_count;
+
+        ManagerThresholdSummary {
+            total_assets,
+            healthy_count,
+            below_target_count,
+            critical_count,
+            at_or_above_threshold_count,
+            sweep_cooldown_ledgers: SWEEP_COOLDOWN_LEDGERS,
+            is_paused,
+        }
     }
 }

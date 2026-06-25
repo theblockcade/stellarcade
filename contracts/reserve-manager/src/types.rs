@@ -9,6 +9,23 @@ pub enum ReserveStatus {
     Paused = 3,
 }
 
+/// Summary of threshold health across all managed reserves.
+///
+/// `at_or_above_threshold_count` counts reserves whose balance meets or exceeds
+/// their target. `sweep_cooldown_ledgers` is a fixed constant exported here so
+/// callers do not need to hard-code it separately.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagerThresholdSummary {
+    pub total_assets: u32,
+    pub healthy_count: u32,
+    pub below_target_count: u32,
+    pub critical_count: u32,
+    pub at_or_above_threshold_count: u32,
+    pub sweep_cooldown_ledgers: u32,
+    pub is_paused: bool,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ManagerConfig {
