@@ -547,6 +547,16 @@ export type { UserActivityTimelineProps, UserActivity, ActivityType } from "./Us
 export { CopyableWalletKeyField, default as CopyableWalletKeyFieldDefault } from "./CopyableWalletKeyField";
 export type { CopyableWalletKeyFieldProps } from "./CopyableWalletKeyField";
 
+// Issue #939
+export {
+  RequestErrorStateBlock,
+  default as RequestErrorStateBlockDefault,
+} from "./RequestErrorStateBlock";
+export type {
+  RequestErrorStateBlockProps,
+  RequestErrorSecondaryAction,
+} from "./RequestErrorStateBlock";
+
 // Issues #926, #927, #929, #931
 export {
   WalletTxHistoryDrawer,
