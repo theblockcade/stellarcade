@@ -6,7 +6,7 @@ mod types;
 mod test;
 
 use soroban_sdk::{contract, contractimpl, Address, Env, Vec};
-pub use types::{ReadyCheckSummary, SeatAvailability, LobbyData, Participant};
+pub use types::{LobbyConfigSnapshot, LobbyData, Participant, ReadyCheckSummary, SeatAvailability, StartGraceConfig};
 
 #[contract]
 pub struct TournamentLobby;
@@ -131,5 +131,56 @@ impl TournamentLobby {
 
         lobby.participants = new_participants;
         storage::set_lobby(&env, lobby_id, &lobby);
+    }
+
+    /// Set global paused state. Admin only.
+    pub fn set_paused(env: Env, admin: Address, paused: bool) {
+        admin.require_auth();
+        let stored_admin = storage::get_admin(&env).expect("Not initialized");
+        assert!(admin == stored_admin, "Unauthorized");
+        storage::set_paused(&env, paused);
+    }
+
+    /// Return a snapshot of the lobby configuration.
+    pub fn lobby_config_snapshot(env: Env, lobby_id: u64) -> LobbyConfigSnapshot {
+        let paused = storage::get_paused(&env);
+        match storage::get_lobby(&env, lobby_id) {
+            Some(lobby) => LobbyConfigSnapshot {
+                lobby_id,
+                exists: true,
+                max_seats: lobby.max_seats,
+                participant_count: lobby.participants.len(),
+                paused,
+            },
+            None => LobbyConfigSnapshot {
+                lobby_id,
+                exists: false,
+                max_seats: 0,
+                participant_count: 0,
+                paused,
+            },
+        }
+    }
+
+    /// Set start grace period for a lobby. Admin only.
+    pub fn set_start_grace(env: Env, admin: Address, lobby_id: u64, grace_blocks: u32) {
+        admin.require_auth();
+        let stored_admin = storage::get_admin(&env).expect("Not initialized");
+        assert!(admin == stored_admin, "Unauthorized");
+        storage::set_start_grace_blocks(&env, lobby_id, grace_blocks);
+    }
+
+    /// Return the start grace configuration for a lobby.
+    pub fn start_grace_config(env: Env, lobby_id: u64) -> StartGraceConfig {
+        match storage::get_start_grace_blocks(&env, lobby_id) {
+            Some(blocks) => StartGraceConfig {
+                grace_blocks: blocks,
+                configured: true,
+            },
+            None => StartGraceConfig {
+                grace_blocks: 0,
+                configured: false,
+            },
+        }
     }
 }
