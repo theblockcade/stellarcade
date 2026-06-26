@@ -23,7 +23,7 @@ const VALID_STATUS: readonly AsyncStatus[] = ['idle', 'loading', 'success', 'err
 
 export function AsyncStateBoundary<T, E = unknown>({
   status,
-  data = null,
+  data,
   error = null,
   onRetry,
   renderIdle,
