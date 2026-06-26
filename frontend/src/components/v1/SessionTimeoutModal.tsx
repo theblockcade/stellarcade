@@ -12,6 +12,7 @@ import WalletSessionService, {
   WALLET_SESSION_WARN_BEFORE_EXPIRY_MS_DEFAULT,
 } from '../../services/wallet-session-service';
 import { WalletSessionState } from '../../types/wallet-session';
+import { SessionCountdownWidget } from './SessionCountdownWidget';
 import { useModalStackRegistration } from './modal-stack';
 
 import './SessionTimeoutModal.css';
@@ -119,8 +120,6 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     }
     setRemainingMs(Math.max(0, sessionExpiresAtMs - nowMs));
   }, [sessionExpiresAtMs, nowMs]);
-
-  const secondsLeft = remainingMs === null ? 0 : Math.max(0, Math.ceil(remainingMs / 1000));
 
   const handleExtend = useCallback(() => {
     sessionService.extendPersistedSession();
@@ -240,10 +239,12 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
               aria-live="polite"
             >
               Your wallet session will expire in{' '}
-              <strong className="session-timeout-modal__countdown" data-testid={`${testId}-countdown`}>
-                {secondsLeft}
-              </strong>{' '}
-              second{secondsLeft === 1 ? '' : 's'}. Extend to stay signed in.
+              <SessionCountdownWidget
+                remainingMs={remainingMs}
+                warnBeforeExpiryMs={warnBeforeExpiryMs}
+                testId={`${testId}-countdown`}
+              />
+              . Extend to stay signed in.
             </p>
             <div className="session-timeout-modal__actions">
               <button

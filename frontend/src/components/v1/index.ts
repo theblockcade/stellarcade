@@ -105,6 +105,12 @@ export {
 export type { SessionTimeoutModalProps } from "./SessionTimeoutModal";
 
 export {
+  SessionCountdownWidget,
+  default as SessionCountdownWidgetDefault,
+} from "./SessionCountdownWidget";
+export type { SessionCountdownWidgetProps } from "./SessionCountdownWidget";
+
+export {
   SegmentedControl,
   default as SegmentedControlDefault,
 } from "./SegmentedControl";
