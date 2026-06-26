@@ -122,7 +122,7 @@ const AppContent: React.FC = () => {
       <AppSidebar currentRoute={route} onNavigate={handleNavigate} />
 
       <div className="app-main-layout">
-        <header className="app-header">
+        <header className="app-header" role="banner">
           <div className="logo">{t("app.title")}</div>
           <LocaleSwitcher />
         </header>
@@ -145,7 +145,7 @@ const AppContent: React.FC = () => {
           </RouteErrorBoundary>
         </main>
 
-        <footer className="app-footer">
+        <footer className="app-footer" role="contentinfo">
           <div className="footer-content">
             <p>{t("footer.copyright")}</p>
 
