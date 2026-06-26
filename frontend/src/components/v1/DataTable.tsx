@@ -21,6 +21,7 @@ export interface DataTableProps<T> {
   density?: TableDensityPreference;
   className?: string;
   testId?: string;
+  skeletonRowCount?: number;
   onSortChange?: (field: string, direction: SortDirection) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
@@ -32,6 +33,11 @@ function toggleDirection(current: SortDirection): SortDirection {
   return current === 'asc' ? 'desc' : 'asc';
 }
 
+function skeletonWidth(rowIndex: number, columnIndex: number): string {
+  const widths = ['72%', '56%', '64%', '48%', '80%'];
+  return widths[(rowIndex + columnIndex) % widths.length];
+}
+
 export function DataTable<T extends object>({
   columns,
   data,
@@ -41,6 +47,7 @@ export function DataTable<T extends object>({
   density = 'standard',
   className = '',
   testId = 'data-table',
+  skeletonRowCount,
   onSortChange,
   onPageChange,
   onPageSizeChange,
