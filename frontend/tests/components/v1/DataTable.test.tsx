@@ -22,6 +22,14 @@ describe('DataTable', () => {
     expect(screen.getByTestId('data-table-loading')).toBeInTheDocument();
   });
 
+
+  it('renders animated skeleton rows while loading', () => {
+    render(<DataTable columns={columns} data={[]} isLoading pageSize={2} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading table rows');
+    expect(screen.getAllByTestId('data-table-skeleton-row')).toHaveLength(2);
+    expect(screen.queryByTestId('data-table-empty')).not.toBeInTheDocument();
+  });
   it('shows empty state when no data', () => {
     render(<DataTable columns={columns} data={[]} />);
     expect(screen.getByTestId('data-table-empty')).toHaveTextContent('No records found.');
