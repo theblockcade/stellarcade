@@ -9,6 +9,9 @@ mod types;
 use storage::*;
 use types::*;
 
+/// Dispute window expressed in ledgers (1_440 ≈ 2 hours at 5 s/ledger).
+pub(crate) const DISPUTE_WINDOW_LEDGERS: u32 = 1_440;
+
 #[contract]
 pub struct RoundFinalizerContract;
 
@@ -204,6 +207,59 @@ impl RoundFinalizerContract {
             blocked_rounds,
             unresolved_ops,
             next_active_round_id,
+        }
+    }
+
+    /// Return the dispute window in ledgers.
+    ///
+    /// The dispute window is the period after a round is marked ready during which
+    /// challenges may be raised. It is a fixed contract constant so consumers do not
+    /// need to hard-code it out-of-band.
+    pub fn dispute_window_ledgers(_env: Env) -> u32 {
+        DISPUTE_WINDOW_LEDGERS
+    }
+
+    /// Return a finalization-status summary for dashboard consumers.
+    ///
+    /// Counts finalized rounds (zero unresolved ops, has checkpoint) vs unresolved,
+    /// and surfaces the dispute window constant alongside paused state.
+    pub fn finalization_status_summary(env: Env) -> FinalizationStatusSummary {
+        let Some(cfg) = get_config(&env) else {
+            return FinalizationStatusSummary {
+                status: RoundFinalizerStatus::Unconfigured,
+                total_rounds: 0,
+                finalized_rounds: 0,
+                unresolved_rounds: 0,
+                dispute_window_ledgers: DISPUTE_WINDOW_LEDGERS,
+                finalization_paused: false,
+            };
+        };
+
+        let ids = get_round_ids(&env);
+        let mut unresolved_rounds = 0u32;
+
+        for round_id in ids.iter() {
+            if let Some(round) = get_round(&env, round_id) {
+                if round.unresolved_ops > 0 || !round.has_checkpoint {
+                    unresolved_rounds = unresolved_rounds.saturating_add(1);
+                }
+            }
+        }
+
+        let total_rounds = ids.len();
+        let finalized_rounds = total_rounds.saturating_sub(unresolved_rounds);
+
+        FinalizationStatusSummary {
+            status: if cfg.paused {
+                RoundFinalizerStatus::Paused
+            } else {
+                RoundFinalizerStatus::Active
+            },
+            total_rounds,
+            finalized_rounds,
+            unresolved_rounds,
+            dispute_window_ledgers: DISPUTE_WINDOW_LEDGERS,
+            finalization_paused: cfg.paused,
         }
     }
 

@@ -79,6 +79,22 @@ pub struct FinalizationPressure {
     pub finalization_paused: bool,
 }
 
+/// Finalization status summary for dashboard read consumers.
+///
+/// `finalized_rounds` = total_rounds minus unresolved_rounds.
+/// `dispute_window_ledgers` is a fixed constant (1_440 ledgers ≈ 2 hours at 5 s/ledger)
+/// exported here so front-end and off-chain tooling share a single source of truth.
+#[contracttype]
+#[derive(Clone)]
+pub struct FinalizationStatusSummary {
+    pub status: RoundFinalizerStatus,
+    pub total_rounds: u32,
+    pub finalized_rounds: u32,
+    pub unresolved_rounds: u32,
+    pub dispute_window_ledgers: u32,
+    pub finalization_paused: bool,
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {

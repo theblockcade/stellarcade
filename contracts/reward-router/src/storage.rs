@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Env, Symbol};
+use soroban_sdk::{contracttype, Env, Symbol, Vec};
 use crate::types::{RouteData, FallbackBucket};
 
 #[contracttype]
@@ -6,6 +6,7 @@ pub enum DataKey {
     Admin,
     Route(Symbol),
     Fallback,
+    RouteIds,
 }
 
 pub fn get_admin(env: &Env) -> Option<soroban_sdk::Address> {
@@ -30,4 +31,16 @@ pub fn get_fallback(env: &Env) -> Option<FallbackBucket> {
 
 pub fn set_fallback(env: &Env, data: &FallbackBucket) {
     env.storage().instance().set(&DataKey::Fallback, data);
+}
+
+pub fn get_route_ids(env: &Env) -> Vec<Symbol> {
+    env.storage().instance().get(&DataKey::RouteIds).unwrap_or_else(|| Vec::new(env))
+}
+
+pub fn add_route_id(env: &Env, route_id: &Symbol) {
+    let mut ids = get_route_ids(env);
+    if !ids.contains(route_id.clone()) {
+        ids.push_back(route_id.clone());
+        env.storage().instance().set(&DataKey::RouteIds, &ids);
+    }
 }
