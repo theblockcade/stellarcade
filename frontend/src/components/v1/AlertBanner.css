@@ -1,0 +1,322 @@
+/* AlertBanner.css */
+
+.alert-banner {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border-radius: 8px;
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: alertBannerFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  margin-bottom: 1rem;
+}
+
+@keyframes alertBannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alert-banner__container {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  width: 100%;
+}
+
+/* Variant Styles using premium color schemes matching StellarCade themes */
+.alert-banner--info {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #1e40af;
+}
+.alert-banner--info .alert-banner__icon-area {
+  color: #3b82f6;
+}
+.alert-banner--info .alert-banner__title {
+  color: #1e3a8a;
+}
+
+.alert-banner--success {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #065f46;
+}
+.alert-banner--success .alert-banner__icon-area {
+  color: #10b981;
+}
+.alert-banner--success .alert-banner__title {
+  color: #064e3b;
+}
+
+.alert-banner--warning {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #92400e;
+}
+.alert-banner--warning .alert-banner__icon-area {
+  color: #f59e0b;
+}
+.alert-banner--warning .alert-banner__title {
+  color: #78350f;
+}
+
+.alert-banner--error {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #991b1b;
+}
+.alert-banner--error .alert-banner__icon-area {
+  color: #ef4444;
+}
+.alert-banner--error .alert-banner__title {
+  color: #7f1d1d;
+}
+
+/* Positioning Styles */
+.alert-banner--sticky-top {
+  position: fixed;
+  top: 1rem;
+  left: 5%;
+  right: 5%;
+  width: 90%;
+  z-index: 1000;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.alert-banner--sticky-bottom {
+  position: fixed;
+  bottom: 1rem;
+  left: 5%;
+  right: 5%;
+  width: 90%;
+  z-index: 1000;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  animation: alertBannerFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes alertBannerFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Internal Layout styling */
+.alert-banner__icon-area {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.125rem;
+}
+
+.alert-banner__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.alert-banner__title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.alert-banner__message {
+  margin: 0;
+  word-break: break-word;
+  color: currentColor;
+  opacity: 0.9;
+}
+
+.alert-banner__controls {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+/* Action button design with premium aesthetics */
+.alert-banner__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  appearance: none;
+  background: currentColor;
+  color: var(--surface-1, #ffffff);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+/* Inside alert banners, color is primary background, so text color uses parent's text color */
+.alert-banner--info .alert-banner__action-btn {
+  background: #2563eb;
+  color: #ffffff;
+}
+.alert-banner--info .alert-banner__action-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.alert-banner--success .alert-banner__action-btn {
+  background: #059669;
+  color: #ffffff;
+}
+.alert-banner--success .alert-banner__action-btn:hover:not(:disabled) {
+  background: #047857;
+}
+
+.alert-banner--warning .alert-banner__action-btn {
+  background: #d97706;
+  color: #ffffff;
+}
+.alert-banner--warning .alert-banner__action-btn:hover:not(:disabled) {
+  background: #b45309;
+}
+
+.alert-banner--error .alert-banner__action-btn {
+  background: #dc2626;
+  color: #ffffff;
+}
+.alert-banner--error .alert-banner__action-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.alert-banner__action-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.alert-banner__action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading spinner in button */
+.alert-banner__spinner {
+  width: 0.875rem;
+  height: 0.875rem;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dismiss (close) button style */
+.alert-banner__dismiss-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0.375rem;
+  color: currentColor;
+  opacity: 0.6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.alert-banner__dismiss-btn:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.alert-banner__dismiss-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.alert-banner__dismiss-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Skeletons & pulse animations for Loading state */
+.alert-banner--loading {
+  background: rgba(229, 231, 235, 0.2);
+  border: 1px solid rgba(229, 231, 235, 0.4);
+  color: #6b7280;
+}
+
+.alert-banner__skeleton-icon {
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  border-radius: 50%;
+  opacity: 0.25;
+}
+
+.alert-banner__skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.alert-banner__skeleton-line {
+  background-color: currentColor;
+  border-radius: 4px;
+  opacity: 0.15;
+}
+
+.alert-banner__skeleton-line--title {
+  width: 30%;
+  height: 0.75rem;
+}
+
+.alert-banner__skeleton-line--body {
+  width: 75%;
+  height: 0.625rem;
+}
+
+.alert-banner__skeleton-actions {
+  display: flex;
+}
+
+.alert-banner__skeleton-btn {
+  width: 60px;
+  height: 1.875rem;
+  background-color: currentColor;
+  border-radius: 6px;
+  opacity: 0.15;
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
