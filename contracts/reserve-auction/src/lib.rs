@@ -6,7 +6,7 @@ mod types;
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env, String};
 
 pub use types::{
-    AuctionPhase, ReserveAuctionLot, ReserveAuctionSnapshot, SellerAuctionStats,
+    AuctionPhase, BidDelayConfig, ReserveAuctionLot, ReserveAuctionSnapshot, SellerAuctionStats,
     SellerAuctionSummary, SettlementOutcome,
 };
 
@@ -21,6 +21,7 @@ pub enum DataKey {
     NextAuctionId,
     Auction(u64),
     SellerStats(Address),
+    BidDelayBlocks,
 }
 
 #[contracterror]
@@ -259,6 +260,25 @@ impl ReserveAuction {
             settled_auction_count: stats.settled_auction_count,
             reserve_met_count: stats.reserve_met_count,
             highest_open_bid,
+        }
+    }
+
+    pub fn set_bid_delay(env: Env, blocks: u32) -> Result<(), Error> {
+        Self::require_admin(&env)?;
+        storage::set_bid_delay_blocks(&env, blocks);
+        Ok(())
+    }
+
+    pub fn bid_delay_config(env: Env) -> BidDelayConfig {
+        match storage::get_bid_delay_blocks(&env) {
+            Some(blocks) => BidDelayConfig {
+                bid_delay_blocks: blocks,
+                configured: true,
+            },
+            None => BidDelayConfig {
+                bid_delay_blocks: 0,
+                configured: false,
+            },
         }
     }
 

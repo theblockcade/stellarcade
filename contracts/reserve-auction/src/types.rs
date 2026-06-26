@@ -67,6 +67,13 @@ pub struct SellerAuctionSummary {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BidDelayConfig {
+    pub bid_delay_blocks: u32,
+    pub configured: bool,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SettlementOutcome {
     pub auction_id: u64,
     pub seller: Address,

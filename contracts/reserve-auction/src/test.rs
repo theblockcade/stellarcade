@@ -66,6 +66,29 @@ fn test_unknown_auction_returns_empty_snapshot() {
 }
 
 #[test]
+fn test_bid_delay_config_default() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _seller, _bidder) = setup(&env);
+
+    let config = client.bid_delay_config();
+    assert!(!config.configured);
+    assert_eq!(config.bid_delay_blocks, 0);
+}
+
+#[test]
+fn test_bid_delay_config_after_set() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _seller, _bidder) = setup(&env);
+
+    client.set_bid_delay(&5);
+    let config = client.bid_delay_config();
+    assert!(config.configured);
+    assert_eq!(config.bid_delay_blocks, 5);
+}
+
+#[test]
 fn test_pause_blocks_bid_workflow() {
     let env = Env::default();
     env.mock_all_auths();
