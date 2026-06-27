@@ -1,5 +1,5 @@
 use soroban_sdk::{Address, Env, Vec};
-use crate::types::{BalanceLockSummary, DataKey, LockStatus, LockedAsset, UnlockReadinessInfo};
+use crate::types::{BalanceLockSummary, DataKey, LockStatus, LockedAsset, ReleaseCooldownAccessor, UnlockReadinessInfo};
 
 /// Retrieve a locked asset by beneficiary and lock_id.
 /// Returns None if not found.
@@ -141,6 +141,49 @@ pub fn get_unlock_readiness(
             unlock_ledger: 0,
             current_ledger,
             ledgers_remaining: 0,
+        }
+    }
+}
+
+/// Check release cooldown for a specific lock.
+/// Handles missing lock gracefully.
+pub fn get_release_cooldown(
+    env: &Env,
+    beneficiary: &Address,
+    lock_id: u32,
+) -> ReleaseCooldownAccessor {
+    let current_ledger = env.ledger().sequence() as u32;
+
+    if let Some(locked_asset) = get_lock(env, beneficiary, lock_id) {
+        let is_in_cooldown = locked_asset.unlock_ledger > current_ledger;
+        let cooldown_remaining_ledgers = if is_in_cooldown {
+            locked_asset.unlock_ledger - current_ledger
+        } else {
+            0
+        };
+        let can_release = !is_in_cooldown;
+
+        ReleaseCooldownAccessor {
+            beneficiary: beneficiary.clone(),
+            lock_id,
+            amount: locked_asset.amount,
+            unlock_ledger: locked_asset.unlock_ledger,
+            current_ledger,
+            is_in_cooldown,
+            cooldown_remaining_ledgers,
+            can_release,
+        }
+    } else {
+        // Missing lock state - treat as releasable
+        ReleaseCooldownAccessor {
+            beneficiary: beneficiary.clone(),
+            lock_id,
+            amount: 0,
+            unlock_ledger: 0,
+            current_ledger,
+            is_in_cooldown: false,
+            cooldown_remaining_ledgers: 0,
+            can_release: true,
         }
     }
 }

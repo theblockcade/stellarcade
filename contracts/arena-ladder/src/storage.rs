@@ -20,3 +20,15 @@ pub fn set_bracket(env: &Env, bracket_id: u32, record: &BracketRecord) {
         PERSISTENT_BUMP_LEDGERS,
     );
 }
+
+pub fn get_season_cutoff(env: &Env, season_id: u32) -> Option<u32> {
+    env.storage()
+        .instance()
+        .get(&DataKey::SeasonCutoff(season_id))
+}
+
+pub fn set_season_cutoff(env: &Env, season_id: u32, cutoff_ledger: u32) {
+    env.storage()
+        .instance()
+        .set(&DataKey::SeasonCutoff(season_id), &cutoff_ledger);
+}

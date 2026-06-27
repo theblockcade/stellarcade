@@ -53,4 +53,52 @@ impl AchievementsContract {
     pub fn set_next_unlock(env: Env, user: Address, unlock: NextUnlock) {
         set_next_unlock(&env, &user, &unlock);
     }
+
+    // Achievement unlock snapshot accessor
+    pub fn get_achievement_unlock_snapshot(env: Env, user: Address) -> AchievementUnlockSnapshot {
+        let achievements = get_achievements(&env, &user);
+        let total = achievements.len();
+        let unlocked = achievements.iter().filter(|a| a.unlocked).count() as u32;
+        let locked = total - unlocked;
+        let percentage = if total > 0 { (unlocked * 100) / total } else { 0 };
+
+        AchievementUnlockSnapshot {
+            user: user.clone(),
+            total_achievements: total,
+            unlocked_achievements: unlocked,
+            locked_achievements: locked,
+            completion_percentage: percentage,
+        }
+    }
+
+    // Claim grace period accessor
+    pub fn get_claim_grace_accessor(env: Env, user: Address) -> ClaimGraceAccessor {
+        let current_ledger = env.ledger().sequence() as u32;
+        let grace_period_ledger = get_claim_grace_period(&env, &user).unwrap_or(0);
+
+        let is_within_grace_period = if grace_period_ledger > 0 {
+            current_ledger <= grace_period_ledger
+        } else {
+            false
+        };
+
+        let ledgers_remaining = if grace_period_ledger > current_ledger {
+            grace_period_ledger - current_ledger
+        } else {
+            0
+        };
+
+        ClaimGraceAccessor {
+            user: user.clone(),
+            grace_period_ledger,
+            current_ledger,
+            is_within_grace_period,
+            ledgers_remaining,
+        }
+    }
+
+    // Write function for claim grace period
+    pub fn set_claim_grace_period(env: Env, user: Address, grace_ledger: u32) {
+        set_claim_grace_period(&env, &user, grace_ledger);
+    }
 }

@@ -60,6 +60,20 @@ pub struct UnlockReadinessInfo {
     pub ledgers_remaining: u32,
 }
 
+/// Release cooldown accessor for escrow entries.
+#[contracttype]
+#[derive(Clone)]
+pub struct ReleaseCooldownAccessor {
+    pub beneficiary: Address,
+    pub lock_id: u32,
+    pub amount: i128,
+    pub unlock_ledger: u32,
+    pub current_ledger: u32,
+    pub is_in_cooldown: bool,
+    pub cooldown_remaining_ledgers: u32,
+    pub can_release: bool,
+}
+
 /// Storage key discriminants.
 #[contracttype]
 pub enum DataKey {
