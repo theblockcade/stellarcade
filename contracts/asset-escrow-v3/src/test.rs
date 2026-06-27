@@ -254,3 +254,68 @@ fn test_list_locks_paginated() {
     let page2 = client.list_locks(&beneficiary, &2, &2);
     assert_eq!(page2.len(), 1);
 }
+
+#[test]
+fn test_get_release_cooldown_in_cooldown() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let contract_id = env.register(AssetEscrowV3, ());
+    let client = AssetEscrowV3Client::new(&env, &contract_id);
+
+    client.init(&admin);
+
+    let current_ledger = env.ledger().sequence() as u32;
+    let unlock_ledger = current_ledger + 100;
+
+    let lock_id = client.create_lock(&beneficiary, &1000, &unlock_ledger);
+    let cooldown = client.get_release_cooldown(&beneficiary, &lock_id);
+
+    assert!(cooldown.is_in_cooldown);
+    assert!(!cooldown.can_release);
+    assert!(cooldown.cooldown_remaining_ledgers > 0);
+    assert_eq!(cooldown.amount, 1000);
+}
+
+#[test]
+fn test_get_release_cooldown_ready() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let contract_id = env.register(AssetEscrowV3, ());
+    let client = AssetEscrowV3Client::new(&env, &contract_id);
+
+    client.init(&admin);
+
+    let current_ledger = env.ledger().sequence() as u32;
+    let unlock_ledger = current_ledger - 10;
+
+    let lock_id = client.create_lock(&beneficiary, &1000, &unlock_ledger);
+    let cooldown = client.get_release_cooldown(&beneficiary, &lock_id);
+
+    assert!(!cooldown.is_in_cooldown);
+    assert!(cooldown.can_release);
+    assert_eq!(cooldown.cooldown_remaining_ledgers, 0);
+}
+
+#[test]
+fn test_get_release_cooldown_missing_lock() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let contract_id = env.register(AssetEscrowV3, ());
+    let client = AssetEscrowV3Client::new(&env, &contract_id);
+
+    client.init(&admin);
+
+    let cooldown = client.get_release_cooldown(&beneficiary, &999);
+    assert!(!cooldown.is_in_cooldown);
+    assert!(cooldown.can_release);
+    assert_eq!(cooldown.amount, 0);
+}

@@ -130,3 +130,97 @@ fn test_promotion_window_missing() {
     assert_eq!(window.min_rank_for_promotion, 0);
     assert!(!window.window_active);
 }
+
+// ---------------------------------------------------------------------------
+// arena_ranking_summary — with brackets
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_arena_ranking_summary() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    client.upsert_bracket(
+        &admin, &1, &32, &8, &750, &1_000_000, &1_100_000, &10, &true,
+    );
+    client.upsert_bracket(
+        &admin, &2, &4, &8, &1200, &900_000, &950_000, &5, &false,
+    );
+
+    let summary = client.arena_ranking_summary();
+    assert_eq!(summary.total_brackets, 2);
+    assert_eq!(summary.total_players, 36);
+    assert_eq!(summary.active_promotions, 1);
+    assert_eq!(summary.critical_brackets, 1);
+}
+
+// ---------------------------------------------------------------------------
+// arena_ranking_summary — empty state
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_arena_ranking_summary_empty() {
+    let env = Env::default();
+    let (client, _) = setup(&env);
+
+    let summary = client.arena_ranking_summary();
+    assert_eq!(summary.total_brackets, 0);
+    assert_eq!(summary.total_players, 0);
+    assert_eq!(summary.active_promotions, 0);
+    assert_eq!(summary.average_pressure_score, 0);
+    assert_eq!(summary.critical_brackets, 0);
+}
+
+// ---------------------------------------------------------------------------
+// season_cutoff_accessor — active season
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_season_cutoff_accessor_active() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    let current_ledger = env.ledger().sequence() as u32;
+    let cutoff_ledger = current_ledger + 1000;
+    client.set_season_cutoff(&admin, &1, &cutoff_ledger).unwrap();
+
+    let accessor = client.season_cutoff_accessor(&1);
+    assert_eq!(accessor.season_id, 1);
+    assert_eq!(accessor.cutoff_ledger, cutoff_ledger);
+    assert!(accessor.is_season_active);
+    assert!(accessor.ledgers_until_cutoff > 0);
+}
+
+// ---------------------------------------------------------------------------
+// season_cutoff_accessor — expired season
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_season_cutoff_accessor_expired() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    let current_ledger = env.ledger().sequence() as u32;
+    let cutoff_ledger = current_ledger - 10;
+    client.set_season_cutoff(&admin, &2, &cutoff_ledger).unwrap();
+
+    let accessor = client.season_cutoff_accessor(&2);
+    assert!(!accessor.is_season_active);
+    assert_eq!(accessor.ledgers_until_cutoff, 0);
+}
+
+// ---------------------------------------------------------------------------
+// season_cutoff_accessor — missing season
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_season_cutoff_accessor_missing() {
+    let env = Env::default();
+    let (client, _) = setup(&env);
+
+    let accessor = client.season_cutoff_accessor(&999);
+    assert_eq!(accessor.season_id, 999);
+    assert_eq!(accessor.cutoff_ledger, 0);
+    assert!(!accessor.is_season_active);
+    assert_eq!(accessor.ledgers_until_cutoff, 0);
+}

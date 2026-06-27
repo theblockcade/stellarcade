@@ -52,3 +52,25 @@ pub struct BracketRecord {
     pub min_rank_for_promotion: u32,
     pub window_active: bool,
 }
+
+/// Arena ranking summary across all brackets.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ArenaRankingSummary {
+    pub total_brackets: u32,
+    pub total_players: u32,
+    pub active_promotions: u32,
+    pub average_pressure_score: u32,
+    pub critical_brackets: u32,
+}
+
+/// Season cutoff accessor for arena ladder.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeasonCutoffAccessor {
+    pub season_id: u32,
+    pub cutoff_ledger: u32,
+    pub current_ledger: u32,
+    pub is_season_active: bool,
+    pub ledgers_until_cutoff: u32,
+}

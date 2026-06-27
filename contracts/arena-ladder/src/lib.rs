@@ -22,7 +22,7 @@ mod types;
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
-pub use types::{BracketPressureSnapshot, BracketRecord, PromotionWindow};
+pub use types::{ArenaRankingSummary, BracketPressureSnapshot, BracketRecord, PromotionWindow, SeasonCutoffAccessor};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 
@@ -35,6 +35,7 @@ pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 pub enum DataKey {
     Admin,
     Bracket(u32),
+    SeasonCutoff(u32),
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +152,84 @@ impl ArenaLadder {
                 window_active: false,
             },
         }
+    }
+
+    /// Return the arena ranking summary.
+    ///
+    /// Aggregates data across all brackets. Returns zero-state when no brackets exist.
+    pub fn arena_ranking_summary(env: Env) -> ArenaRankingSummary {
+        // For simplicity, we'll scan bracket IDs 1-100
+        // In production, this would use a more efficient indexing strategy
+        let mut total_brackets: u32 = 0;
+        let mut total_players: u32 = 0;
+        let mut active_promotions: u32 = 0;
+        let mut total_pressure: u32 = 0;
+        let mut critical_brackets: u32 = 0;
+
+        for bracket_id in 1..=100 {
+            if let Some(record) = storage::get_bracket(&env, bracket_id) {
+                total_brackets += 1;
+                total_players += record.players_in_bracket;
+                total_pressure += record.pressure_score;
+
+                if record.window_active {
+                    active_promotions += 1;
+                }
+
+                if record.players_in_bracket <= record.elimination_threshold {
+                    critical_brackets += 1;
+                }
+            }
+        }
+
+        let average_pressure_score = if total_brackets > 0 {
+            total_pressure / total_brackets
+        } else {
+            0
+        };
+
+        ArenaRankingSummary {
+            total_brackets,
+            total_players,
+            active_promotions,
+            average_pressure_score,
+            critical_brackets,
+        }
+    }
+
+    /// Return the season cutoff accessor for a given season.
+    ///
+    /// Unknown seasons return `is_season_active = false` with zeroed fields.
+    pub fn season_cutoff_accessor(env: Env, season_id: u32) -> SeasonCutoffAccessor {
+        let current_ledger = env.ledger().sequence() as u32;
+        let cutoff_ledger = storage::get_season_cutoff(&env, season_id).unwrap_or(0);
+
+        let is_season_active = if cutoff_ledger > 0 {
+            current_ledger < cutoff_ledger
+        } else {
+            false
+        };
+
+        let ledgers_until_cutoff = if cutoff_ledger > current_ledger {
+            cutoff_ledger - current_ledger
+        } else {
+            0
+        };
+
+        SeasonCutoffAccessor {
+            season_id,
+            cutoff_ledger,
+            current_ledger,
+            is_season_active,
+            ledgers_until_cutoff,
+        }
+    }
+
+    /// Set the season cutoff ledger for a season. Admin only.
+    pub fn set_season_cutoff(env: Env, admin: Address, season_id: u32, cutoff_ledger: u32) -> Result<(), Error> {
+        require_admin(&env, &admin)?;
+        storage::set_season_cutoff(&env, season_id, cutoff_ledger);
+        Ok(())
     }
 }
 

@@ -11,6 +11,7 @@ pub enum DataKey {
     Admin,
     Achievements(Address), // per user achievements
     NextUnlock(Address),
+    ClaimGracePeriod(Address),
 }
 
 // Storage functions
@@ -39,4 +40,13 @@ pub fn get_next_unlock(env: &Env, user: &Address) -> Option<NextUnlock> {
 pub fn set_next_unlock(env: &Env, user: &Address, unlock: &NextUnlock) {
     env.storage().persistent().set(&DataKey::NextUnlock(user.clone()), unlock);
     env.storage().persistent().bump(&DataKey::NextUnlock(user.clone()), 518400);
+}
+
+pub fn get_claim_grace_period(env: &Env, user: &Address) -> Option<u32> {
+    env.storage().persistent().get(&DataKey::ClaimGracePeriod(user.clone()))
+}
+
+pub fn set_claim_grace_period(env: &Env, user: &Address, grace_ledger: u32) {
+    env.storage().persistent().set(&DataKey::ClaimGracePeriod(user.clone()), &grace_ledger);
+    env.storage().persistent().bump(&DataKey::ClaimGracePeriod(user.clone()), 518400);
 }
