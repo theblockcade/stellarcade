@@ -1,67 +1,19 @@
+pub mod types;
+
+pub use types::{
+    ContractDoc, ContractSummary, EventDoc, GeneratorState, GeneratorSummary, MethodDoc,
+    ParameterDoc, TypeDoc,
+};
+
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-
-// ---------------------------------------------------------------------------
-// Types & State
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum GeneratorState {
-    Idle,
-    Discovery,
-    Parsing,
-    Generation,
-    Complete,
-    Failed(String),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContractDoc {
-    pub name: String,
-    pub description: Option<String>,
-    pub methods: Vec<MethodDoc>,
-    pub types: Vec<TypeDoc>,
-    pub events: Vec<EventDoc>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MethodDoc {
-    pub name: String,
-    pub description: Option<String>,
-    pub signature: String,
-    pub parameters: Vec<ParameterDoc>,
-    pub return_type: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParameterDoc {
-    pub name: String,
-    pub type_name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TypeDoc {
-    pub name: String,
-    pub description: Option<String>,
-    pub fields: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EventDoc {
-    pub name: String,
-    pub description: Option<String>,
-}
-
-// ---------------------------------------------------------------------------
-// Generator Engine
-// ---------------------------------------------------------------------------
 
 pub struct DocGenerator {
     pub base_path: PathBuf,
     pub output_path: PathBuf,
     pub state: GeneratorState,
+    docs_cache: Vec<ContractDoc>,
 }
 
 impl DocGenerator {
@@ -70,20 +22,20 @@ impl DocGenerator {
             base_path,
             output_path,
             state: GeneratorState::Idle,
+            docs_cache: Vec::new(),
         }
     }
 
-    /// Primary routine to generate documentation for all contracts
     pub fn run(&mut self) -> Result<(), String> {
         self.state = GeneratorState::Discovery;
         println!("EVENT: Starting contract discovery in {:?}", self.base_path);
-        
+
         let mut contracts = self.discover_contracts()?;
         contracts.sort();
-        
+
         self.state = GeneratorState::Parsing;
         println!("EVENT: Parsing {} contracts", contracts.len());
-        
+
         let mut docs = Vec::new();
         for contract_path in contracts {
             match self.parse_contract(&contract_path) {
@@ -94,14 +46,16 @@ impl DocGenerator {
             }
         }
 
+        self.docs_cache = docs.clone();
+
         self.state = GeneratorState::Generation;
         println!("EVENT: Finalizing Markdown generation");
-        
+
         self.write_docs(docs)?;
 
         self.state = GeneratorState::Complete;
         println!("EVENT: Documentation generation successful");
-        
+
         Ok(())
     }
 
@@ -115,10 +69,12 @@ impl DocGenerator {
             if path.is_dir() {
                 let cargo_toml = path.join("Cargo.toml");
                 let src_lib = path.join("src").join("lib.rs");
-                
-                // Exclude shared crates and the generator itself
+
                 let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                if name == "shared" || name == "contract-doc-generator" || name == "deployment-scripts" {
+                if name == "shared"
+                    || name == "contract-doc-generator"
+                    || name == "deployment-scripts"
+                {
                     continue;
                 }
 
@@ -131,7 +87,11 @@ impl DocGenerator {
     }
 
     fn parse_contract(&self, path: &Path) -> Result<ContractDoc, String> {
-        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("Unknown").to_string();
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown")
+            .to_string();
         let lib_path = path.join("src").join("lib.rs");
         let content = fs::read_to_string(lib_path).map_err(|e| e.to_string())?;
 
@@ -150,7 +110,7 @@ impl DocGenerator {
 
         while let Some(line) = lines.next() {
             let trimmed = line.trim();
-            
+
             if trimmed.is_empty() {
                 continue;
             }
@@ -160,22 +120,23 @@ impl DocGenerator {
                 continue;
             }
 
-            // Skip decorators but keep current_docs
             if trimmed.starts_with("#[") {
                 continue;
             }
 
-            // Extract Contract Header
-            if doc.description.is_none() && !current_docs.is_empty() && (trimmed.contains("pub struct") || trimmed.contains("impl")) {
-                 doc.description = Some(current_docs.join(" "));
+            if doc.description.is_none()
+                && !current_docs.is_empty()
+                && (trimmed.contains("pub struct") || trimmed.contains("impl"))
+            {
+                doc.description = Some(current_docs.join(" "));
             }
 
-            // Detect Methods
             if trimmed.contains("pub fn") {
-                // Capture multi-line signatures (common in contract methods).
                 let mut signature = trimmed.to_string();
                 while !signature.contains('{') {
-                    let Some(next_line) = lines.peek() else { break };
+                    let Some(next_line) = lines.peek() else {
+                        break;
+                    };
                     let next_trimmed = next_line.trim();
                     if next_trimmed.is_empty() {
                         break;
@@ -198,10 +159,15 @@ impl DocGenerator {
                     .replace(" )", ")");
 
                 if let Some(cap) = fn_name_regex.captures(&normalized_signature) {
-                    let (parameters, return_type) = self.extract_params_and_return(&normalized_signature);
+                    let (parameters, return_type) =
+                        self.extract_params_and_return(&normalized_signature);
                     doc.methods.push(MethodDoc {
                         name: cap[1].to_string(),
-                        description: if current_docs.is_empty() { None } else { Some(current_docs.join(" ")) },
+                        description: if current_docs.is_empty() {
+                            None
+                        } else {
+                            Some(current_docs.join(" "))
+                        },
                         signature: normalized_signature,
                         parameters,
                         return_type,
@@ -209,9 +175,6 @@ impl DocGenerator {
                 }
             }
 
-            // Detect Events (marked with #[contractevent])
-            // Since we skipped #[ earlier, we need to check if the NEXT line is an event struct
-            // Actually, let's look back or handle decorators specifically
             if trimmed.contains("struct") && !current_docs.is_empty() {
                 if let Some(cap) = struct_name_regex.captures(trimmed) {
                     let struct_name = cap[1].to_string();
@@ -248,7 +211,6 @@ impl DocGenerator {
             base_signature = signature;
         }
 
-        // Extract parameters between first ( and last ) of the base_signature
         if let Some(start_paren) = base_signature.find('(') {
             if let Some(end_paren) = base_signature.rfind(')') {
                 let params_str = &base_signature[start_paren + 1..end_paren];
@@ -314,7 +276,11 @@ impl DocGenerator {
             if !doc.events.is_empty() {
                 content.push_str("## Events\n\n");
                 for e in &doc.events {
-                    content.push_str(&format!("- **{}**: {}\n", e.name, e.description.as_deref().unwrap_or("No description")));
+                    content.push_str(&format!(
+                        "- **{}**: {}\n",
+                        e.name,
+                        e.description.as_deref().unwrap_or("No description")
+                    ));
                 }
                 content.push('\n');
             }
@@ -324,101 +290,61 @@ impl DocGenerator {
 
         Ok(())
     }
-}
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+    pub fn state(&self) -> &GeneratorState {
+        &self.state
+    }
+
+    pub fn summary(&self) -> GeneratorSummary {
+        let mut total_methods = 0usize;
+        let mut total_types = 0usize;
+        let mut total_events = 0usize;
+        let mut contract_names = Vec::new();
+
+        for doc in &self.docs_cache {
+            total_methods = total_methods.saturating_add(doc.methods.len());
+            total_types = total_types.saturating_add(doc.types.len());
+            total_events = total_events.saturating_add(doc.events.len());
+            contract_names.push(doc.name.clone());
+        }
+
+        GeneratorSummary {
+            state: self.state.clone(),
+            base_path: self.base_path.clone(),
+            output_path: self.output_path.clone(),
+            total_contracts: self.docs_cache.len(),
+            total_methods,
+            total_types,
+            total_events,
+            contract_names,
+        }
+    }
+
+    pub fn contract_summary(&self, name: &str) -> Option<ContractSummary> {
+        self.docs_cache
+            .iter()
+            .find(|d| d.name == name)
+            .map(|doc| ContractSummary {
+                name: doc.name.clone(),
+                description: doc.description.clone(),
+                method_count: doc.methods.len(),
+                type_count: doc.types.len(),
+                event_count: doc.events.len(),
+            })
+    }
+
+    pub fn contract_doc(&self, name: &str) -> Option<&ContractDoc> {
+        self.docs_cache.iter().find(|d| d.name == name)
+    }
+
+    pub fn total_contracts(&self) -> usize {
+        self.docs_cache.len()
+    }
+
+    pub fn total_methods(&self) -> usize {
+        self.docs_cache.iter().map(|d| d.methods.len()).sum()
+    }
+}
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_parsing_logic() {
-        let dir = tempdir().unwrap();
-        let src_dir = dir.path().join("src");
-        fs::create_dir(&src_dir).unwrap();
-        let lib_rs = src_dir.join("lib.rs");
-        
-        let mock_code = r#"
-/// The Reward Distribution contract manages lifecycle of rewards.
-#[contract]
-pub struct RewardContract;
-
-#[contractimpl]
-impl RewardContract {
-    /// Initializes the contract.
-    pub fn init(env: Env, admin: Address) { }
-
-    /// Accrues rewards for a user.
-    pub fn accrue(env: Env, user: Address) { }
-}
-
-/// Emitted when a reward is claimed.
-#[contractevent]
-pub struct RewardClaimed {
-    pub user: Address,
-    pub amount: i128,
-}
-"#;
-        fs::write(lib_rs, mock_code).unwrap();
-        fs::write(dir.path().join("Cargo.toml"), "").unwrap();
-
-        let generator = DocGenerator::new(dir.path().to_path_buf(), dir.path().join("docs"));
-        let doc = generator.parse_contract(dir.path()).unwrap();
-
-        assert_eq!(doc.name, dir.path().file_name().unwrap().to_str().unwrap());
-        assert!(doc.description.unwrap().contains("Reward Distribution"));
-        assert_eq!(doc.methods.len(), 2);
-        assert_eq!(doc.methods[0].name, "init");
-        assert_eq!(doc.methods[0].parameters.len(), 2);
-        assert_eq!(doc.methods[0].parameters[0].name, "env");
-        assert_eq!(doc.methods[0].parameters[0].type_name, "Env");
-        assert_eq!(doc.events.len(), 1);
-        assert_eq!(doc.events[0].name, "RewardClaimed");
-    }
-
-    #[test]
-    fn test_multiline_method_signature_parsing() {
-        let dir = tempdir().unwrap();
-        let src_dir = dir.path().join("src");
-        fs::create_dir(&src_dir).unwrap();
-        let lib_rs = src_dir.join("lib.rs");
-
-        let mock_code = r#"
-#[contract]
-pub struct PrizePool;
-
-#[contractimpl]
-impl PrizePool {
-    /// Releases reserved amount.
-    pub fn release(
-        env: Env,
-        admin: Address,
-        game_id: u64,
-        amount: i128,
-    ) -> Result<(), Error> {
-        Ok(())
-    }
-}
-"#;
-        fs::write(lib_rs, mock_code).unwrap();
-        fs::write(dir.path().join("Cargo.toml"), "").unwrap();
-
-        let generator = DocGenerator::new(dir.path().to_path_buf(), dir.path().join("docs"));
-        let doc = generator.parse_contract(dir.path()).unwrap();
-
-        assert_eq!(doc.methods.len(), 1);
-        assert_eq!(doc.methods[0].name, "release");
-        assert_eq!(
-            doc.methods[0].signature,
-            "pub fn release(env: Env, admin: Address, game_id: u64, amount: i128) -> Result<(), Error>"
-        );
-        assert_eq!(doc.methods[0].parameters.len(), 4);
-        assert_eq!(doc.methods[0].parameters[2].name, "game_id");
-        assert_eq!(doc.methods[0].parameters[2].type_name, "u64");
-        assert_eq!(doc.methods[0].return_type.as_deref(), Some("Result<(), Error>"));
-    }
-}
+mod test;
