@@ -32,17 +32,36 @@ Verified: `npm test` (11/11), `npm run typecheck` (clean), `npm run build`
 (clean, static prerender), and a live `next dev` check — computed styles
 matched the Vite app's exactly, zero console errors, zero font CDN requests.
 
+## Ported since the table above was first written
+
+`AppSidebar`, `CommandPalette`, `NotificationCenter`, `LocaleSwitcher`,
+`BreadCrumbs`, `FeatureFlagsProvider`, `ModalStackProvider`,
+`GlobalStateStore`, `errorStore`, the `errors.ts`/`global-state.ts`/
+`wallet-session.ts`/`notification.ts` type catalogs, `EmptyStateBlock`
+(+types/utils), `SegmentedControl`, `LoadingSkeletonSet` (+`skeletonUtils`,
+`skeleton.tokens`), `StatusPill`, `BalanceHealthBadge`,
+`CampaignRewardsSpotlightCard`, `PinnedWalletActionTray`, and **`Portfolio`
+itself** — live at `/portfolio`, verified in a running `next dev` server
+(wallet zero-state, campaign spotlight, rewards/collectibles empty states,
+pinned action tray all confirmed rendering correctly).
+
+Also found and fixed: Next's bundler (Turbopack) doesn't resolve an
+explicit `.js` extension pointing at a `.ts`/`.tsx` source file — every
+relative import across `apps/web` had to drop the extension. See the git
+history for the `fix(web): strip .js extensions...` commit.
+
+Also found and fixed: React 19 handles the `inert` boolean attribute
+differently than React 18 — `AppSidebar`'s mobile-nav hiding needed a real
+`inert={boolean}` prop instead of the `inert: ""` string hack the original
+React 18 code used.
+
 ## Not yet ported (real work remaining)
 
 | Page/piece | Frontend size | Depends on |
 |---|---|---|
 | `GameLobby` (`/`, `/games` in the old app) | 1150 lines | Deep: `hooks/v1/*`, `services/soroban-contract-client`, `services/soroban-contract-dev`, many `components/v1/*` |
-| `ProfileSettings` (`/profile`) | 384 lines | `AccountSwitcher`, `DraftPresenceIndicator`, `SensitiveActionChecklist`, `StickyActionsFooter`, `CollapsibleStatsGroup`, `RewardBalanceSparklineCard`, `GlobalStateStore`, `useWalletStatus` |
-| `Portfolio` (`/portfolio`) | 419 lines | `EmptyStateBlock`, `BalanceHealthBadge`, `CampaignRewardsSpotlightCard`, `PinnedWalletActionTray`, `StatusPill` |
-| `AppSidebar` (nav shell) | 155 lines | Route-aware, not yet ported |
-| `CommandPalette`, `NotificationCenter`, `LocaleSwitcher`, `BreadCrumbs` | ~450 lines combined | Shared chrome, not yet ported |
-| `FeatureFlagsProvider`, `ModalStackProvider` | ~360 lines combined | `feature-flags.tsx` uses `import.meta.env.VITE_FEATURE_FLAG_OVERRIDES` — needs a Next-appropriate env-var equivalent, not a mechanical rename |
-| ~170 remaining `components/v1/*` | — | Not audited component-by-component yet |
+| `ProfileSettings` (`/profile`) | 384 lines | `AccountSwitcher`, `DraftPresenceIndicator`, `SensitiveActionChecklist`, `StickyActionsFooter`, `CollapsibleStatsGroup`, `RewardBalanceSparklineCard`, `useWalletStatus` (`GlobalStateStore` is now ported) |
+| ~160 remaining `components/v1/*` | — | Not audited component-by-component yet |
 
 ## Suggested order for the next slice
 
