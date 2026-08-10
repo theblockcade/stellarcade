@@ -92,3 +92,50 @@ fn not_configured_and_missing_campaign_reads_are_predictable() {
     assert_eq!(cooldown.seconds_until_open, 0);
     assert_eq!(cooldown.seconds_until_closed, 0);
 }
+
+#[test]
+fn claim_saturation_summary_unknown_campaign_returns_not_exists() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _user) = setup(&env);
+
+    let saturation = client.claim_saturation_summary(&9999);
+    assert!(saturation.configured);
+    assert!(!saturation.exists);
+    assert_eq!(saturation.saturation_bps, 0);
+    assert!(!saturation.saturated);
+    assert_eq!(saturation.budget, 0);
+    assert_eq!(saturation.committed_budget, 0);
+}
+
+#[test]
+fn cooldown_window_accessor_scheduled_campaign_shows_seconds_until_open() {
+    let env = Env::default();
+    env.mock_all_auths();
+    // Set ledger timestamp to 50, campaign starts at 200
+    env.ledger().with_mut(|ledger| ledger.timestamp = 50);
+    let (client, admin, _user) = setup(&env);
+    client.upsert_campaign(&admin, &42, &5_000, &200, &400, &false);
+
+    let cooldown = client.cooldown_window_accessor(&42);
+    assert_eq!(cooldown.state, ClaimWindowState::Scheduled);
+    assert!(cooldown.seconds_until_open > 0);
+    assert_eq!(cooldown.seconds_until_open, 150); // 200 - 50
+    assert_eq!(cooldown.seconds_until_closed, 0);
+}
+
+#[test]
+fn cooldown_window_accessor_closed_campaign_shows_zero_seconds_until_closed() {
+    let env = Env::default();
+    env.mock_all_auths();
+    // Set ledger timestamp to 500, campaign ended at 300
+    env.ledger().with_mut(|ledger| ledger.timestamp = 500);
+    let (client, admin, _user) = setup(&env);
+    client.upsert_campaign(&admin, &43, &5_000, &100, &300, &false);
+
+    let cooldown = client.cooldown_window_accessor(&43);
+    assert_eq!(cooldown.state, ClaimWindowState::Closed);
+    assert_eq!(cooldown.seconds_until_open, 0);
+    assert_eq!(cooldown.seconds_until_closed, 0);
+    assert!(!cooldown.can_record_claims);
+}

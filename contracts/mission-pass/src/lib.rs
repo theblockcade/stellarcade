@@ -19,7 +19,7 @@ mod types;
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
-pub use types::{PassProgressSnapshot, PassRecord, UnlockGap};
+pub use types::{PassProgressSnapshot, PassRecord, UnlockGap, PassTierSnapshot};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 
@@ -32,6 +32,7 @@ pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 pub enum DataKey {
     Admin,
     Pass(u32),
+    SeasonExpiry,
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +156,49 @@ impl MissionPass {
                 next_unlock_threshold: 0,
                 current_progress: 0,
                 locked: false,
+            },
+        }
+    }
+
+    /// Return the configured season expiry sequence (defaults to 0).
+    pub fn season_expiry(env: Env) -> u64 {
+        env.storage()
+            .instance()
+            .get(&DataKey::SeasonExpiry)
+            .unwrap_or(0)
+    }
+
+    /// Set the season expiry sequence. Admin only.
+    pub fn set_season_expiry(env: Env, admin: Address, expiry: u64) -> Result<(), Error> {
+        require_admin(&env, &admin)?;
+        env.storage()
+            .instance()
+            .set(&DataKey::SeasonExpiry, &expiry);
+        Ok(())
+    }
+
+    /// Return a pass tier snapshot for `pass_id`.
+    pub fn pass_tier_snapshot(env: Env, pass_id: u32) -> PassTierSnapshot {
+        let expiry = Self::season_expiry(env.clone());
+        let current_ledger = env.ledger().sequence() as u64;
+        let is_expired = expiry > 0 && current_ledger >= expiry;
+
+        match storage::get_pass(&env, pass_id) {
+            Some(record) => PassTierSnapshot {
+                pass_id,
+                exists: true,
+                total_missions: record.total_missions,
+                next_unlock_threshold: record.next_unlock_threshold,
+                season_expiry: expiry,
+                is_expired,
+            },
+            None => PassTierSnapshot {
+                pass_id,
+                exists: false,
+                total_missions: 0,
+                next_unlock_threshold: 0,
+                season_expiry: expiry,
+                is_expired,
             },
         }
     }

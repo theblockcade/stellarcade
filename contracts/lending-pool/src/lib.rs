@@ -5,7 +5,10 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
-pub use types::{LiquidationBufferSnapshot, PoolTotals, UtilizationSnapshot};
+pub use types::{
+    InterestCooldownAccessor, LiquidationBufferSnapshot, PoolTotals, PoolUtilizationSnapshot,
+    UtilizationSnapshot,
+};
 
 #[contracttype]
 #[derive(Clone)]
@@ -83,6 +86,73 @@ impl LendingPool {
             total_borrowed: totals.total_borrowed,
             available_liquidity,
             utilization_bps,
+        }
+    }
+
+    /// Named pool-utilization snapshot extending `utilization_snapshot` with a
+    /// `healthy` flag comparing utilization to the liquidation buffer threshold.
+    pub fn pool_utilization_snapshot(env: Env) -> PoolUtilizationSnapshot {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let liquidation_buffer_bps: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::LiquidationBufferBps)
+            .unwrap_or(0);
+
+        let Some(totals) = storage::get_pool_totals(&env) else {
+            return PoolUtilizationSnapshot {
+                configured,
+                total_supplied: 0,
+                total_borrowed: 0,
+                available_liquidity: 0,
+                utilization_bps: 0,
+                liquidation_buffer_bps,
+                healthy: true,
+            };
+        };
+
+        let available_liquidity = totals
+            .total_supplied
+            .checked_sub(totals.total_borrowed)
+            .expect("Overflow");
+        let utilization_bps = if totals.total_supplied == 0 {
+            0
+        } else {
+            ((totals.total_borrowed * 10_000i128) / totals.total_supplied) as u32
+        };
+
+        PoolUtilizationSnapshot {
+            configured,
+            total_supplied: totals.total_supplied,
+            total_borrowed: totals.total_borrowed,
+            available_liquidity,
+            utilization_bps,
+            liquidation_buffer_bps,
+            healthy: utilization_bps <= liquidation_buffer_bps,
+        }
+    }
+
+    /// Returns an interest-cooldown accessor.
+    ///
+    /// Callers supply `last_accrued_at` and `cooldown_seconds`. `ready` is true
+    /// when `now >= last_accrued_at + cooldown_seconds`. Zero disables cooldown.
+    pub fn interest_cooldown_accessor(
+        env: Env,
+        last_accrued_at: u64,
+        cooldown_seconds: u64,
+    ) -> InterestCooldownAccessor {
+        let now = env.ledger().timestamp();
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let cooldown_expires_at = last_accrued_at.saturating_add(cooldown_seconds);
+        let ready = cooldown_seconds == 0 || now >= cooldown_expires_at;
+
+        InterestCooldownAccessor {
+            configured,
+            last_accrued_at,
+            cooldown_seconds,
+            cooldown_expires_at,
+            ready,
+            now,
         }
     }
 

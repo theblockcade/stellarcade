@@ -1,0 +1,61 @@
+.status-ribbon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted, rgba(245, 247, 251, 0.6));
+}
+
+.status-ribbon--active {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.status-ribbon--pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.status-ribbon--inactive {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+}
+
+.status-ribbon--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.status-ribbon--success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-ribbon__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-ribbon--pulse .status-ribbon__dot {
+  animation: status-ribbon-pulse 1.5s ease-in-out infinite;
+}
+
+.status-ribbon__label {
+  line-height: 1;
+}
+
+@keyframes status-ribbon-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}

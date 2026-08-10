@@ -59,6 +59,26 @@ pub struct PendingOutflowSummary {
 
 #[contracttype]
 #[derive(Clone)]
+pub struct VaultAllocationSummary {
+    pub status: BonusVaultStatus,
+    pub pending_accrual: i128,
+    pub release_threshold: i128,
+    pub allocated_bps: u32,
+    pub headroom: i128,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct UnlockWindowAccessor {
+    pub status: BonusVaultStatus,
+    pub pending_accrual: i128,
+    pub unlock_threshold: i128,
+    pub unlockable: bool,
+    pub shortfall: i128,
+}
+
+#[contracttype]
+#[derive(Clone)]
 pub enum DataKey {
     Config,
     State,

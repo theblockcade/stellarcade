@@ -221,3 +221,75 @@ fn test_admin_can_record_activity_for_user() {
     assert_eq!(streak, 1);
     assert_eq!(client.current_streak(&user), 1);
 }
+
+// ---------------------------------------------------------------------------
+// bonus_multiplier_summary / decay_interval tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn bonus_multiplier_summary_before_init_not_configured() {
+    let env = Env::default();
+    // Register contract but do NOT call init, so no Rules are stored.
+    let contract_id = env.register(StreakBonus, ());
+    let client = StreakBonusClient::new(&env, &contract_id);
+
+    let summary = client.bonus_multiplier_summary();
+    assert_eq!(summary.configured, false);
+    assert_eq!(summary.reward_per_streak, 0);
+    assert_eq!(summary.min_streak_to_claim, 0);
+    assert_eq!(summary.streak_window_secs, 0);
+}
+
+#[test]
+fn bonus_multiplier_summary_after_init() {
+    let env = Env::default();
+    let (client, _, _, _) = setup(&env);
+
+    // After init the contract sets default rules:
+    //   min_streak_to_claim = 3, reward_per_streak = 1_000_000, streak_window_secs = 86400
+    let summary = client.bonus_multiplier_summary();
+    assert_eq!(summary.configured, true);
+    assert_eq!(summary.min_streak_to_claim, 3);
+    assert_eq!(summary.reward_per_streak, 1_000_000);
+    assert_eq!(summary.streak_window_secs, 86_400);
+}
+
+#[test]
+fn decay_interval_before_init_returns_zero() {
+    let env = Env::default();
+    let contract_id = env.register(StreakBonus, ());
+    let client = StreakBonusClient::new(&env, &contract_id);
+
+    assert_eq!(client.decay_interval(), 0u64);
+}
+
+#[test]
+fn decay_interval_after_init() {
+    let env = Env::default();
+    let (client, _, _, _) = setup(&env);
+
+    // Default streak_window_secs is 86 400 (24 h).
+    assert_eq!(client.decay_interval(), 86_400u64);
+}
+
+#[test]
+fn decay_interval_reflects_reset_rules() {
+    let env = Env::default();
+    let (client, admin, _, _) = setup(&env);
+    env.mock_all_auths();
+
+    let new_rules = StreakRules {
+        min_streak_to_claim: 5,
+        reward_per_streak: 500_000,
+        streak_window_secs: 3_600, // 1 h
+    };
+    client.reset_rules(&admin, &new_rules);
+
+    assert_eq!(client.decay_interval(), 3_600u64);
+
+    let summary = client.bonus_multiplier_summary();
+    assert_eq!(summary.configured, true);
+    assert_eq!(summary.min_streak_to_claim, 5);
+    assert_eq!(summary.reward_per_streak, 500_000);
+    assert_eq!(summary.streak_window_secs, 3_600);
+}

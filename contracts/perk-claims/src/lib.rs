@@ -7,10 +7,8 @@ pub mod types;
 #[cfg(test)]
 mod test;
 
-use crate::storage::{
-    get_perk, has_claimed, is_queued, mark_claimed, mark_queued, set_perk,
-};
-use crate::types::{ClaimQueueSnapshot, Perk, ThresholdGap};
+use crate::storage::{get_perk, has_claimed, is_queued, mark_claimed, mark_queued, set_perk};
+use crate::types::{ClaimQueueSnapshot, ClaimStatusSummary, Perk, ThresholdGap};
 
 #[contract]
 pub struct PerkClaims;
@@ -127,6 +125,51 @@ impl PerkClaims {
                 queued_count: 0,
                 gap: 0,
                 progress_bps: 0,
+            },
+        }
+    }
+
+    /// Returns the configured cooldown delay (defaults to 0 if not set).
+    pub fn cooldown_delay(env: Env) -> u64 {
+        env.storage()
+            .persistent()
+            .get(&storage::DataKey::CooldownDelay)
+            .unwrap_or(0)
+    }
+
+    /// Set the cooldown delay (in seconds).
+    pub fn set_cooldown_delay(env: Env, delay: u64) {
+        env.storage()
+            .persistent()
+            .set(&storage::DataKey::CooldownDelay, &delay);
+    }
+
+    /// Detailed summary of a perk's claim status.
+    pub fn claim_status_summary(env: Env, id: u64) -> ClaimStatusSummary {
+        let cooldown_delay = env
+            .storage()
+            .persistent()
+            .get(&storage::DataKey::CooldownDelay)
+            .unwrap_or(0);
+
+        match get_perk(&env, id) {
+            Some(p) => ClaimStatusSummary {
+                perk_exists: true,
+                threshold: p.threshold,
+                queued_count: p.queued_count,
+                claimed_count: p.claimed_count,
+                is_active: p.is_active,
+                cooldown_delay,
+                is_threshold_met: p.queued_count >= p.threshold,
+            },
+            None => ClaimStatusSummary {
+                perk_exists: false,
+                threshold: 0,
+                queued_count: 0,
+                claimed_count: 0,
+                is_active: false,
+                cooldown_delay,
+                is_threshold_met: false,
             },
         }
     }

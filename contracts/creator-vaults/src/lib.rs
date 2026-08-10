@@ -10,7 +10,9 @@ mod test;
 use crate::storage::{
     get_owners, get_total_locked, get_vault, set_owners, set_total_locked, set_vault,
 };
-use crate::types::{UnlockReadiness, Vault, VaultLiabilitySummary};
+use crate::types::{
+    DepletionGapAccessor, UnlockReadiness, Vault, VaultLiabilitySummary, VaultReserveSummary,
+};
 
 #[contract]
 pub struct CreatorVaults;
@@ -141,5 +143,95 @@ impl CreatorVaults {
             unlock_time: 0,
             is_active: false,
         })
+    }
+
+    /// Reserve health for a single vault against a caller-supplied minimum.
+    ///
+    /// Returns `meets_reserve: false` and a `shortfall` when the vault does
+    /// not exist, is inactive, or is below `min_reserve`.
+    pub fn vault_reserve_summary(
+        env: Env,
+        creator: Address,
+        min_reserve: i128,
+    ) -> VaultReserveSummary {
+        let now = env.ledger().timestamp();
+
+        match get_vault(&env, creator) {
+            Some(vault) => {
+                let meets_reserve = vault.is_active && vault.locked_amount >= min_reserve;
+                let shortfall = if meets_reserve {
+                    0
+                } else {
+                    min_reserve.saturating_sub(vault.locked_amount).max(0)
+                };
+                VaultReserveSummary {
+                    vault_exists: true,
+                    is_active: vault.is_active,
+                    locked_amount: vault.locked_amount,
+                    unlock_time: vault.unlock_time,
+                    current_time: now,
+                    min_reserve,
+                    meets_reserve,
+                    shortfall,
+                }
+            }
+            None => VaultReserveSummary {
+                vault_exists: false,
+                is_active: false,
+                locked_amount: 0,
+                unlock_time: 0,
+                current_time: now,
+                min_reserve,
+                meets_reserve: false,
+                shortfall: min_reserve.max(0),
+            },
+        }
+    }
+
+    /// Depletion gap for a single vault: unlockable vs. still-locked amounts.
+    ///
+    /// Returns zeroed amounts with `vault_exists: false` when the vault does
+    /// not exist.
+    pub fn depletion_gap_accessor(env: Env, creator: Address) -> DepletionGapAccessor {
+        let now = env.ledger().timestamp();
+
+        match get_vault(&env, creator) {
+            Some(vault) => {
+                let unlockable_amount = if vault.is_active && now >= vault.unlock_time {
+                    vault.locked_amount
+                } else {
+                    0
+                };
+                let locked_remaining = vault.locked_amount - unlockable_amount;
+                let depletion_bps = if vault.locked_amount == 0 {
+                    0u32
+                } else {
+                    u32::try_from(
+                        (unlockable_amount * 10_000) / vault.locked_amount,
+                    )
+                    .unwrap_or(10_000)
+                };
+                DepletionGapAccessor {
+                    vault_exists: true,
+                    is_active: vault.is_active,
+                    locked_amount: vault.locked_amount,
+                    unlock_time: vault.unlock_time,
+                    current_time: now,
+                    unlockable_amount,
+                    locked_remaining,
+                    depletion_bps,
+                }
+            }
+            None => DepletionGapAccessor {
+                vault_exists: false,
+                is_active: false,
+                locked_amount: 0,
+                unlock_time: 0,
+                current_time: now,
+                unlockable_amount: 0,
+                locked_remaining: 0,
+                depletion_bps: 0,
+            },
+        }
     }
 }

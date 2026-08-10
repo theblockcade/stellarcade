@@ -34,3 +34,32 @@ pub struct FundingSnapshot {
     /// `true` when `current_funded >= minimum_target`.
     pub is_funded: bool,
 }
+
+/// Named pool-balance summary: combines funding state with contributor count
+/// for a one-call dashboard view.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PoolBalanceSummary {
+    pub minimum_target: i128,
+    pub current_funded: i128,
+    pub shortfall: i128,
+    pub is_funded: bool,
+    pub contributor_count: u32,
+    pub top_contributor_share_bps: u32,
+}
+
+/// Draw-interval accessor — reports whether a new draw can be triggered now.
+///
+/// Callers supply `last_draw_at` (the ledger timestamp of the last draw) and
+/// `interval_seconds`. `ready` is true when `now >= last_draw_at + interval_seconds`
+/// and the pool is funded. Zero `interval_seconds` disables the interval gate.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DrawIntervalAccessor {
+    pub last_draw_at: u64,
+    pub interval_seconds: u64,
+    pub next_draw_at: u64,
+    pub is_funded: bool,
+    pub ready: bool,
+    pub now: u64,
+}

@@ -110,3 +110,40 @@ pub struct PurchaseEligibility {
     /// Stable machine-readable reason code.
     pub reason: PurchaseEligibilityReason,
 }
+
+/// Full snapshot of a single active listing for UI/API consumers.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActiveListingSnapshot {
+    pub listing_id: u64,
+    /// True when the listing exists in storage.
+    pub exists: bool,
+    /// True when the listing is active and not expired.
+    pub is_active: bool,
+    pub status: ListingStatus,
+    pub seller: Option<Address>,
+    pub game_id: Option<Symbol>,
+    pub price: i128,
+    pub expires_at_ledger: u32,
+    pub current_ledger: u32,
+    /// Ledgers remaining until expiry (0 when expired or missing).
+    pub ledgers_until_expiry: u32,
+    pub is_expired: bool,
+}
+
+/// Purchase cooldown state for a listing, reporting the remaining ledgers
+/// until the listing becomes purchasable after creation.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PurchaseCooldown {
+    pub listing_id: u64,
+    pub exists: bool,
+    pub status: ListingStatus,
+    pub current_ledger: u32,
+    pub expires_at_ledger: u32,
+    /// True when the listing is active, not expired, and past any cooldown.
+    pub is_purchasable: bool,
+    /// Ledgers remaining in the cooldown window (0 when ready or missing).
+    pub cooldown_remaining: u32,
+    pub is_expired: bool,
+}

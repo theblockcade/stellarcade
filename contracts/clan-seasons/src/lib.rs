@@ -21,7 +21,7 @@ mod types;
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
-pub use types::{RosterLock, SeasonCarryoverSnapshot, SeasonRecord};
+pub use types::{ParticipationSummary, RosterLock, SeasonCarryoverSnapshot, SeasonRecord, TransitionGap};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 
@@ -125,6 +125,62 @@ impl ClanSeasons {
                 season_end_ledger: 0,
                 was_locked: false,
             },
+        }
+    }
+
+    /// Return participation statistics for `season_id`.
+    ///
+    /// Unknown season ids return `exists = false` with zeroed numeric fields.
+    pub fn participation_summary(env: Env, season_id: u32) -> ParticipationSummary {
+        match storage::get_season(&env, season_id) {
+            Some(record) => ParticipationSummary {
+                season_id,
+                exists: true,
+                locked_member_count: record.locked_member_count,
+                was_locked: record.was_locked,
+                carryover_xp: record.carryover_xp,
+                carryover_rank: record.carryover_rank,
+            },
+            None => ParticipationSummary {
+                season_id,
+                exists: false,
+                locked_member_count: 0,
+                was_locked: false,
+                carryover_xp: 0,
+                carryover_rank: 0,
+            },
+        }
+    }
+
+    /// Return the ledger gap between two seasons.
+    ///
+    /// Uses `season_end_ledger` of `to_season_id` as a proxy for its start
+    /// ledger. `gap_ledgers` is 0 when either season is missing or the
+    /// result would underflow.
+    pub fn transition_gap(env: Env, from_season_id: u32, to_season_id: u32) -> TransitionGap {
+        let from_record = storage::get_season(&env, from_season_id);
+        let to_record = storage::get_season(&env, to_season_id);
+
+        let from_exists = from_record.is_some();
+        let to_exists = to_record.is_some();
+
+        let from_end_ledger = from_record.map(|r| r.season_end_ledger).unwrap_or(0);
+        let to_start_ledger = to_record.map(|r| r.season_end_ledger).unwrap_or(0);
+
+        let gap_ledgers = if from_exists && to_exists {
+            from_end_ledger.saturating_sub(to_start_ledger)
+        } else {
+            0
+        };
+
+        TransitionGap {
+            from_season_id,
+            to_season_id,
+            from_exists,
+            to_exists,
+            from_end_ledger,
+            to_start_ledger,
+            gap_ledgers,
         }
     }
 

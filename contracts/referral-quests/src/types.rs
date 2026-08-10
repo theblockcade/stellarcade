@@ -69,3 +69,35 @@ pub struct PayoutGapInfo {
     pub total_payout_paid: u128,
     pub payout_gap: u128,
 }
+
+/// Snapshot of a user's progress within a quest.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QuestProgressSnapshot {
+    pub quest_id: u32,
+    pub configured: bool,
+    pub quest_exists: bool,
+    pub completion_exists: bool,
+    pub state: QuestState,
+    pub payout_per_completion: u128,
+    pub completed_at: u64,
+    pub is_paid: bool,
+    pub quest_paused: bool,
+}
+
+/// Reward-decay info for a quest, showing how the outstanding reward
+/// balance decays as completions are paid out.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RewardDecayInfo {
+    pub quest_id: u32,
+    pub configured: bool,
+    pub exists: bool,
+    pub state: QuestState,
+    pub total_payout_owed: u128,
+    pub total_payout_paid: u128,
+    /// Percentage of total owed that has been paid (0–100).
+    pub decay_pct: u32,
+    pub pending_completion_count: u32,
+    pub paid_completion_count: u32,
+}

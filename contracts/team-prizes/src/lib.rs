@@ -13,7 +13,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    ClaimDelayInfo, ClaimDelayState, MemberRecord, PoolConfig, PoolState, PrizePoolCoverage,
+    ClaimDelayInfo, ClaimDelayState, ClaimExpiryInfo, MemberRecord, PoolConfig, PoolState,
+    PrizeAllocationSummary, PrizePoolCoverage,
 };
 
 #[contracttype]
@@ -212,6 +213,96 @@ impl TeamPrizes {
             claimed_member_count: pool.claimed_member_count,
             unclaimed_member_count,
             coverage_bps,
+        }
+    }
+
+    /// Prize allocation view for a pool.
+    ///
+    /// `avg_share_per_member = floor(total_amount / eligible_member_count)`, or
+    /// zero when no members are eligible. `fully_distributed` is true when every
+    /// eligible member has claimed. Unknown pools return `pool_found = false`.
+    pub fn prize_allocation_summary(env: Env, pool_id: u32) -> PrizeAllocationSummary {
+        let configured = is_configured(&env);
+        let Some(pool) = storage::get_pool(&env, pool_id) else {
+            return PrizeAllocationSummary {
+                pool_id,
+                configured,
+                pool_found: false,
+                total_amount: 0,
+                claimed_amount: 0,
+                unclaimed_amount: 0,
+                eligible_member_count: 0,
+                claimed_member_count: 0,
+                avg_share_per_member: 0,
+                fully_distributed: false,
+                paused: false,
+            };
+        };
+
+        let unclaimed_amount = pool.total_amount.saturating_sub(pool.claimed_amount);
+        let avg_share_per_member = if pool.eligible_member_count > 0 {
+            pool.total_amount / pool.eligible_member_count as u128
+        } else {
+            0
+        };
+        let fully_distributed = pool.eligible_member_count > 0
+            && pool.claimed_member_count == pool.eligible_member_count;
+
+        PrizeAllocationSummary {
+            pool_id,
+            configured,
+            pool_found: true,
+            total_amount: pool.total_amount,
+            claimed_amount: pool.claimed_amount,
+            unclaimed_amount,
+            eligible_member_count: pool.eligible_member_count,
+            claimed_member_count: pool.claimed_member_count,
+            avg_share_per_member,
+            fully_distributed,
+            paused: pool.paused,
+        }
+    }
+
+    /// Claim-expiry view for a member.
+    ///
+    /// This contract has no hard expiry on claims; `has_expiry` is always `false`
+    /// and `expires_at` is always `0`. The accessor provides a stable surface for
+    /// future expiry support without a breaking interface change.
+    pub fn claim_expiry_accessor(env: Env, member: Address) -> ClaimExpiryInfo {
+        let configured = is_configured(&env);
+
+        let Some(record) = storage::get_member(&env, &member) else {
+            return ClaimExpiryInfo {
+                configured,
+                member_found: false,
+                pool_id: 0,
+                claim_window_opens_at: 0,
+                has_expiry: false,
+                expires_at: 0,
+                is_expired: false,
+                already_claimed: false,
+                pool_paused: false,
+            };
+        };
+
+        let (opens_at, pool_paused) = match storage::get_pool(&env, record.pool_id) {
+            Some(pool) => (
+                record.eligible_at.saturating_add(pool.claim_delay_secs),
+                pool.paused,
+            ),
+            None => (0, false),
+        };
+
+        ClaimExpiryInfo {
+            configured,
+            member_found: true,
+            pool_id: record.pool_id,
+            claim_window_opens_at: opens_at,
+            has_expiry: false,
+            expires_at: 0,
+            is_expired: false,
+            already_claimed: record.claimed,
+            pool_paused,
         }
     }
 

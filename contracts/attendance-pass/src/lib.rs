@@ -6,8 +6,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    CheckInCoverageSummary, ExpiryBand, HolderCoverageSummary, PassRecord,
-    PassStatus, RedemptionReadinessSnapshot, ResaleLockStatus,
+    CheckInCoverageSummary, ExpiryBand, GracePeriodAccessor, HolderCoverageSummary, PassRecord,
+    PassStatus, PassValiditySnapshot, RedemptionReadinessSnapshot, ResaleLockStatus,
 };
 
 #[contracttype]
@@ -213,6 +213,89 @@ impl AttendancePass {
         }
     }
 
+    /// Returns a validity snapshot for a pass.
+    ///
+    /// `time_remaining` uses saturating subtraction — zero when expired or missing.
+    /// Unknown pass ids and unconfigured contracts return predictable zero-state values.
+    pub fn pass_validity_snapshot(env: Env, pass_id: u64) -> PassValiditySnapshot {
+        let now = env.ledger().timestamp();
+        let configured = env.storage().instance().has(&DataKey::Admin);
+
+        let Some(record) = storage::get_pass(&env, pass_id) else {
+            return PassValiditySnapshot {
+                pass_id,
+                configured,
+                exists: false,
+                valid: false,
+                status: if configured {
+                    PassStatus::Active
+                } else {
+                    PassStatus::NotConfigured
+                },
+                issued_at: 0,
+                expires_at: 0,
+                time_remaining: 0,
+                now,
+            };
+        };
+
+        let expired = !record.active || now >= record.expires_at;
+        let status = if expired { PassStatus::Expired } else { PassStatus::Active };
+        let time_remaining = if expired { 0 } else { record.expires_at.saturating_sub(now) };
+
+        PassValiditySnapshot {
+            pass_id,
+            configured,
+            exists: true,
+            valid: !expired,
+            status,
+            issued_at: record.issued_at,
+            expires_at: record.expires_at,
+            time_remaining,
+            now,
+        }
+    }
+
+    /// Returns the grace-period window for a pass.
+    ///
+    /// The contract does not store a per-pass grace configuration; callers
+    /// supply `grace_seconds` and this function computes whether the pass is
+    /// currently inside the grace window. When `grace_seconds` is zero the
+    /// grace period is disabled and `in_grace_period` is always false.
+    pub fn grace_period_accessor(env: Env, pass_id: u64, grace_seconds: u64) -> GracePeriodAccessor {
+        let now = env.ledger().timestamp();
+        let configured = env.storage().instance().has(&DataKey::Admin);
+
+        let Some(record) = storage::get_pass(&env, pass_id) else {
+            return GracePeriodAccessor {
+                pass_id,
+                configured,
+                exists: false,
+                expires_at: 0,
+                grace_seconds,
+                grace_deadline: 0,
+                in_grace_period: false,
+                now,
+            };
+        };
+
+        let grace_deadline = record.expires_at.saturating_add(grace_seconds);
+        let in_grace_period = grace_seconds > 0
+            && now >= record.expires_at
+            && now < grace_deadline;
+
+        GracePeriodAccessor {
+            pass_id,
+            configured,
+            exists: true,
+            expires_at: record.expires_at,
+            grace_seconds,
+            grace_deadline,
+            in_grace_period,
+            now,
+        }
+    }
+
     pub fn set_resale_lock(env: Env, admin: Address, pass_id: u64, locked: bool) {
         admin.require_auth();
         let _ = storage::get_pass(&env, pass_id).expect("Pass not found");
@@ -317,5 +400,125 @@ mod test {
         assert_eq!(status.exists, false);
         assert_eq!(status.active, false);
         assert_eq!(status.resale_locked, false);
+    }
+
+    // ── pass_validity_snapshot ────────────────────────────────────────────
+
+    #[test]
+    fn test_pass_validity_snapshot_active_pass() {
+        let env = Env::default();
+        env.ledger().set_timestamp(1000);
+        let admin = Address::random(&env);
+        let holder = Address::random(&env);
+        AttendancePass::init(env.clone(), admin.clone());
+        AttendancePass::issue_pass(env.clone(), admin, 1, holder, 5000);
+
+        let snap = AttendancePass::pass_validity_snapshot(env.clone(), 1);
+        assert_eq!(snap.exists, true);
+        assert_eq!(snap.valid, true);
+        assert_eq!(snap.status, PassStatus::Active);
+        assert_eq!(snap.time_remaining, 4000);
+        assert_eq!(snap.now, 1000);
+    }
+
+    #[test]
+    fn test_pass_validity_snapshot_expired_pass() {
+        let env = Env::default();
+        env.ledger().set_timestamp(1000);
+        let admin = Address::random(&env);
+        let holder = Address::random(&env);
+        AttendancePass::init(env.clone(), admin.clone());
+        AttendancePass::issue_pass(env.clone(), admin.clone(), 2, holder, 2000);
+        AttendancePass::expire_pass(env.clone(), admin, 2);
+
+        let snap = AttendancePass::pass_validity_snapshot(env.clone(), 2);
+        assert_eq!(snap.valid, false);
+        assert_eq!(snap.status, PassStatus::Expired);
+        assert_eq!(snap.time_remaining, 0);
+    }
+
+    #[test]
+    fn test_pass_validity_snapshot_missing_pass() {
+        let env = Env::default();
+        let admin = Address::random(&env);
+        AttendancePass::init(env.clone(), admin);
+
+        let snap = AttendancePass::pass_validity_snapshot(env, 999);
+        assert_eq!(snap.exists, false);
+        assert_eq!(snap.valid, false);
+        assert_eq!(snap.time_remaining, 0);
+    }
+
+    // ── grace_period_accessor ─────────────────────────────────────────────
+
+    #[test]
+    fn test_grace_period_accessor_within_grace() {
+        let env = Env::default();
+        env.ledger().set_timestamp(1000);
+        let admin = Address::random(&env);
+        let holder = Address::random(&env);
+        AttendancePass::init(env.clone(), admin.clone());
+        // Pass expires at 1500; advance time to 1600 (100s past expiry)
+        AttendancePass::issue_pass(env.clone(), admin.clone(), 3, holder, 1500);
+        AttendancePass::expire_pass(env.clone(), admin, 3);
+
+        let mut ledger = env.ledger().get();
+        ledger.timestamp = 1600;
+        env.ledger().set(ledger);
+
+        // Grace window of 200s → grace_deadline = 1700; now=1600 is inside
+        let acc = AttendancePass::grace_period_accessor(env.clone(), 3, 200);
+        assert_eq!(acc.exists, true);
+        assert_eq!(acc.in_grace_period, true);
+        assert_eq!(acc.grace_deadline, 1700);
+    }
+
+    #[test]
+    fn test_grace_period_accessor_outside_grace() {
+        let env = Env::default();
+        env.ledger().set_timestamp(1000);
+        let admin = Address::random(&env);
+        let holder = Address::random(&env);
+        AttendancePass::init(env.clone(), admin.clone());
+        AttendancePass::issue_pass(env.clone(), admin.clone(), 4, holder, 1500);
+        AttendancePass::expire_pass(env.clone(), admin, 4);
+
+        let mut ledger = env.ledger().get();
+        ledger.timestamp = 1800; // past grace_deadline (1500 + 200 = 1700)
+        env.ledger().set(ledger);
+
+        let acc = AttendancePass::grace_period_accessor(env.clone(), 4, 200);
+        assert_eq!(acc.in_grace_period, false);
+    }
+
+    #[test]
+    fn test_grace_period_accessor_zero_grace_never_in_period() {
+        let env = Env::default();
+        env.ledger().set_timestamp(2000); // past expiry
+        let admin = Address::random(&env);
+        let holder = Address::random(&env);
+        AttendancePass::init(env.clone(), admin.clone());
+        // expires_at must be > now at issuance — issue at t=1000 then advance
+        let mut ledger = env.ledger().get();
+        ledger.timestamp = 1000;
+        env.ledger().set(ledger.clone());
+        AttendancePass::issue_pass(env.clone(), admin.clone(), 5, holder, 1500);
+        AttendancePass::expire_pass(env.clone(), admin, 5);
+        ledger.timestamp = 2000;
+        env.ledger().set(ledger);
+
+        let acc = AttendancePass::grace_period_accessor(env.clone(), 5, 0);
+        assert_eq!(acc.in_grace_period, false);
+    }
+
+    #[test]
+    fn test_grace_period_accessor_missing_pass() {
+        let env = Env::default();
+        let admin = Address::random(&env);
+        AttendancePass::init(env.clone(), admin);
+
+        let acc = AttendancePass::grace_period_accessor(env, 999, 300);
+        assert_eq!(acc.exists, false);
+        assert_eq!(acc.in_grace_period, false);
     }
 }

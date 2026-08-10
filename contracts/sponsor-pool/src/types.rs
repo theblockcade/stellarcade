@@ -61,6 +61,31 @@ pub struct CommittedFundsSummary {
     pub now: u64,
 }
 
+/// Aggregate coverage snapshot returned by `sponsorship_coverage_snapshot()`.
+///
+/// Uses pre-aggregated storage counters so callers get pool-level coverage
+/// without iterating every campaign. `aggregate_coverage_bps` and
+/// `total_remaining` are best-effort: without an on-chain list of campaign
+/// targets they fall back to 0. Callers that need per-campaign detail should
+/// use `campaign_coverage(id)` instead.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct SponsorshipCoverageSnapshot {
+    pub configured: bool,
+    /// Number of campaigns currently in `Open` state.
+    pub open_campaign_count: u32,
+    /// Sum of target_amount across all open campaigns (0 when not tracked).
+    pub total_target: i128,
+    /// Sum of committed_amount across open campaigns (from `OutstandingCommitted`).
+    pub total_committed: i128,
+    /// total_target − total_committed, floored at 0.
+    pub total_remaining: i128,
+    /// Coverage in basis points (0–10 000). 0 when total_target is unknown.
+    pub aggregate_coverage_bps: u32,
+    /// Ledger timestamp at the time this snapshot was taken.
+    pub now: u64,
+}
+
 /// Coverage view for a single campaign returned by `campaign_coverage(id)`.
 ///
 /// `coverage_bps` is integer basis points (10_000 = 100%) so the frontend

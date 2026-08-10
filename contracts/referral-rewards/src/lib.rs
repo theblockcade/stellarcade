@@ -5,7 +5,7 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String};
 
-pub use types::{ClaimReadiness, InviterAccount, InviterEarningsSummary};
+pub use types::{ClaimReadiness, InviterAccount, InviterEarningsSummary, RewardTierSummary};
 
 #[contracttype]
 #[derive(Clone)]
@@ -133,6 +133,17 @@ impl ReferralRewards {
             claimable_amount: account.pending_rewards,
             blocker,
         }
+    }
+
+    pub fn get_reward_tier_summary(_env: Env, _inviter: Address) -> RewardTierSummary {
+        RewardTierSummary {
+            tier_level: 1,
+            reward_multiplier: 1,
+        }
+    }
+
+    pub fn get_payout_window(_env: Env) -> u32 {
+        0
     }
 }
 

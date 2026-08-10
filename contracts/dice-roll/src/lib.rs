@@ -23,7 +23,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, token::TokenClient,
-    Address, Env,
+    Address, Env, Vec,
 };
 
 use stellarcade_random_generator::RandomGeneratorClient;
@@ -42,6 +42,10 @@ pub const MAX_FACE: u32 = 6;
 pub const DIE_SIDES: u64 = 6;
 /// Payout multiplier (before house edge deduction).
 const PAYOUT_MULTIPLIER: i128 = 6;
+/// Default per-player cooldown between rolls, in seconds (30s).
+pub const DEFAULT_COOLDOWN_SECS: u64 = 30;
+/// Max entries kept in the rolling history snapshot.
+const HISTORY_MAX: u32 = 20;
 
 // ---------------------------------------------------------------------------
 // Error types
@@ -80,6 +84,29 @@ pub enum DataKey {
     MaxWager,
     HouseEdgeBps,
     Game(u64),
+    /// Ordered list of resolved game_ids (most-recent last).
+    ResolvedHistory,
+    /// Ledger timestamp of last roll per player, for cooldown tracking.
+    LastRollAt(Address),
+}
+
+/// Snapshot of recent rolling history.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RollingHistorySnapshot {
+    pub total_resolved: u32,
+    pub recent_game_ids: Vec<u64>,
+}
+
+/// Cooldown window state for a player.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CooldownWindow {
+    pub player_has_rolled: bool,
+    pub last_roll_at: u64,
+    pub cooldown_secs: u64,
+    pub seconds_remaining: u64,
+    pub in_cooldown: bool,
 }
 
 #[contracttype]
@@ -230,6 +257,17 @@ impl DiceRoll {
             PERSISTENT_BUMP_LEDGERS,
         );
 
+        // Record last roll timestamp for cooldown tracking
+        let now = env.ledger().timestamp();
+        env.storage()
+            .persistent()
+            .set(&DataKey::LastRollAt(player.clone()), &now);
+        env.storage().persistent().extend_ttl(
+            &DataKey::LastRollAt(player.clone()),
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
+
         RollPlaced {
             game_id,
             player,
@@ -324,6 +362,25 @@ impl DiceRoll {
             );
         }
 
+        // Append to rolling history (capped at HISTORY_MAX)
+        let mut history: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::ResolvedHistory)
+            .unwrap_or_else(|| Vec::new(&env));
+        history.push_back(game_id);
+        if history.len() > HISTORY_MAX {
+            history.remove(0);
+        }
+        env.storage()
+            .persistent()
+            .set(&DataKey::ResolvedHistory, &history);
+        env.storage().persistent().extend_ttl(
+            &DataKey::ResolvedHistory,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
+
         RollResolved {
             game_id,
             player: roll.player,
@@ -368,6 +425,57 @@ impl DiceRoll {
             min_wager: env.storage().instance().get(&DataKey::MinWager).unwrap(),
             max_wager: env.storage().instance().get(&DataKey::MaxWager).unwrap(),
         })
+    }
+
+    /// Snapshot of resolved roll history (up to last 20 game IDs).
+    /// Returns empty list and zero total when no rolls have been resolved yet.
+    pub fn rolling_history_snapshot(env: Env) -> RollingHistorySnapshot {
+        let recent_game_ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::ResolvedHistory)
+            .unwrap_or_else(|| Vec::new(&env));
+        let total_resolved = recent_game_ids.len();
+        RollingHistorySnapshot {
+            total_resolved,
+            recent_game_ids,
+        }
+    }
+
+    /// Per-player cooldown window accessor.
+    /// Returns whether the player is currently in a cooldown period after their last roll.
+    /// `cooldown_secs` is the configured cooldown window (DEFAULT_COOLDOWN_SECS = 30s).
+    pub fn cooldown_window(env: Env, player: Address) -> CooldownWindow {
+        let now = env.ledger().timestamp();
+        match env
+            .storage()
+            .persistent()
+            .get::<DataKey, u64>(&DataKey::LastRollAt(player))
+        {
+            Some(last_roll_at) => {
+                let elapsed = now.saturating_sub(last_roll_at);
+                let in_cooldown = elapsed < DEFAULT_COOLDOWN_SECS;
+                let seconds_remaining = if in_cooldown {
+                    DEFAULT_COOLDOWN_SECS - elapsed
+                } else {
+                    0
+                };
+                CooldownWindow {
+                    player_has_rolled: true,
+                    last_roll_at,
+                    cooldown_secs: DEFAULT_COOLDOWN_SECS,
+                    seconds_remaining,
+                    in_cooldown,
+                }
+            }
+            None => CooldownWindow {
+                player_has_rolled: false,
+                last_roll_at: 0,
+                cooldown_secs: DEFAULT_COOLDOWN_SECS,
+                seconds_remaining: 0,
+                in_cooldown: false,
+            },
+        }
     }
 }
 

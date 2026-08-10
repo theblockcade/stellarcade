@@ -87,3 +87,38 @@ pub struct PauseRecoveryAccessor {
     pub recovery_ready: bool,
     pub blocked_reason_code: u32,
 }
+
+/// Performance summary returned by `stream_performance_summary`.
+///
+/// `utilization_bps = floor(total_withdrawn * 10_000 / total_allocated)` when
+/// `total_allocated > 0`, otherwise 0. `is_depleted` is true when
+/// `remaining == 0 && total_allocated > 0`. Missing or zero-allocation streams
+/// return `is_configured = false` with all zeros.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamPerformanceSummary {
+    pub is_configured: bool,
+    pub stream_id: u64,
+    pub total_allocated: i128,
+    pub total_withdrawn: i128,
+    pub remaining: i128,
+    pub utilization_bps: u32,
+    pub is_depleted: bool,
+    pub paused: bool,
+}
+
+/// Unlock-interval view returned by `unlock_interval_accessor`.
+///
+/// `time_until_unlock = unlock_time.saturating_sub(now)`, clamped to zero once
+/// the stream is past its unlock point. Missing streams return
+/// `is_configured = false` with all zeros.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UnlockIntervalAccessor {
+    pub is_configured: bool,
+    pub stream_id: u64,
+    pub unlock_time: u64,
+    pub time_until_unlock: u64,
+    pub is_past_unlock: bool,
+    pub paused: bool,
+}

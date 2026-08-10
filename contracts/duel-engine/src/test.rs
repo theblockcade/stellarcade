@@ -35,3 +35,41 @@ fn missing_duel_readiness_is_stable() {
     assert!(!readiness.exists);
     assert!(!readiness.is_ready_to_resolve);
 }
+
+#[test]
+fn test_challenge_timeout_getter_setter() {
+    let env = Env::default();
+    let admin = Address::generate(&env);
+    let id = env.register(DuelEngine, ());
+    let client = DuelEngineClient::new(&env, &id);
+    env.mock_all_auths();
+
+    client.init(&admin);
+
+    // Default value is 0
+    assert_eq!(client.challenge_timeout(), 0);
+
+    // Set timeout
+    client.set_challenge_timeout(&admin, &86400);
+    assert_eq!(client.challenge_timeout(), 86400);
+}
+
+#[test]
+fn test_duel_state_summary() {
+    let env = Env::default();
+    let admin = Address::generate(&env);
+    let id = env.register(DuelEngine, ());
+    let client = DuelEngineClient::new(&env, &id);
+    env.mock_all_auths();
+
+    client.init(&admin);
+    client.create_duel(&admin, &5);
+    client.set_challenge_timeout(&admin, &3600);
+
+    let summary = client.duel_state_summary();
+    assert_eq!(summary.open_count, 1);
+    assert_eq!(summary.oldest_open_duel_id, 5);
+    assert_eq!(summary.newest_open_duel_id, 5);
+    assert!(!summary.paused);
+    assert_eq!(summary.challenge_timeout, 3600);
+}

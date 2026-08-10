@@ -7,6 +7,7 @@ use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
     CampaignCoverage, CampaignRecord, CampaignStatus, CommittedFundsSummary,
+    SponsorshipCoverageSnapshot,
 };
 
 #[contracttype]
@@ -21,6 +22,8 @@ pub enum DataKey {
     LifetimeCommitted,
     LifetimeSettled,
     LifetimeCancelled,
+    /// Number of ledgers to delay a payout after settlement is triggered.
+    PayoutDelay,
 }
 
 #[contract]
@@ -211,6 +214,43 @@ impl SponsorPool {
             coverage_bps,
             now,
         }
+    }
+
+    /// Pool-level coverage snapshot.
+    ///
+    /// `total_target`, `total_remaining`, and `aggregate_coverage_bps` are all
+    /// 0 because the contract does not store an aggregate target — use
+    /// `campaign_coverage(id)` for per-campaign detail.
+    /// `total_committed` mirrors the live `OutstandingCommitted` counter.
+    pub fn sponsorship_coverage_snapshot(env: Env) -> SponsorshipCoverageSnapshot {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let total_committed = storage::read_i128(&env, &DataKey::OutstandingCommitted);
+        SponsorshipCoverageSnapshot {
+            configured,
+            open_campaign_count: storage::read_u32(&env, &DataKey::OpenCampaigns),
+            total_target: 0,
+            total_committed,
+            total_remaining: 0,
+            aggregate_coverage_bps: 0,
+            now: env.ledger().timestamp(),
+        }
+    }
+
+    /// Return the configured payout delay in ledgers (defaults to 0 when unset).
+    pub fn payout_delay(env: Env) -> u64 {
+        env.storage()
+            .instance()
+            .get(&DataKey::PayoutDelay)
+            .unwrap_or(0u64)
+    }
+
+    /// Set the payout delay (in ledgers). Admin only.
+    pub fn set_payout_delay(env: Env, admin: Address, delay_ledgers: u64) {
+        require_admin(&env, &admin);
+        admin.require_auth();
+        env.storage()
+            .instance()
+            .set(&DataKey::PayoutDelay, &delay_ledgers);
     }
 }
 
@@ -414,5 +454,70 @@ mod test {
         let s = client.committed_funds_summary();
         assert_eq!(s.outstanding_committed, 100);
         assert_eq!(s.lifetime_committed, 100);
+    }
+
+    // ------------------------------------------------------------------
+    // Tests for sponsorship_coverage_snapshot / payout_delay
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn payout_delay_defaults_to_zero() {
+        let (_env, _admin, client) = setup();
+        assert_eq!(client.payout_delay(), 0u64);
+    }
+
+    #[test]
+    fn set_and_get_payout_delay() {
+        let (_env, admin, client) = setup();
+        client.set_payout_delay(&admin, &50u64);
+        assert_eq!(client.payout_delay(), 50u64);
+
+        // Updating overwrites the previous value.
+        client.set_payout_delay(&admin, &100u64);
+        assert_eq!(client.payout_delay(), 100u64);
+    }
+
+    #[test]
+    fn sponsorship_coverage_snapshot_unconfigured_returns_zero_state() {
+        let env = Env::default();
+        env.mock_all_auths();
+        // Register without calling init so the pool is unconfigured.
+        let contract_id = env.register(SponsorPool, ());
+        let client = SponsorPoolClient::new(&env, &contract_id);
+
+        let snap = client.sponsorship_coverage_snapshot();
+        assert_eq!(snap.configured, false);
+        assert_eq!(snap.open_campaign_count, 0);
+        assert_eq!(snap.total_target, 0);
+        assert_eq!(snap.total_committed, 0);
+        assert_eq!(snap.total_remaining, 0);
+        assert_eq!(snap.aggregate_coverage_bps, 0);
+    }
+
+    #[test]
+    fn sponsorship_coverage_snapshot_tracks_open_campaigns() {
+        let (env, admin, client) = setup();
+        let _b1 = register(&env, &client, &admin, 1, 500);
+        let _b2 = register(&env, &client, &admin, 2, 300);
+
+        let sponsor = Address::generate(&env);
+        client.commit_funds(&sponsor, &1u64, &200i128);
+        client.commit_funds(&sponsor, &2u64, &100i128);
+
+        let snap = client.sponsorship_coverage_snapshot();
+        assert_eq!(snap.configured, true);
+        assert_eq!(snap.open_campaign_count, 2);
+        // total_committed mirrors OutstandingCommitted.
+        assert_eq!(snap.total_committed, 300);
+        // Aggregate target/remaining are 0 (not tracked at pool level).
+        assert_eq!(snap.total_target, 0);
+        assert_eq!(snap.total_remaining, 0);
+        assert_eq!(snap.aggregate_coverage_bps, 0);
+
+        // Settling one campaign reduces open_campaign_count and outstanding.
+        client.settle(&admin, &1u64);
+        let snap2 = client.sponsorship_coverage_snapshot();
+        assert_eq!(snap2.open_campaign_count, 1);
+        assert_eq!(snap2.total_committed, 100);
     }
 }

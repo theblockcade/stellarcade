@@ -27,3 +27,13 @@ pub struct NextRotation {
     /// Queue of upcoming maps.
     pub queued_maps: Vec<Symbol>,
 }
+
+/// Popularity statistics for a map in the rotation.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MapPopularitySnapshot {
+    pub map: Symbol,
+    pub votes_received: u32,
+    pub play_count: u32,
+    pub rating_bps: u32,
+}

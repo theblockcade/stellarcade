@@ -37,3 +37,34 @@ pub struct ResetWindow {
     /// True once the current window has elapsed and the next check-in resets it.
     pub window_elapsed: bool,
 }
+
+/// Check-in rate for the current window expressed in whole check-ins per 1000
+/// seconds, plus a unique-participant ratio in basis points.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CheckInFrequencySnapshot {
+    pub mission_exists: bool,
+    pub total_checkins: u64,
+    pub unique_participants: u32,
+    pub window_duration_secs: u64,
+    /// Floor(total_checkins * 1000 / window_duration_secs); 0 when window is
+    /// zero-length or the mission does not exist.
+    pub checkins_per_1k_secs: u64,
+    /// unique_participants * 10_000 / total_checkins (bps), or 0 when no
+    /// check-ins have been recorded.
+    pub unique_ratio_bps: u32,
+}
+
+/// Whether a participant's streak would be lost if they do not check in
+/// before the current window expires.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreakDecay {
+    pub mission_exists: bool,
+    pub participant_active_this_window: bool,
+    pub window_elapsed: bool,
+    /// True when the window has elapsed and the participant has NOT checked
+    /// in during it — their streak resets on the next check-in.
+    pub streak_decayed: bool,
+    pub seconds_until_decay: u64,
+}

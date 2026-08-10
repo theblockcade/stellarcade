@@ -105,6 +105,7 @@ pub enum DataKey {
     Round(u64),
     Bet(BetKey),
     Participants(u64),
+    ResolutionDelay,
 }
 
 #[contracttype]
@@ -168,6 +169,18 @@ pub struct SettlementPreview {
     pub total_pool: i128,
     pub projected_net_pool: i128,
     pub projected_winning_total: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PredictionStatusSummary {
+    pub is_initialized: bool,
+    pub admin: Option<Address>,
+    pub token: Option<Address>,
+    pub min_wager: i128,
+    pub max_wager: i128,
+    pub house_edge_bps: i128,
+    pub resolution_delay: u64,
 }
 
 // ---------------------------------------------------------------------------
@@ -731,6 +744,73 @@ impl PricePrediction {
             total_pool,
             projected_net_pool,
             projected_winning_total,
+        }
+    }
+
+    /// Returns the configured resolution delay (defaults to 0 if not set).
+    pub fn resolution_delay(env: Env) -> u64 {
+        env.storage()
+            .instance()
+            .get(&DataKey::ResolutionDelay)
+            .unwrap_or(0)
+    }
+
+    /// Set the resolution delay (in seconds). Admin only.
+    pub fn set_resolution_delay(env: Env, delay: u64) -> Result<(), Error> {
+        require_initialized(&env)?;
+        require_admin(&env)?;
+        env.storage()
+            .instance()
+            .set(&DataKey::ResolutionDelay, &delay);
+        Ok(())
+    }
+
+    /// Returns a structured status summary for the prediction contract.
+    pub fn prediction_status_summary(env: Env) -> PredictionStatusSummary {
+        let is_initialized = env.storage().instance().has(&DataKey::Admin);
+        if !is_initialized {
+            return PredictionStatusSummary {
+                is_initialized: false,
+                admin: None,
+                token: None,
+                min_wager: 0,
+                max_wager: 0,
+                house_edge_bps: 0,
+                resolution_delay: 0,
+            };
+        }
+
+        let admin = env.storage().instance().get(&DataKey::Admin);
+        let token = env.storage().instance().get(&DataKey::Token);
+        let min_wager = env
+            .storage()
+            .instance()
+            .get(&DataKey::MinWager)
+            .unwrap_or(0);
+        let max_wager = env
+            .storage()
+            .instance()
+            .get(&DataKey::MaxWager)
+            .unwrap_or(0);
+        let house_edge_bps = env
+            .storage()
+            .instance()
+            .get(&DataKey::HouseEdgeBps)
+            .unwrap_or(0);
+        let resolution_delay = env
+            .storage()
+            .instance()
+            .get(&DataKey::ResolutionDelay)
+            .unwrap_or(0);
+
+        PredictionStatusSummary {
+            is_initialized: true,
+            admin,
+            token,
+            min_wager,
+            max_wager,
+            house_edge_bps,
+            resolution_delay,
         }
     }
 }

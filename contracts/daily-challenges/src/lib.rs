@@ -280,6 +280,110 @@ impl DailyChallengesContract {
             .get(&DataKey::ChallengeIds)
             .unwrap_or(Vec::new(&env))
     }
+
+    /// Return an aggregated completion status summary for a player.
+    ///
+    /// Iterates over all registered challenge ids and counts how many the
+    /// player has completed and how many rewards they have claimed.
+    /// Zero-state: all counts zero when the player has no completion records.
+    pub fn completion_status_summary(env: Env, player: Address) -> CompletionStatusSummary {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let paused: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
+
+        let ids: Vec<Symbol> = env
+            .storage()
+            .instance()
+            .get(&DataKey::ChallengeIds)
+            .unwrap_or(Vec::new(&env));
+
+        let total_challenges = ids.len();
+        let mut completed_count: u32 = 0;
+        let mut claimed_count: u32 = 0;
+
+        for i in 0..total_challenges {
+            if let Some(id) = ids.get(i) {
+                let comp_key = DataKey::Completion(id, player.clone());
+                if let Some((_, claimed)) =
+                    env.storage().persistent().get::<DataKey, (u32, bool)>(&comp_key)
+                {
+                    completed_count += 1;
+                    if claimed {
+                        claimed_count += 1;
+                    }
+                }
+            }
+        }
+
+        let unclaimed_count = completed_count.saturating_sub(claimed_count);
+        let completion_rate_bps = if total_challenges > 0 {
+            ((completed_count as u64 * 10_000) / total_challenges as u64) as u32
+        } else {
+            0
+        };
+
+        CompletionStatusSummary {
+            configured,
+            paused,
+            total_challenges,
+            completed_count,
+            claimed_count,
+            unclaimed_count,
+            completion_rate_bps,
+        }
+    }
+
+    /// Return reset delay information for the daily challenge refresh cycle.
+    ///
+    /// Zero-state: `configured = false` and zeroed timing fields when no
+    /// refresh interval has been set. `reset_due = true` once the refresh is
+    /// overdue.
+    pub fn reset_delay(env: Env) -> ResetDelay {
+        let interval_ledgers: u32 = match env
+            .storage()
+            .instance()
+            .get(&DataKey::RefreshInterval)
+        {
+            None => {
+                return ResetDelay {
+                    configured: false,
+                    interval_ledgers: 0,
+                    last_reset_at: 0,
+                    next_reset_at: 0,
+                    ledgers_until_reset: 0,
+                    reset_due: false,
+                }
+            }
+            Some(v) => v,
+        };
+
+        let last_reset_at: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::LastRefreshAt)
+            .unwrap_or(0);
+
+        let next_reset_at = last_reset_at.saturating_add(interval_ledgers);
+        let current = env.ledger().sequence();
+        let reset_due = current >= next_reset_at;
+        let ledgers_until_reset = if reset_due {
+            0
+        } else {
+            next_reset_at.saturating_sub(current)
+        };
+
+        ResetDelay {
+            configured: true,
+            interval_ledgers,
+            last_reset_at,
+            next_reset_at,
+            ledgers_until_reset,
+            reset_due,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

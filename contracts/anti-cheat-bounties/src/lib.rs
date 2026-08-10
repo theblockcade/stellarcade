@@ -6,7 +6,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, Symbol};
 
 pub use types::{
-    AdjudicationReadiness, Bounty, BountyStatus, OpenBountySummary, Report,
+    ActiveBountySummary, AdjudicationReadiness, Bounty, BountyClaimState,
+    BountyClaimWindowAccessor, BountyStatus, OpenBountySummary, Report,
 };
 
 const BUMP_AMOUNT: u32 = 518_400;
@@ -195,6 +196,111 @@ impl AntiCheatBounties {
             open_count,
             under_review_count,
             total_open_reward,
+            current_ledger,
+        }
+    }
+
+    /// Returns a compact summary of all active bounties (Open + UnderReview).
+    /// `live_count` excludes bounties whose report deadline has already passed.
+    pub fn active_bounty_summary(env: Env) -> ActiveBountySummary {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let current_ledger = env.ledger().sequence();
+        let ids = storage::get_all_ids(&env);
+
+        let mut live_count: u64 = 0;
+        let mut under_review_count: u64 = 0;
+        let mut total_live_reward: i128 = 0;
+
+        for id in ids.iter() {
+            if let Some(bounty) = storage::get_bounty(&env, id) {
+                match bounty.status {
+                    BountyStatus::Open => {
+                        if current_ledger <= bounty.report_deadline_ledger {
+                            live_count = live_count.saturating_add(1);
+                            total_live_reward =
+                                total_live_reward.saturating_add(bounty.reward);
+                        }
+                    }
+                    BountyStatus::UnderReview => {
+                        under_review_count = under_review_count.saturating_add(1);
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        ActiveBountySummary {
+            configured,
+            live_count,
+            under_review_count,
+            total_live_reward,
+            current_ledger,
+        }
+    }
+
+    /// Returns claim-window details for a single bounty.
+    ///
+    /// The caller supplies `claim_window_ledgers` — the number of ledgers after
+    /// the report deadline within which adjudication must begin. The contract
+    /// does not store this value, so different callers may use different
+    /// thresholds.
+    pub fn claim_window_accessor(
+        env: Env,
+        bounty_id: u64,
+        claim_window_ledgers: u32,
+    ) -> BountyClaimWindowAccessor {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let current_ledger = env.ledger().sequence();
+
+        let Some(bounty) = storage::get_bounty(&env, bounty_id) else {
+            return BountyClaimWindowAccessor {
+                bounty_id,
+                configured,
+                exists: false,
+                state: if configured {
+                    BountyClaimState::Unknown
+                } else {
+                    BountyClaimState::NotConfigured
+                },
+                report_deadline_ledger: 0,
+                claim_window_ledgers,
+                claim_window_end_ledger: 0,
+                in_claim_window: false,
+                ledgers_until_window_end: 0,
+                current_ledger,
+            };
+        };
+
+        let state = match bounty.status {
+            BountyStatus::Open => BountyClaimState::Open,
+            BountyStatus::UnderReview => BountyClaimState::UnderReview,
+            BountyStatus::Awarded => BountyClaimState::Awarded,
+            BountyStatus::Closed => BountyClaimState::Closed,
+        };
+
+        let claim_window_end_ledger = bounty
+            .report_deadline_ledger
+            .saturating_add(claim_window_ledgers);
+
+        let in_claim_window = current_ledger > bounty.report_deadline_ledger
+            && current_ledger <= claim_window_end_ledger;
+
+        let ledgers_until_window_end = if current_ledger <= claim_window_end_ledger {
+            claim_window_end_ledger - current_ledger
+        } else {
+            0
+        };
+
+        BountyClaimWindowAccessor {
+            bounty_id,
+            configured,
+            exists: true,
+            state,
+            report_deadline_ledger: bounty.report_deadline_ledger,
+            claim_window_ledgers,
+            claim_window_end_ledger,
+            in_claim_window,
+            ledgers_until_window_end,
             current_ledger,
         }
     }

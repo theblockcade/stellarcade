@@ -74,3 +74,61 @@ pub struct AdjudicationReadiness {
     pub ready_to_adjudicate: bool,
     pub current_ledger: u32,
 }
+
+/// Lifecycle state of a bounty for claim-window purposes.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum BountyClaimState {
+    /// No bounties have been posted; contract may not be initialized.
+    NotConfigured,
+    /// Bounty ID is unknown.
+    Unknown,
+    /// Bounty is open and accepting reports.
+    Open,
+    /// Bounty is under adjudication review.
+    UnderReview,
+    /// Reward has been awarded.
+    Awarded,
+    /// Bounty was closed without an award.
+    Closed,
+}
+
+/// Summary of all active (Open + UnderReview) bounties for the given game.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActiveBountySummary {
+    /// True when the contract has been initialized.
+    pub configured: bool,
+    /// Open bounties with a deadline still in the future.
+    pub live_count: u64,
+    /// Bounties currently under adjudication review.
+    pub under_review_count: u64,
+    /// Total reward pool across live Open bounties.
+    pub total_live_reward: i128,
+    /// Current ledger sequence number.
+    pub current_ledger: u32,
+}
+
+/// Claim-window details for a single bounty.
+///
+/// Callers supply `claim_window_ledgers` — the number of ledgers after the
+/// report deadline within which adjudication must begin.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BountyClaimWindowAccessor {
+    pub bounty_id: u64,
+    pub configured: bool,
+    pub exists: bool,
+    pub state: BountyClaimState,
+    /// Ledger at which reporting closes.
+    pub report_deadline_ledger: u32,
+    /// Caller-supplied window size (in ledgers) after the deadline.
+    pub claim_window_ledgers: u32,
+    /// Last ledger within which adjudication should start (deadline + window).
+    pub claim_window_end_ledger: u32,
+    /// True when we are inside the adjudication window.
+    pub in_claim_window: bool,
+    /// Ledgers remaining in the window (0 once expired or before deadline).
+    pub ledgers_until_window_end: u32,
+    pub current_ledger: u32,
+}

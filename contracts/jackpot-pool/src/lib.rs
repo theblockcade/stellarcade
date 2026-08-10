@@ -25,7 +25,7 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, token, Address, Env,
 };
 
-pub use types::{ContributorSummary, FundingSnapshot};
+pub use types::{ContributorSummary, DrawIntervalAccessor, FundingSnapshot, PoolBalanceSummary};
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -267,6 +267,72 @@ impl JackpotPool {
             current_funded,
             shortfall,
             is_funded,
+        }
+    }
+
+    /// Named pool-balance summary — combines funding and contributor data for
+    /// a one-call dashboard view without requiring two separate reads.
+    pub fn pool_balance_summary(env: Env) -> PoolBalanceSummary {
+        let minimum_target: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::MinDrawTarget)
+            .unwrap_or(0i128);
+        let current_funded = storage::get_total_contributed(&env);
+        let shortfall = if current_funded >= minimum_target {
+            0i128
+        } else {
+            minimum_target.saturating_sub(current_funded)
+        };
+        let is_funded = current_funded >= minimum_target && minimum_target > 0;
+        let contributor_count = storage::get_contributor_count(&env);
+        let top_contribution = storage::get_top_contribution(&env);
+        let top_contributor_share_bps = if current_funded > 0 {
+            ((top_contribution * BASIS_POINTS as i128) / current_funded) as u32
+        } else {
+            0u32
+        };
+
+        PoolBalanceSummary {
+            minimum_target,
+            current_funded,
+            shortfall,
+            is_funded,
+            contributor_count,
+            top_contributor_share_bps,
+        }
+    }
+
+    /// Draw-interval accessor — reports whether a new draw can be triggered now.
+    ///
+    /// Callers supply `last_draw_at` and `interval_seconds`. `ready` is true
+    /// when `now >= last_draw_at + interval_seconds` AND the pool is funded.
+    /// Zero `interval_seconds` disables the interval gate (funded check only).
+    pub fn draw_interval_accessor(
+        env: Env,
+        last_draw_at: u64,
+        interval_seconds: u64,
+    ) -> DrawIntervalAccessor {
+        let now = env.ledger().timestamp();
+        let minimum_target: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::MinDrawTarget)
+            .unwrap_or(0i128);
+        let current_funded = storage::get_total_contributed(&env);
+        let is_funded = current_funded >= minimum_target && minimum_target > 0;
+
+        let next_draw_at = last_draw_at.saturating_add(interval_seconds);
+        let interval_cleared = interval_seconds == 0 || now >= next_draw_at;
+        let ready = is_funded && interval_cleared;
+
+        DrawIntervalAccessor {
+            last_draw_at,
+            interval_seconds,
+            next_draw_at,
+            is_funded,
+            ready,
+            now,
         }
     }
 

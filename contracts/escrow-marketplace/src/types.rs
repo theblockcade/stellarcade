@@ -56,3 +56,31 @@ pub struct ReleaseReadiness {
     pub expires_at: Option<u64>,
     pub dispute_open: bool,
 }
+
+/// Compact view of an active (Locked) listing: confirms the escrow is live
+/// and undisputed, surfaces amount and parties without a full status lookup.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActiveListingSnapshot {
+    pub escrow_id: u64,
+    pub exists: bool,
+    /// True only when status == Locked and dispute_open == false.
+    pub is_active: bool,
+    pub amount: i128,
+    pub expiry: u64,
+    pub dispute_open: bool,
+    pub now: u64,
+}
+
+/// Seconds remaining before the escrow's expiry, after which the buyer can
+/// call `release_escrow`. Returns `expired = true` once past expiry.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExpiryDelay {
+    pub escrow_id: u64,
+    pub exists: bool,
+    pub expiry: u64,
+    pub now: u64,
+    pub seconds_until_expiry: u64,
+    pub expired: bool,
+}

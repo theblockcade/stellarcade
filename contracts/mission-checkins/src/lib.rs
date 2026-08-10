@@ -10,7 +10,7 @@ mod test;
 use crate::storage::{
     get_mission, get_participant_window, set_mission, set_participant_window,
 };
-use crate::types::{Mission, ParticipationSummary, ResetWindow};
+use crate::types::{CheckInFrequencySnapshot, Mission, ParticipationSummary, ResetWindow, StreakDecay};
 
 #[contract]
 pub struct MissionCheckins;
@@ -122,6 +122,80 @@ impl MissionCheckins {
                 current_time: now,
                 seconds_until_reset: 0,
                 window_elapsed: false,
+            },
+        }
+    }
+
+    /// Check-in rate snapshot: checkins per 1000 seconds and unique-participant
+    /// ratio in bps for the current window.
+    pub fn check_in_frequency_snapshot(env: Env, id: u64) -> CheckInFrequencySnapshot {
+        let now = env.ledger().timestamp();
+        match get_mission(&env, id) {
+            Some(m) => {
+                let window_duration_secs = now.saturating_sub(m.window_start);
+                let checkins_per_1k_secs = if window_duration_secs == 0 {
+                    0
+                } else {
+                    m.total_checkins.saturating_mul(1_000) / window_duration_secs
+                };
+                let unique_ratio_bps = if m.total_checkins == 0 {
+                    0
+                } else {
+                    (m.unique_participants as u64 * 10_000 / m.total_checkins) as u32
+                };
+                CheckInFrequencySnapshot {
+                    mission_exists: true,
+                    total_checkins: m.total_checkins,
+                    unique_participants: m.unique_participants,
+                    window_duration_secs,
+                    checkins_per_1k_secs,
+                    unique_ratio_bps,
+                }
+            }
+            None => CheckInFrequencySnapshot {
+                mission_exists: false,
+                total_checkins: 0,
+                unique_participants: 0,
+                window_duration_secs: 0,
+                checkins_per_1k_secs: 0,
+                unique_ratio_bps: 0,
+            },
+        }
+    }
+
+    /// Whether `user`'s streak would be lost if they miss the current window.
+    pub fn streak_decay(env: Env, id: u64, user: Address) -> StreakDecay {
+        let now = env.ledger().timestamp();
+        match get_mission(&env, id) {
+            Some(m) => {
+                let next_reset = if m.reset_interval == 0 {
+                    u64::MAX
+                } else {
+                    m.window_start.saturating_add(m.reset_interval)
+                };
+                let window_elapsed = m.reset_interval > 0 && now >= next_reset;
+                let participant_active_this_window =
+                    get_participant_window(&env, id, user) == Some(m.window_start);
+                let streak_decayed = window_elapsed && !participant_active_this_window;
+                let seconds_until_decay = if window_elapsed || m.reset_interval == 0 {
+                    0
+                } else {
+                    next_reset - now
+                };
+                StreakDecay {
+                    mission_exists: true,
+                    participant_active_this_window,
+                    window_elapsed,
+                    streak_decayed,
+                    seconds_until_decay,
+                }
+            }
+            None => StreakDecay {
+                mission_exists: false,
+                participant_active_this_window: false,
+                window_elapsed: false,
+                streak_decayed: false,
+                seconds_until_decay: 0,
             },
         }
     }

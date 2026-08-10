@@ -1,0 +1,145 @@
+.badge-carousel {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  background: rgba(20, 28, 45, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+
+.badge-carousel--empty {
+  justify-content: center;
+  color: var(--text-muted, #8ea1bf);
+  padding: 2.5rem;
+}
+
+.badge-carousel__track {
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.badge-carousel__slides {
+  display: flex;
+  gap: 1rem;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.badge-carousel__slide {
+  flex: 1;
+  min-width: 0; /* Ensures truncation works */
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.badge-carousel__slide:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(125, 226, 209, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 12px rgba(125, 226, 209, 0.05);
+}
+
+.badge-carousel__slide:focus-visible {
+  outline: 2px solid var(--accent, #7de2d1);
+}
+
+/* Badge circular frame */
+.badge-carousel__badge-frame {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(125, 226, 209, 0.15) 0%, rgba(20, 28, 45, 0.5) 100%);
+  border: 2px solid rgba(125, 226, 209, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  transition: border-color 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.badge-carousel__slide:hover .badge-carousel__badge-frame {
+  border-color: var(--accent, #7de2d1);
+  box-shadow: 0 0 15px rgba(125, 226, 209, 0.3);
+}
+
+.badge-carousel__badge-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.badge-carousel__badge-placeholder {
+  font-size: 1.6rem;
+}
+
+/* Info stack */
+.badge-carousel__badge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.badge-carousel__badge-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main, #f5f7fb);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-carousel__badge-date {
+  font-size: 0.7rem;
+  color: var(--text-muted, #8ea1bf);
+  font-weight: 600;
+}
+
+/* Navigation buttons */
+.badge-carousel__nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted, #8ea1bf);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  outline: none;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+}
+
+.badge-carousel__nav-btn:hover:not(:disabled) {
+  background: rgba(125, 226, 209, 0.1);
+  border-color: rgba(125, 226, 209, 0.3);
+  color: var(--accent, #7de2d1);
+}
+
+.badge-carousel__nav-btn:focus-visible {
+  border-color: var(--accent, #7de2d1);
+}
+
+.badge-carousel__nav-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.02);
+}
+
+.badge-carousel__nav-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}

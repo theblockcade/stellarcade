@@ -259,6 +259,70 @@ fn test_get_milestone_details() {
 }
 
 #[test]
+fn test_update_delay_gap_not_reached() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let guild_id = Address::generate(&env);
+    let contract_id = env.register(GuildProgress, ());
+    let client = GuildProgressClient::new(&env, &contract_id);
+
+    client.init(&admin);
+    client.create_milestone(&guild_id, &1000, &500);
+    client.update_progress(&guild_id, &300);
+
+    let delay = client.update_delay(&guild_id);
+    assert_eq!(delay.next_milestone_id, 1);
+    assert_eq!(delay.target_progress, 1000);
+    assert_eq!(delay.current_progress, 300);
+    assert_eq!(delay.progress_gap, 700);
+    assert!(!delay.all_milestones_completed);
+}
+
+#[test]
+fn test_update_delay_all_milestones_completed() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let guild_id = Address::generate(&env);
+    let contract_id = env.register(GuildProgress, ());
+    let client = GuildProgressClient::new(&env, &contract_id);
+
+    client.init(&admin);
+    client.create_milestone(&guild_id, &1000, &500);
+    client.update_progress(&guild_id, &1000);
+
+    let delay = client.update_delay(&guild_id);
+    assert_eq!(delay.progress_gap, 0);
+    assert!(delay.all_milestones_completed);
+}
+
+#[test]
+fn test_progress_milestone_snapshot_matches_get_milestone_coverage_snapshot() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let guild_id = Address::generate(&env);
+    let contract_id = env.register(GuildProgress, ());
+    let client = GuildProgressClient::new(&env, &contract_id);
+
+    client.init(&admin);
+    client.create_milestone(&guild_id, &500, &100);
+    client.update_progress(&guild_id, &250);
+
+    let snap1 = client.get_milestone_coverage_snapshot(&guild_id);
+    let snap2 = client.progress_milestone_snapshot(&guild_id);
+
+    assert_eq!(snap1.current_progress, snap2.current_progress);
+    assert_eq!(snap1.total_milestones, snap2.total_milestones);
+    assert_eq!(snap1.completed_milestones, snap2.completed_milestones);
+    assert_eq!(snap1.progress_percentage, snap2.progress_percentage);
+}
+
+#[test]
 fn test_multiple_milestones_progression() {
     let env = Env::default();
     env.mock_all_auths();

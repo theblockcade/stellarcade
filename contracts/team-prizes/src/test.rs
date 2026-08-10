@@ -122,3 +122,76 @@ fn upsert_cannot_shrink_total_amount() {
     // Attempting to reduce the pool must revert.
     client.upsert_pool(&admin, &4, &500u128, &50, &false);
 }
+
+#[test]
+fn prize_allocation_summary_success_path() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().with_mut(|l| l.timestamp = 1_000);
+
+    let (client, admin, member) = setup(&env);
+    client.upsert_pool(&admin, &10, &6_000u128, &300, &false);
+    client.grant_eligibility(&admin, &member, &10, &2_000u128, &900);
+
+    let summary = client.prize_allocation_summary(&10);
+    assert!(summary.configured);
+    assert!(summary.pool_found);
+    assert_eq!(summary.total_amount, 6_000u128);
+    assert_eq!(summary.claimed_amount, 0u128);
+    assert_eq!(summary.unclaimed_amount, 6_000u128);
+    assert_eq!(summary.eligible_member_count, 1);
+    assert_eq!(summary.claimed_member_count, 0);
+    // avg = 6_000 / 1 = 6_000
+    assert_eq!(summary.avg_share_per_member, 6_000u128);
+    assert!(!summary.fully_distributed);
+    assert!(!summary.paused);
+}
+
+#[test]
+fn prize_allocation_summary_missing_pool_returns_zero_state() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _member) = setup(&env);
+
+    let summary = client.prize_allocation_summary(&999);
+    assert!(summary.configured);
+    assert!(!summary.pool_found);
+    assert_eq!(summary.total_amount, 0u128);
+    assert_eq!(summary.avg_share_per_member, 0u128);
+    assert!(!summary.fully_distributed);
+}
+
+#[test]
+fn claim_expiry_accessor_no_expiry_and_member_found() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().with_mut(|l| l.timestamp = 500);
+
+    let (client, admin, member) = setup(&env);
+    client.upsert_pool(&admin, &11, &1_000u128, &200, &false);
+    client.grant_eligibility(&admin, &member, &11, &500u128, &400);
+
+    let info = client.claim_expiry_accessor(&member);
+    assert!(info.configured);
+    assert!(info.member_found);
+    assert_eq!(info.pool_id, 11);
+    // opens_at = eligible_at(400) + claim_delay(200) = 600
+    assert_eq!(info.claim_window_opens_at, 600);
+    assert!(!info.has_expiry);
+    assert_eq!(info.expires_at, 0);
+    assert!(!info.is_expired);
+    assert!(!info.already_claimed);
+}
+
+#[test]
+fn claim_expiry_accessor_member_not_found_returns_zero_state() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, member) = setup(&env);
+
+    let info = client.claim_expiry_accessor(&member);
+    assert!(!info.member_found);
+    assert_eq!(info.pool_id, 0);
+    assert!(!info.has_expiry);
+    assert!(!info.is_expired);
+}

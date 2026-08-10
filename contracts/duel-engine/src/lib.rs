@@ -3,11 +3,11 @@
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 mod storage;
-mod types;
 #[cfg(test)]
 mod test;
+mod types;
 
-pub use types::{OpenDuelSummary, ResolutionReadiness};
+pub use types::{DuelStateSummary, OpenDuelSummary, ResolutionReadiness};
 
 #[contract]
 pub struct DuelEngine;
@@ -82,6 +82,30 @@ impl DuelEngine {
                 is_open: false,
                 is_ready_to_resolve: false,
             },
+        }
+    }
+
+    /// Returns the configured challenge timeout (defaults to 0 if not set).
+    pub fn challenge_timeout(env: Env) -> u64 {
+        storage::get_challenge_timeout(&env)
+    }
+
+    /// Set the challenge timeout (in seconds). Admin only.
+    pub fn set_challenge_timeout(env: Env, admin: Address, timeout: u64) {
+        admin.require_auth();
+        if storage::get_admin(&env) == Some(admin) {
+            storage::set_challenge_timeout(&env, timeout);
+        }
+    }
+
+    /// Detailed summary of the current duel engine state.
+    pub fn duel_state_summary(env: Env) -> DuelStateSummary {
+        DuelStateSummary {
+            open_count: storage::get_open_count(&env),
+            oldest_open_duel_id: storage::get_oldest(&env),
+            newest_open_duel_id: storage::get_newest(&env),
+            paused: storage::is_paused(&env),
+            challenge_timeout: storage::get_challenge_timeout(&env),
         }
     }
 }

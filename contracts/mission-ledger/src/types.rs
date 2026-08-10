@@ -92,3 +92,33 @@ pub struct ClaimReadiness {
     pub progress: u32,
     pub threshold: u32,
 }
+
+/// Compact summary of a single ledger record: numeric counters only, no
+/// addresses, suitable for lightweight polling by indexers.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LedgerRecordSummary {
+    pub mission_id: u64,
+    pub exists: bool,
+    pub paused: bool,
+    pub completion_threshold: u32,
+    pub completed_count: u32,
+    pub reward_amount: i128,
+    pub total_claimed: i128,
+    pub expires_at: u64,
+}
+
+/// Timing state of the validation window for a mission: when it opened, when
+/// it closes, and how many seconds remain. Returns safe zero-values when the
+/// mission is not registered.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidationWindow {
+    pub mission_id: u64,
+    pub configured: bool,
+    pub exists: bool,
+    pub expires_at: u64,
+    pub now: u64,
+    pub seconds_remaining: u64,
+    pub window_open: bool,
+}

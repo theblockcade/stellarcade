@@ -61,3 +61,27 @@ pub struct PlayerArenaSessionSummary {
     pub total_staked: i128,
     pub next_session_id: u64,
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActiveSessionSummary {
+    pub player: Address,
+    pub has_active_session: bool,
+    pub session_id: u64,
+    pub arena_id: u32,
+    pub stake_amount: i128,
+    pub started_at_ledger: u32,
+    pub expires_at_ledger: u32,
+    pub ledgers_remaining: u32,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExpirationDelay {
+    pub session_id: u64,
+    pub exists: bool,
+    pub is_active: bool,
+    pub expires_at_ledger: u32,
+    pub ledgers_remaining: u32,
+    pub already_expired: bool,
+}

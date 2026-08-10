@@ -102,3 +102,58 @@ fn test_creator_pause_blocks_release_workflow() {
     let result = client.try_release_available(&creator);
     assert_eq!(result, Err(Ok(Error::CreatorPaused)));
 }
+
+#[test]
+fn test_escrow_balance_summary_unlock_delay_accessor() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, creator, payout_token, beneficiary) = setup(&env);
+
+    // Fund two entries with different unlock delays via release_delay_ledgers.
+    // Entry 0 funded at ledger 0 with delay=5 → releasable at ledger 5.
+    // Entry 1 funded at ledger 0 with same delay → releasable at ledger 5.
+    client.configure_creator(&creator, &payout_token, &beneficiary, &5);
+    client.fund_escrow(&creator, &400);
+    client.fund_escrow(&creator, &600);
+
+    // Before unlock: nothing releasable.
+    let summary = client.creator_summary(&creator);
+    assert!(summary.exists);
+    assert_eq!(summary.total_locked, 1000);
+    assert_eq!(summary.total_released, 0);
+    assert_eq!(summary.releasable_now, 0);
+    assert_eq!(summary.release_delay_ledgers, 5);
+    assert_eq!(summary.pending_entry_count, 2);
+
+    // Advance ledger past unlock point.
+    env.ledger().set_sequence_number(6);
+    let summary_after = client.creator_summary(&creator);
+    assert_eq!(summary_after.releasable_now, 1000);
+
+    // Verify entry-level unlock-delay details via escrow_entry.
+    let entry0 = client.escrow_entry(&creator, &0);
+    assert!(entry0.exists);
+    assert!(entry0.releasable_now);
+    assert_eq!(entry0.releasable_at_ledger, 5);
+    assert_eq!(entry0.amount, 400);
+}
+
+#[test]
+fn test_globally_paused_shows_in_summary_and_blocks_operations() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, creator, payout_token, beneficiary) = setup(&env);
+
+    client.configure_creator(&creator, &payout_token, &beneficiary, &0);
+    client.fund_escrow(&creator, &100);
+    client.set_paused(&true);
+
+    let summary = client.creator_summary(&creator);
+    assert!(summary.paused);
+
+    let result = client.try_fund_escrow(&creator, &50);
+    assert_eq!(result, Err(Ok(Error::ContractPaused)));
+
+    let result_release = client.try_release_available(&creator);
+    assert_eq!(result_release, Err(Ok(Error::ContractPaused)));
+}

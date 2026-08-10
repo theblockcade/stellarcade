@@ -50,3 +50,32 @@ pub struct BracketHealthData {
     pub active_games: u32,
     pub promotion_threshold: u32,
 }
+
+/// Snapshot of all ladder ranking data for a bracket in one call.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LadderRankingSnapshot {
+    pub bracket_id: u32,
+    /// True when the bracket_id exists.
+    pub exists: bool,
+    pub player_count: u32,
+    pub active_games: u32,
+    pub promotion_threshold: u32,
+    pub cutoff_score: u32,
+    pub cutoff_rank: u32,
+    pub next_promotion_time: u32,
+}
+
+/// Tier boundary information for a bracket.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TierCutoff {
+    pub bracket_id: u32,
+    /// True when the bracket_id exists.
+    pub exists: bool,
+    pub cutoff_score: u32,
+    pub cutoff_rank: u32,
+    pub promotion_threshold: u32,
+    /// True when the bracket still has capacity below the cutoff rank.
+    pub has_capacity: bool,
+}

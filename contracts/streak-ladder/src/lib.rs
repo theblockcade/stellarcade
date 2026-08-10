@@ -7,8 +7,9 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    BucketConfig, BucketState, DemotionRisk, DemotionRiskLevel, PlayerBucketState,
-    PlayerBucketSummary, PlayerRecord, StreakBucketSummary,
+    BucketConfig, BucketState, CheckpointDelay, DemotionRisk, DemotionRiskLevel,
+    LadderStandingsSnapshot, PlayerBucketState, PlayerBucketSummary, PlayerRecord,
+    StreakBucketSummary,
 };
 
 #[contracttype]
@@ -293,6 +294,135 @@ impl StreakLadder {
             max_streak: bucket.max_streak,
             demotion_window_secs: bucket.demotion_window_secs,
             bucket_player_count: bucket.player_count,
+        }
+    }
+    /// Return a ladder-standings snapshot for a player showing their
+    /// position within the assigned bucket.
+    ///
+    /// Handles not-configured, missing-player, and missing-bucket states
+    /// with predictable zeroed fallbacks.
+    pub fn ladder_standings_snapshot(env: Env, user: Address) -> LadderStandingsSnapshot {
+        let configured = is_configured(&env);
+        let Some(player) = storage::get_player(&env, &user) else {
+            return LadderStandingsSnapshot {
+                configured,
+                player_found: false,
+                bucket_found: false,
+                state: if configured {
+                    PlayerBucketState::MissingPlayer
+                } else {
+                    PlayerBucketState::NotConfigured
+                },
+                bucket_id: 0,
+                current_streak: 0,
+                min_streak: 0,
+                max_streak: 0,
+                streak_margin: 0,
+                bucket_progress_pct: 0,
+                bucket_player_count: 0,
+            };
+        };
+
+        let Some(bucket) = storage::get_bucket(&env, player.bucket_id) else {
+            return LadderStandingsSnapshot {
+                configured,
+                player_found: true,
+                bucket_found: false,
+                state: PlayerBucketState::MissingBucket,
+                bucket_id: player.bucket_id,
+                current_streak: player.current_streak,
+                min_streak: 0,
+                max_streak: 0,
+                streak_margin: 0,
+                bucket_progress_pct: 0,
+                bucket_player_count: 0,
+            };
+        };
+
+        let streak_margin = player.current_streak.saturating_sub(bucket.min_streak);
+        let range = bucket.max_streak.saturating_sub(bucket.min_streak);
+        let bucket_progress_pct = ((streak_margin * 100).checked_div(range)).unwrap_or(
+            if player.current_streak >= bucket.min_streak {
+                100
+            } else {
+                0
+            },
+        );
+
+        LadderStandingsSnapshot {
+            configured,
+            player_found: true,
+            bucket_found: true,
+            state: if bucket.paused {
+                PlayerBucketState::Paused
+            } else {
+                PlayerBucketState::Active
+            },
+            bucket_id: bucket.bucket_id,
+            current_streak: player.current_streak,
+            min_streak: bucket.min_streak,
+            max_streak: bucket.max_streak,
+            streak_margin,
+            bucket_progress_pct,
+            bucket_player_count: bucket.player_count,
+        }
+    }
+
+    /// Return the checkpoint-delay info for a player's demotion window.
+    ///
+    /// Shows the timestamp at which the next checkpoint fires and how many
+    /// seconds remain. Missing players/buckets return zeroed timing fields.
+    pub fn checkpoint_delay(env: Env, user: Address) -> CheckpointDelay {
+        let configured = is_configured(&env);
+        let now = env.ledger().timestamp();
+
+        let Some(player) = storage::get_player(&env, &user) else {
+            return CheckpointDelay {
+                configured,
+                player_found: false,
+                bucket_found: false,
+                bucket_id: 0,
+                last_extended_at: 0,
+                demotion_window_secs: 0,
+                checkpoint_at: 0,
+                delay_remaining: 0,
+                is_overdue: false,
+                bucket_paused: false,
+            };
+        };
+
+        let Some(bucket) = storage::get_bucket(&env, player.bucket_id) else {
+            return CheckpointDelay {
+                configured,
+                player_found: true,
+                bucket_found: false,
+                bucket_id: player.bucket_id,
+                last_extended_at: player.last_extended_at,
+                demotion_window_secs: 0,
+                checkpoint_at: 0,
+                delay_remaining: 0,
+                is_overdue: false,
+                bucket_paused: false,
+            };
+        };
+
+        let checkpoint_at = player
+            .last_extended_at
+            .saturating_add(bucket.demotion_window_secs);
+        let is_overdue = now >= checkpoint_at;
+        let delay_remaining = checkpoint_at.saturating_sub(now);
+
+        CheckpointDelay {
+            configured,
+            player_found: true,
+            bucket_found: true,
+            bucket_id: player.bucket_id,
+            last_extended_at: player.last_extended_at,
+            demotion_window_secs: bucket.demotion_window_secs,
+            checkpoint_at,
+            delay_remaining,
+            is_overdue,
+            bucket_paused: bucket.paused,
         }
     }
 }

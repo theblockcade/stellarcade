@@ -134,3 +134,44 @@ fn test_funding_gap_missing() {
     assert_eq!(gap.gap_amount, 0);
     assert!(!gap.is_underfunded);
 }
+
+// ---------------------------------------------------------------------------
+// release_interval and stream_disbursement_snapshot tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_release_interval_getter_setter() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    assert_eq!(client.release_interval(), 0);
+
+    client.set_release_interval(&admin, &50);
+    assert_eq!(client.release_interval(), 50);
+}
+
+#[test]
+fn test_stream_disbursement_snapshot() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    client.set_release_interval(&admin, &120);
+
+    // Test missing stream
+    let snapshot_missing = client.stream_disbursement_snapshot(&99);
+    assert!(!snapshot_missing.exists);
+    assert_eq!(snapshot_missing.release_interval, 120);
+    assert_eq!(snapshot_missing.total_streamed, 0);
+
+    // Test existing stream
+    client.upsert_stream(
+        &admin, &5, &15_000, &100, &1_200_000, &true, &100_000, &200_000,
+    );
+    let snapshot = client.stream_disbursement_snapshot(&5);
+    assert!(snapshot.exists);
+    assert_eq!(snapshot.stream_id, 5);
+    assert_eq!(snapshot.total_streamed, 15_000);
+    assert_eq!(snapshot.last_outflow_ledger, 1_200_000);
+    assert_eq!(snapshot.release_interval, 120);
+    assert!(snapshot.is_draining);
+}

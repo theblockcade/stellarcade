@@ -229,6 +229,56 @@ impl PrizeRouterV2Contract {
             .unwrap_or(Vec::new(&env));
         queue.len()
     }
+
+    /// Return the configured fee slippage (defaults to 0).
+    pub fn fee_slippage(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&DataKey::FeeSlippage)
+            .unwrap_or(0)
+    }
+
+    /// Set the fee slippage. Admin only.
+    pub fn set_fee_slippage(env: Env, admin: Address, slippage: u32) -> Result<(), Error> {
+        require_admin(&env, &admin)?;
+        env.storage()
+            .instance()
+            .set(&DataKey::FeeSlippage, &slippage);
+        Ok(())
+    }
+
+    /// Return a summary of routing paths and configuration.
+    pub fn routing_paths_summary(env: Env) -> RoutingPathsSummary {
+        let is_initialized = env.storage().instance().has(&DataKey::Admin);
+        if !is_initialized {
+            return RoutingPathsSummary {
+                is_initialized: false,
+                admin: None,
+                queue_length: 0,
+                delay_ledgers: 0,
+                pressure_threshold: 0,
+                fee_slippage: 0,
+                is_paused: false,
+            };
+        }
+
+        let admin: Option<Address> = env.storage().instance().get(&DataKey::Admin);
+        let q_len = Self::queue_length(env.clone());
+        let delay = env.storage().instance().get(&DataKey::DelayLedgers).unwrap_or(DEFAULT_DELAY_LEDGERS);
+        let threshold = env.storage().instance().get(&DataKey::PressureThreshold).unwrap_or(DEFAULT_PRESSURE_THRESHOLD);
+        let slippage = Self::fee_slippage(env.clone());
+        let is_paused = env.storage().instance().get(&DataKey::Paused).unwrap_or(false);
+
+        RoutingPathsSummary {
+            is_initialized: true,
+            admin,
+            queue_length: q_len,
+            delay_ledgers: delay,
+            pressure_threshold: threshold,
+            fee_slippage: slippage,
+            is_paused,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

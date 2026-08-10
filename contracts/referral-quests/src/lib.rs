@@ -17,7 +17,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    CompletionQueueSummary, CompletionRecord, PayoutGapInfo, QuestConfig, QuestState,
+    CompletionQueueSummary, CompletionRecord, PayoutGapInfo, QuestConfig, QuestProgressSnapshot,
+    QuestState, RewardDecayInfo,
 };
 
 #[contracttype]
@@ -227,6 +228,109 @@ impl ReferralQuests {
             total_payout_owed: quest.total_payout_owed,
             total_payout_paid: quest.total_payout_paid,
             payout_gap: quest.total_payout_owed,
+        }
+    }
+    /// Return a snapshot of a user's quest progress for a specific quest.
+    ///
+    /// Missing quests return `quest_exists = false`. Missing completions
+    /// return `completion_exists = false` with zeroed timing fields.
+    pub fn quest_progress_snapshot(
+        env: Env,
+        quest_id: u32,
+        user: Address,
+    ) -> QuestProgressSnapshot {
+        let configured = is_configured(&env);
+        let quest = storage::get_quest(&env, quest_id);
+
+        let (quest_exists, state, payout_per_completion, quest_paused) = match &quest {
+            Some(q) => (
+                true,
+                if q.paused {
+                    QuestState::Paused
+                } else {
+                    QuestState::Active
+                },
+                q.payout_per_completion,
+                q.paused,
+            ),
+            None => (
+                false,
+                if configured {
+                    QuestState::Missing
+                } else {
+                    QuestState::NotConfigured
+                },
+                0,
+                false,
+            ),
+        };
+
+        let completion = storage::get_completion(&env, quest_id, &user);
+        let (completion_exists, completed_at, is_paid) = match &completion {
+            Some(c) => (true, c.completed_at, c.paid),
+            None => (false, 0, false),
+        };
+
+        QuestProgressSnapshot {
+            quest_id,
+            configured,
+            quest_exists,
+            completion_exists,
+            state,
+            payout_per_completion,
+            completed_at,
+            is_paid,
+            quest_paused,
+        }
+    }
+
+    /// Return reward-decay info for a quest, showing how much of the total
+    /// owed reward has been paid out.
+    ///
+    /// `decay_pct` is the ratio of `total_payout_paid` to
+    /// `(total_payout_paid + total_payout_owed)`, representing the
+    /// percentage of the total reward pool that has decayed (been paid).
+    pub fn reward_decay(env: Env, quest_id: u32) -> RewardDecayInfo {
+        let configured = is_configured(&env);
+        let Some(quest) = storage::get_quest(&env, quest_id) else {
+            return RewardDecayInfo {
+                quest_id,
+                configured,
+                exists: false,
+                state: if configured {
+                    QuestState::Missing
+                } else {
+                    QuestState::NotConfigured
+                },
+                total_payout_owed: 0,
+                total_payout_paid: 0,
+                decay_pct: 0,
+                pending_completion_count: 0,
+                paid_completion_count: 0,
+            };
+        };
+
+        let total = quest.total_payout_owed + quest.total_payout_paid;
+        let decay_pct = if total == 0 {
+            0u32
+        } else {
+            ((quest.total_payout_paid * 100) / total) as u32
+        };
+
+        RewardDecayInfo {
+            quest_id,
+            configured,
+            exists: true,
+            state: if quest.paused {
+                QuestState::Paused
+            } else {
+                QuestState::Active
+            },
+            total_payout_owed: quest.total_payout_owed,
+            total_payout_paid: quest.total_payout_paid,
+            decay_pct,
+            pending_completion_count: quest.pending_completion_count,
+            paid_completion_count: quest.paid_completion_count,
         }
     }
 }

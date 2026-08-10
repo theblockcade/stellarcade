@@ -425,6 +425,92 @@ impl SeasonRewardsVault {
     pub fn get_current_season(env: Env) -> Option<u64> {
         get_current_season(&env)
     }
+
+    // -----------------------------------------------------------------------
+    // get_vault_allocation_summary
+    // -----------------------------------------------------------------------
+
+    /// Return vault allocation summary for a season.
+    ///
+    /// `utilization_bps = floor(total_claimed.min(reward_pool) * 10_000 / reward_pool)`
+    /// when `reward_pool > 0`, otherwise 0. Unknown season IDs return
+    /// `season_found = false` with all zeros.
+    pub fn get_vault_allocation_summary(env: Env, season_id: u64) -> VaultAllocationSummary {
+        let Some(config) = get_season_config(&env, season_id) else {
+            return VaultAllocationSummary {
+                season_id,
+                season_found: false,
+                reward_pool: 0,
+                total_pending: 0,
+                total_claimed: 0,
+                utilization_bps: 0,
+                is_active: false,
+                auto_rollover: false,
+            };
+        };
+
+        let queue = get_claim_queue(&env, season_id);
+        let total_claimed = queue
+            .iter()
+            .filter(|r| r.is_claimed)
+            .fold(0i128, |acc, r| acc + r.amount);
+        let total_pending = queue
+            .iter()
+            .filter(|r| !r.is_claimed)
+            .fold(0i128, |acc, r| acc + r.amount);
+
+        let utilization_bps = if config.reward_pool > 0 {
+            ((total_claimed.min(config.reward_pool) * 10_000) / config.reward_pool) as u32
+        } else {
+            0
+        };
+
+        VaultAllocationSummary {
+            season_id,
+            season_found: true,
+            reward_pool: config.reward_pool,
+            total_pending,
+            total_claimed,
+            utilization_bps,
+            is_active: config.is_active,
+            auto_rollover: config.auto_rollover,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // get_claim_window_accessor
+    // -----------------------------------------------------------------------
+
+    /// Return claim-window details for a season.
+    ///
+    /// `window_open` is true when `is_active && now >= start_time && now <= end_time`.
+    /// `is_expired` is true when `now > end_time`.
+    /// Unknown season IDs return `season_found = false`.
+    pub fn get_claim_window_accessor(env: Env, season_id: u64, now: u64) -> ClaimWindowAccessor {
+        let Some(config) = get_season_config(&env, season_id) else {
+            return ClaimWindowAccessor {
+                season_id,
+                season_found: false,
+                start_time: 0,
+                end_time: 0,
+                is_active: false,
+                window_open: false,
+                is_expired: false,
+            };
+        };
+
+        ClaimWindowAccessor {
+            season_id,
+            season_found: true,
+            start_time: config.start_time,
+            end_time: config.end_time,
+            is_active: config.is_active,
+            window_open: config.is_active
+                && now >= config.start_time
+                && now <= config.end_time,
+            is_expired: now > config.end_time,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -717,5 +803,82 @@ mod test {
         assert_eq!(config.reward_pool, 10000i128);
         assert!(config.is_active);
         assert!(config.auto_rollover);
+    }
+
+    #[test]
+    fn test_vault_allocation_summary_success_path() {
+        let env = Env::default();
+        let (client, admin) = setup(&env);
+        env.mock_all_auths();
+
+        client.create_season(&admin, &1u64, &100u64, &200u64, &10000i128, &true);
+
+        let user = Address::generate(&env);
+        client.add_reward(
+            &admin,
+            &1u64,
+            &user,
+            &500i128,
+            &soroban_sdk::String::from_str(&env, "prize"),
+            &300u64,
+        );
+
+        let summary = client.get_vault_allocation_summary(&1u64);
+        assert!(summary.season_found);
+        assert_eq!(summary.reward_pool, 10000i128);
+        assert_eq!(summary.total_pending, 500i128);
+        assert_eq!(summary.total_claimed, 0i128);
+        assert_eq!(summary.utilization_bps, 0u32);
+        assert!(summary.is_active);
+        assert!(summary.auto_rollover);
+    }
+
+    #[test]
+    fn test_vault_allocation_summary_missing_season() {
+        let env = Env::default();
+        let (client, _) = setup(&env);
+
+        let summary = client.get_vault_allocation_summary(&999u64);
+        assert!(!summary.season_found);
+        assert_eq!(summary.reward_pool, 0i128);
+        assert_eq!(summary.total_pending, 0i128);
+        assert_eq!(summary.utilization_bps, 0u32);
+    }
+
+    #[test]
+    fn test_claim_window_accessor_open() {
+        let env = Env::default();
+        let (client, admin) = setup(&env);
+        env.mock_all_auths();
+
+        client.create_season(&admin, &1u64, &100u64, &200u64, &10000i128, &true);
+
+        // now=150 falls inside [100, 200]
+        let accessor = client.get_claim_window_accessor(&1u64, &150u64);
+        assert!(accessor.season_found);
+        assert!(accessor.window_open);
+        assert!(!accessor.is_expired);
+        assert_eq!(accessor.start_time, 100u64);
+        assert_eq!(accessor.end_time, 200u64);
+    }
+
+    #[test]
+    fn test_claim_window_accessor_expired_and_missing() {
+        let env = Env::default();
+        let (client, admin) = setup(&env);
+        env.mock_all_auths();
+
+        client.create_season(&admin, &1u64, &100u64, &200u64, &10000i128, &true);
+
+        // now=250 is past end_time=200
+        let expired = client.get_claim_window_accessor(&1u64, &250u64);
+        assert!(expired.season_found);
+        assert!(!expired.window_open);
+        assert!(expired.is_expired);
+
+        // Unknown season
+        let missing = client.get_claim_window_accessor(&999u64, &0u64);
+        assert!(!missing.season_found);
+        assert!(!missing.window_open);
     }
 }

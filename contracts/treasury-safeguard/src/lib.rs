@@ -7,7 +7,10 @@ pub mod storage;
 #[cfg(test)]
 mod test;
 
-use crate::types::{ThresholdBreachSummary, CooldownRelease, SafeguardConfig};
+use crate::types::{
+    CooldownRelease, OverrideWindowAccessor, SafeguardConfig, SafeguardLimitsSummary,
+    ThresholdBreachSummary,
+};
 use crate::storage::{
     get_config, set_config, get_breach_count, set_breach_count,
     get_last_breach_time, set_last_breach_time, get_current_value,
@@ -115,5 +118,63 @@ impl TreasurySafeguard {
         set_last_breach_time(&env, 0);
         set_current_value(&env, 0);
         set_cooldown_end(&env, 0);
+    }
+
+    /// Return a summary of configured safeguard limits and current utilization.
+    ///
+    /// `utilization_bps = floor(current_value.min(threshold_limit) * 10_000 / threshold_limit)`
+    /// when `threshold_limit > 0 && current_value > 0`, otherwise 0. Missing or
+    /// unconfigured states return `is_configured = false` with all zeros.
+    pub fn get_safeguard_limits_summary(env: Env) -> SafeguardLimitsSummary {
+        let config = get_config(&env);
+        let is_configured = config.is_some();
+        let threshold_limit = config.as_ref().map(|c| c.threshold_limit).unwrap_or(0);
+        let cooldown_period = config.as_ref().map(|c| c.cooldown_period).unwrap_or(0);
+        let is_paused = config.map(|c| c.paused).unwrap_or(false);
+        let current_value = get_current_value(&env);
+        let breach_count = get_breach_count(&env);
+
+        let utilization_bps = if threshold_limit > 0 && current_value > 0 {
+            let clamped = current_value.min(threshold_limit);
+            ((clamped * 10_000) / threshold_limit) as u32
+        } else {
+            0
+        };
+
+        SafeguardLimitsSummary {
+            is_configured,
+            threshold_limit,
+            cooldown_period,
+            breach_count,
+            current_value,
+            utilization_bps,
+            is_at_limit: threshold_limit > 0 && current_value >= threshold_limit,
+            is_paused,
+        }
+    }
+
+    /// Return an override-window view for the safeguard.
+    ///
+    /// `override_available` is true when the safeguard is configured, not in
+    /// cooldown, and not paused — meaning an authorized caller may act without
+    /// waiting for a cooldown to expire.
+    pub fn get_override_window_accessor(env: Env) -> OverrideWindowAccessor {
+        let now = env.ledger().timestamp();
+        let cooldown_end = get_cooldown_end(&env);
+        let config = get_config(&env);
+        let is_configured = config.is_some();
+        let is_paused = config.map(|c| c.paused).unwrap_or(false);
+
+        let is_in_cooldown = now < cooldown_end;
+        let remaining_cooldown_secs = if is_in_cooldown { cooldown_end - now } else { 0 };
+
+        OverrideWindowAccessor {
+            is_configured,
+            is_in_cooldown,
+            cooldown_end_timestamp: cooldown_end,
+            remaining_cooldown_secs,
+            override_available: is_configured && !is_in_cooldown && !is_paused,
+            is_paused,
+        }
     }
 }

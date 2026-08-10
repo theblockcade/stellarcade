@@ -56,3 +56,38 @@ pub struct UserClaimSummary {
     pub claim_count: u32,
     pub oldest_unclaimed_age: u64,
 }
+
+/// Vault allocation summary returned by `get_vault_allocation_summary`.
+///
+/// `utilization_bps = floor(total_claimed.min(reward_pool) * 10_000 / reward_pool)`
+/// when `reward_pool > 0`, otherwise 0. Unknown season IDs return
+/// `season_found = false` with all zeros.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VaultAllocationSummary {
+    pub season_id: u64,
+    pub season_found: bool,
+    pub reward_pool: i128,
+    pub total_pending: i128,
+    pub total_claimed: i128,
+    pub utilization_bps: u32,
+    pub is_active: bool,
+    pub auto_rollover: bool,
+}
+
+/// Claim-window view returned by `get_claim_window_accessor`.
+///
+/// `window_open` is true when `is_active && now >= start_time && now <= end_time`.
+/// `is_expired` is true when `now > end_time`.
+/// Unknown season IDs return `season_found = false`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClaimWindowAccessor {
+    pub season_id: u64,
+    pub season_found: bool,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub is_active: bool,
+    pub window_open: bool,
+    pub is_expired: bool,
+}

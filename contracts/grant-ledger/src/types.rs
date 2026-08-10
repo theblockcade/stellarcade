@@ -44,3 +44,33 @@ pub struct ExhaustionRisk {
     pub utilization_bps: u32,
     pub risk_level: RiskLevel,
 }
+
+/// Combined allocation snapshot and risk band in a single read, avoiding the
+/// need for a client to call both `allocation_snapshot` and `exhaustion_risk`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GrantAllocationSummary {
+    pub grant_exists: bool,
+    pub is_active: bool,
+    pub total_budget: i128,
+    pub allocated: i128,
+    pub remaining: i128,
+    pub allocation_count: u32,
+    pub utilization_bps: u32,
+    pub risk_level: RiskLevel,
+}
+
+/// Projected window within which the grant will be fully allocated if
+/// allocations continue at their current average rate.
+///
+/// When fewer than two allocations have occurred the rate cannot be estimated;
+/// `has_estimate` will be false and all timing fields will be 0.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MilestoneWindow {
+    pub grant_exists: bool,
+    pub has_estimate: bool,
+    pub avg_allocation_per_call: i128,
+    pub calls_until_exhaustion: u32,
+    pub remaining: i128,
+}

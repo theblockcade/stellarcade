@@ -5,7 +5,10 @@ mod types;
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
-pub use types::{ArenaSession, ArenaSessionState, ArenaSessionView, PlayerArenaSessionSummary, PlayerSessionStats};
+pub use types::{
+    ActiveSessionSummary, ArenaSession, ArenaSessionState, ArenaSessionView, ExpirationDelay,
+    PlayerArenaSessionSummary, PlayerSessionStats,
+};
 
 const BUMP_AMOUNT: u32 = 518_400;
 const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT / 2;
@@ -231,6 +234,76 @@ impl ArenaSessions {
             expired_count: stats.expired_count,
             total_staked: stats.total_staked,
             next_session_id,
+        }
+    }
+
+    /// Returns a compact summary of the player's current active session, or a zero-state if none.
+    pub fn active_session_summary(env: Env, player: Address) -> ActiveSessionSummary {
+        let current_ledger = env.ledger().sequence();
+        let active_id = storage::get_active_session_id(&env, &player);
+
+        let active_session = active_id.and_then(|id| storage::get_session(&env, id)).filter(|s| {
+            Self::resolved_state(current_ledger, s) == ArenaSessionState::Active
+        });
+
+        match active_session {
+            Some(session) => {
+                let ledgers_remaining = session.expires_at_ledger.saturating_sub(current_ledger);
+                ActiveSessionSummary {
+                    player,
+                    has_active_session: true,
+                    session_id: session.session_id,
+                    arena_id: session.arena_id,
+                    stake_amount: session.stake_amount,
+                    started_at_ledger: session.started_at_ledger,
+                    expires_at_ledger: session.expires_at_ledger,
+                    ledgers_remaining,
+                }
+            }
+            None => ActiveSessionSummary {
+                player,
+                has_active_session: false,
+                session_id: 0,
+                arena_id: 0,
+                stake_amount: 0,
+                started_at_ledger: 0,
+                expires_at_ledger: 0,
+                ledgers_remaining: 0,
+            },
+        }
+    }
+
+    /// Returns the expiration delay for a session: how many ledgers remain until it expires,
+    /// zero if already expired or not active.
+    pub fn expiration_delay(env: Env, session_id: u64) -> ExpirationDelay {
+        let Some(session) = storage::get_session(&env, session_id) else {
+            return ExpirationDelay {
+                session_id,
+                exists: false,
+                is_active: false,
+                expires_at_ledger: 0,
+                ledgers_remaining: 0,
+                already_expired: false,
+            };
+        };
+
+        let current_ledger = env.ledger().sequence();
+        let resolved = Self::resolved_state(current_ledger, &session);
+        let is_active = resolved == ArenaSessionState::Active;
+        let already_expired = resolved == ArenaSessionState::Expired;
+        let ledgers_remaining = if is_active {
+            session.expires_at_ledger.saturating_sub(current_ledger)
+        } else {
+            0
+        };
+
+        ExpirationDelay {
+            session_id,
+            exists: true,
+            is_active,
+            expires_at_ledger: session.expires_at_ledger,
+            ledgers_remaining,
+            already_expired,
         }
     }
 

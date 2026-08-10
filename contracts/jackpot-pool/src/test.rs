@@ -189,3 +189,104 @@ fn test_contributor_count_increments_once_per_address() {
     // Alice's cumulative share = 400/400 = 100% = 10_000 bps
     assert_eq!(summary.top_contributor_share_bps, 10_000);
 }
+
+// ---------------------------------------------------------------------------
+// pool_balance_summary
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_pool_balance_summary_empty() {
+    let env = Env::default();
+    let s = setup(&env, 1_000i128);
+
+    let summary = s.client.pool_balance_summary();
+    assert_eq!(summary.minimum_target, 1_000);
+    assert_eq!(summary.current_funded, 0);
+    assert_eq!(summary.shortfall, 1_000);
+    assert!(!summary.is_funded);
+    assert_eq!(summary.contributor_count, 0);
+    assert_eq!(summary.top_contributor_share_bps, 0);
+}
+
+#[test]
+fn test_pool_balance_summary_funded() {
+    let env = Env::default();
+    let s = setup(&env, 500i128);
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    s.sac.mint(&alice, &400i128);
+    s.sac.mint(&bob, &200i128);
+
+    s.client.contribute(&alice, &400i128);
+    s.client.contribute(&bob, &200i128);
+
+    let summary = s.client.pool_balance_summary();
+    assert!(summary.is_funded);
+    assert_eq!(summary.current_funded, 600);
+    assert_eq!(summary.shortfall, 0);
+    assert_eq!(summary.contributor_count, 2);
+    // Alice contributed 400/600 = 66.67% → floor(6_666) bps
+    assert_eq!(summary.top_contributor_share_bps, 6_666);
+}
+
+// ---------------------------------------------------------------------------
+// draw_interval_accessor
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_draw_interval_accessor_ready_when_funded_and_past_interval() {
+    let env = Env::default();
+    env.ledger().set_timestamp(10_000);
+    let s = setup(&env, 100i128);
+    let alice = Address::generate(&env);
+    s.sac.mint(&alice, &100i128);
+    s.client.contribute(&alice, &100i128);
+
+    // last draw at 9_000, interval 500 → next_draw_at 9_500 < 10_000
+    let acc = s.client.draw_interval_accessor(&9_000u64, &500u64);
+    assert!(acc.ready);
+    assert!(acc.is_funded);
+    assert_eq!(acc.next_draw_at, 9_500);
+}
+
+#[test]
+fn test_draw_interval_accessor_not_ready_within_interval() {
+    let env = Env::default();
+    env.ledger().set_timestamp(10_000);
+    let s = setup(&env, 100i128);
+    let alice = Address::generate(&env);
+    s.sac.mint(&alice, &100i128);
+    s.client.contribute(&alice, &100i128);
+
+    // last draw at 9_800, interval 500 → next_draw_at 10_300 > 10_000
+    let acc = s.client.draw_interval_accessor(&9_800u64, &500u64);
+    assert!(!acc.ready);
+    assert_eq!(acc.next_draw_at, 10_300);
+}
+
+#[test]
+fn test_draw_interval_accessor_not_ready_when_underfunded() {
+    let env = Env::default();
+    env.ledger().set_timestamp(10_000);
+    let s = setup(&env, 1_000i128);
+    let alice = Address::generate(&env);
+    s.sac.mint(&alice, &50i128);
+    s.client.contribute(&alice, &50i128);
+
+    let acc = s.client.draw_interval_accessor(&9_000u64, &500u64);
+    assert!(!acc.ready);
+    assert!(!acc.is_funded);
+}
+
+#[test]
+fn test_draw_interval_accessor_zero_interval_funded_is_always_ready() {
+    let env = Env::default();
+    env.ledger().set_timestamp(10_000);
+    let s = setup(&env, 100i128);
+    let alice = Address::generate(&env);
+    s.sac.mint(&alice, &100i128);
+    s.client.contribute(&alice, &100i128);
+
+    let acc = s.client.draw_interval_accessor(&10_000u64, &0u64);
+    assert!(acc.ready);
+}

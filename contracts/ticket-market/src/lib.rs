@@ -6,12 +6,13 @@ mod types;
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env, Symbol};
 
 pub use types::{
-    Listing, ListingDepthSummary, ListingExpiry, ListingStatus, OrderbookSummary,
-    PurchaseEligibility, PurchaseEligibilityReason,
+    ActiveListingSnapshot, Listing, ListingDepthSummary, ListingExpiry, ListingStatus,
+    OrderbookSummary, PurchaseCooldown, PurchaseEligibility, PurchaseEligibilityReason,
 };
 
 const BUMP_AMOUNT: u32 = 518_400;
 const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT / 2;
+const PURCHASE_COOLDOWN_LEDGERS: u32 = 10;
 
 #[contracttype]
 #[derive(Clone)]
@@ -288,6 +289,92 @@ impl TicketMarket {
                 seller_is_buyer: false,
                 can_purchase: false,
                 reason: PurchaseEligibilityReason::ListingMissing,
+            },
+        }
+    }
+    /// Returns a full snapshot of a single listing's active state.
+    ///
+    /// Unknown listings return `exists = false` with zeroed fields. Expired
+    /// listings are still returned with `is_active = false` so the UI can
+    /// distinguish "expired" from "missing".
+    pub fn active_listing_snapshot(env: Env, listing_id: u64) -> ActiveListingSnapshot {
+        let current_ledger = env.ledger().sequence();
+        match storage::get_listing(&env, listing_id) {
+            Some(listing) => {
+                let is_expired = listing.expires_at_ledger <= current_ledger;
+                let is_active = listing.status == ListingStatus::Active && !is_expired;
+                let ledgers_until_expiry = if is_expired {
+                    0
+                } else {
+                    listing.expires_at_ledger.saturating_sub(current_ledger)
+                };
+
+                ActiveListingSnapshot {
+                    listing_id,
+                    exists: true,
+                    is_active,
+                    status: listing.status,
+                    seller: Some(listing.seller),
+                    game_id: Some(listing.game_id),
+                    price: listing.price,
+                    expires_at_ledger: listing.expires_at_ledger,
+                    current_ledger,
+                    ledgers_until_expiry,
+                    is_expired,
+                }
+            }
+            None => ActiveListingSnapshot {
+                listing_id,
+                exists: false,
+                is_active: false,
+                status: ListingStatus::Cancelled,
+                seller: None,
+                game_id: None,
+                price: 0,
+                expires_at_ledger: 0,
+                current_ledger,
+                ledgers_until_expiry: 0,
+                is_expired: false,
+            },
+        }
+    }
+
+    /// Returns the purchase-cooldown state for a listing.
+    ///
+    /// A cooldown of `PURCHASE_COOLDOWN_LEDGERS` ledgers applies after a
+    /// listing is created — the listing cannot be purchased until the
+    /// cooldown elapses. Unknown listings return `exists = false`.
+    pub fn purchase_cooldown(env: Env, listing_id: u64) -> PurchaseCooldown {
+        let current_ledger = env.ledger().sequence();
+        match storage::get_listing(&env, listing_id) {
+            Some(listing) => {
+                let is_expired = listing.expires_at_ledger <= current_ledger;
+                let cooldown_end = listing.listing_id as u32 + PURCHASE_COOLDOWN_LEDGERS;
+                let cooldown_remaining = cooldown_end.saturating_sub(current_ledger);
+                let past_cooldown = current_ledger >= cooldown_end;
+                let is_purchasable =
+                    listing.status == ListingStatus::Active && !is_expired && past_cooldown;
+
+                PurchaseCooldown {
+                    listing_id,
+                    exists: true,
+                    status: listing.status,
+                    current_ledger,
+                    expires_at_ledger: listing.expires_at_ledger,
+                    is_purchasable,
+                    cooldown_remaining: if past_cooldown { 0 } else { cooldown_remaining },
+                    is_expired,
+                }
+            }
+            None => PurchaseCooldown {
+                listing_id,
+                exists: false,
+                status: ListingStatus::Cancelled,
+                current_ledger,
+                expires_at_ledger: 0,
+                is_purchasable: false,
+                cooldown_remaining: 0,
+                is_expired: false,
             },
         }
     }

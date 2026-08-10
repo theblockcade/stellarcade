@@ -249,3 +249,79 @@ fn test_double_init_fails() {
     let result = client.try_init(&admin, &token);
     assert_eq!(result, Err(Ok(Error::AlreadyInitialized)));
 }
+
+// ── active_listing_snapshot ──────────────────────────────────────────────────
+
+#[test]
+fn test_active_listing_snapshot_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, seller) = setup(&env);
+
+    let id = client.list_ticket(&seller, &game_id(&env), &800, &200);
+    let snapshot = client.active_listing_snapshot(&id);
+
+    assert!(snapshot.exists);
+    assert!(snapshot.is_active);
+    assert_eq!(snapshot.status, ListingStatus::Active);
+    assert_eq!(snapshot.price, 800);
+    assert_eq!(snapshot.expires_at_ledger, 200);
+    assert_eq!(snapshot.ledgers_until_expiry, 200);
+    assert!(!snapshot.is_expired);
+}
+
+#[test]
+fn test_active_listing_snapshot_unknown() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, _seller) = setup(&env);
+
+    let snapshot = client.active_listing_snapshot(&9999u64);
+    assert!(!snapshot.exists);
+    assert!(!snapshot.is_active);
+    assert_eq!(snapshot.price, 0);
+    assert_eq!(snapshot.ledgers_until_expiry, 0);
+}
+
+#[test]
+fn test_active_listing_snapshot_cancelled() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, seller) = setup(&env);
+
+    let id = client.list_ticket(&seller, &game_id(&env), &500, &100);
+    client.cancel_listing(&seller, &id);
+
+    let snapshot = client.active_listing_snapshot(&id);
+    assert!(snapshot.exists);
+    assert!(!snapshot.is_active);
+    assert_eq!(snapshot.status, ListingStatus::Cancelled);
+}
+
+// ── purchase_cooldown ────────────────────────────────────────────────────────
+
+#[test]
+fn test_purchase_cooldown_past_cooldown() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, seller) = setup(&env);
+
+    let id = client.list_ticket(&seller, &game_id(&env), &500, &500);
+    let cooldown = client.purchase_cooldown(&id);
+
+    assert!(cooldown.exists);
+    assert_eq!(cooldown.cooldown_remaining, 11);
+    assert!(!cooldown.is_purchasable);
+}
+
+#[test]
+fn test_purchase_cooldown_unknown_listing() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, _seller) = setup(&env);
+
+    let cooldown = client.purchase_cooldown(&9999u64);
+    assert!(!cooldown.exists);
+    assert!(!cooldown.is_purchasable);
+    assert_eq!(cooldown.cooldown_remaining, 0);
+}

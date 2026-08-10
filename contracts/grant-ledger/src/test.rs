@@ -68,3 +68,66 @@ fn missing_grant_returns_predictable_state() {
     assert!(!risk.grant_exists);
     assert_eq!(risk.risk_level, RiskLevel::Unknown);
 }
+
+#[test]
+fn grant_allocation_summary_combines_snapshot_and_risk() {
+    let (_env, client) = setup();
+    client.create_grant(&1, &10_000);
+    client.allocate(&1, &8_500);
+
+    let summary = client.grant_allocation_summary(&1);
+    assert!(summary.grant_exists);
+    assert!(summary.is_active);
+    assert_eq!(summary.total_budget, 10_000);
+    assert_eq!(summary.allocated, 8_500);
+    assert_eq!(summary.remaining, 1_500);
+    assert_eq!(summary.allocation_count, 1);
+    assert_eq!(summary.utilization_bps, 8_500);
+    assert_eq!(summary.risk_level, RiskLevel::High);
+}
+
+#[test]
+fn grant_allocation_summary_missing_grant() {
+    let (_env, client) = setup();
+    let summary = client.grant_allocation_summary(&99);
+    assert!(!summary.grant_exists);
+    assert!(!summary.is_active);
+    assert_eq!(summary.risk_level, RiskLevel::Unknown);
+}
+
+#[test]
+fn milestone_window_estimates_calls_until_exhaustion() {
+    let (_env, client) = setup();
+    client.create_grant(&1, &10_000);
+    // avg allocation = 2000; remaining = 10_000 - 4000 = 6000; calls = 3
+    client.allocate(&1, &2_000);
+    client.allocate(&1, &2_000);
+
+    let mw = client.milestone_window(&1);
+    assert!(mw.grant_exists);
+    assert!(mw.has_estimate);
+    assert_eq!(mw.avg_allocation_per_call, 2_000);
+    assert_eq!(mw.remaining, 6_000);
+    assert_eq!(mw.calls_until_exhaustion, 3);
+}
+
+#[test]
+fn milestone_window_no_estimate_with_one_allocation() {
+    let (_env, client) = setup();
+    client.create_grant(&1, &10_000);
+    client.allocate(&1, &3_000);
+
+    let mw = client.milestone_window(&1);
+    assert!(mw.grant_exists);
+    assert!(!mw.has_estimate);
+    assert_eq!(mw.avg_allocation_per_call, 0);
+    assert_eq!(mw.calls_until_exhaustion, 0);
+}
+
+#[test]
+fn milestone_window_missing_grant() {
+    let (_env, client) = setup();
+    let mw = client.milestone_window(&99);
+    assert!(!mw.grant_exists);
+    assert!(!mw.has_estimate);
+}

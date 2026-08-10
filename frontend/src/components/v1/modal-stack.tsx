@@ -8,6 +8,62 @@ import React, {
   useState,
 } from 'react';
 
+const INTERACTIVE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export function useFocusTrap(
+  containerRef: React.RefObject<HTMLElement>,
+  active: boolean,
+): void {
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const container = containerRef.current;
+      if (!container) {
+        return;
+      }
+
+      const interactives = Array.from(
+        container.querySelectorAll<HTMLElement>(INTERACTIVE_SELECTOR),
+      ).filter((el) => el.offsetParent !== null || el.tagName === 'BODY');
+
+      if (interactives.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = interactives[0];
+      const last = interactives[interactives.length - 1];
+      const focused = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        // Shift+Tab: if focus is on or before the first, wrap to last
+        if (focused === first || !container.contains(focused)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else {
+        // Tab: if focus is on or after the last, wrap to first
+        if (focused === last || !container.contains(focused)) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    const container = containerRef.current;
+    container?.addEventListener('keydown', handleKeyDown);
+    return () => container?.removeEventListener('keydown', handleKeyDown);
+  }, [containerRef, active]);
+}
+
 interface ModalStackEntry {
   id: string;
   onRequestClose?: () => void;
@@ -23,9 +79,7 @@ interface ModalStackContextValue {
 const ModalStackContext = createContext<ModalStackContextValue | null>(null);
 
 function focusFirstInteractive(container: HTMLElement | null): boolean {
-  const firstInteractive = container?.querySelector<HTMLElement>(
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  );
+  const firstInteractive = container?.querySelector<HTMLElement>(INTERACTIVE_SELECTOR);
   if (!firstInteractive) {
     return false;
   }
@@ -158,3 +212,40 @@ export function useModalStackRegistration({
     stackIndex: active ? context.getStackIndex(modalId) : -1,
   };
 }
+
+interface ModalOverlayProps {
+  active: boolean;
+  modalId: string;
+  onRequestClose?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const ModalOverlay: React.FC<ModalOverlayProps> = ({
+  active,
+  modalId,
+  onRequestClose,
+  children,
+  className,
+}) => {
+  useModalStackRegistration({ active, modalId, onRequestClose });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(containerRef, active);
+
+  if (!active) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      data-modal-stack-id={modalId}
+      className={className}
+    >
+      {children}
+    </div>
+  );
+};

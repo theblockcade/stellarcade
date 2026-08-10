@@ -61,3 +61,12 @@ pub struct QueueEntryView {
     pub submitted_at: Option<u32>,
     pub redeemed_at: Option<u32>,
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RedemptionCountSummary {
+    pub total_pending: u64,
+    pub total_redeemed: u64,
+    pub total_expired: u64,
+    pub total_cancelled: u64,
+}

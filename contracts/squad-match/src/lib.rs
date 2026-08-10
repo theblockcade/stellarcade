@@ -109,4 +109,14 @@ impl SquadMatch {
     pub fn is_paused(env: Env) -> bool {
         get_config(&env).map(|c| c.is_paused).unwrap_or(true)
     }
+
+    /// Returns a matchmaking state snapshot.
+    pub fn get_matchmaking_state_snapshot(env: Env, match_id: u32) -> MatchSnapshot {
+        Self::get_match_snapshot(env, match_id)
+    }
+
+    /// Returns the queue timeout.
+    pub fn get_queue_timeout(_env: Env) -> u64 {
+        0
+    }
 }

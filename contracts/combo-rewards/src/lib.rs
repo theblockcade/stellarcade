@@ -144,4 +144,94 @@ impl ComboRewardsContract {
             ledgers_until_expiry,
         }
     }
+
+    pub fn reward_streak_summary(env: Env, player: Address) -> RewardStreakSummary {
+        let Some(cfg) = get_config(&env) else {
+            return RewardStreakSummary {
+                player,
+                status: ComboRewardsStatus::Unconfigured,
+                has_active_streak: false,
+                streak_count: 0,
+                combo_multiplier_bps: 0,
+                expires_at_ledger: 0,
+                ledgers_remaining: 0,
+            };
+        };
+
+        let status = if cfg.paused {
+            ComboRewardsStatus::Paused
+        } else {
+            ComboRewardsStatus::Active
+        };
+
+        let Some(record) = get_player(&env, &player) else {
+            return RewardStreakSummary {
+                player,
+                status,
+                has_active_streak: false,
+                streak_count: 0,
+                combo_multiplier_bps: 0,
+                expires_at_ledger: 0,
+                ledgers_remaining: 0,
+            };
+        };
+
+        let current = env.ledger().sequence();
+        let ledgers_remaining = record.expires_at_ledger.saturating_sub(current);
+
+        RewardStreakSummary {
+            player: record.player,
+            status,
+            has_active_streak: record.streak_count > 0,
+            streak_count: record.streak_count,
+            combo_multiplier_bps: record.combo_multiplier_bps,
+            expires_at_ledger: record.expires_at_ledger,
+            ledgers_remaining,
+        }
+    }
+
+    pub fn multiplier_decay_accessor(
+        env: Env,
+        player: Address,
+        decay_threshold_bps: u32,
+    ) -> MultiplierDecayAccessor {
+        let Some(cfg) = get_config(&env) else {
+            return MultiplierDecayAccessor {
+                player,
+                status: ComboRewardsStatus::Unconfigured,
+                has_active_streak: false,
+                combo_multiplier_bps: 0,
+                decay_threshold_bps,
+                below_threshold: 0 < decay_threshold_bps,
+            };
+        };
+
+        let status = if cfg.paused {
+            ComboRewardsStatus::Paused
+        } else {
+            ComboRewardsStatus::Active
+        };
+
+        let Some(record) = get_player(&env, &player) else {
+            return MultiplierDecayAccessor {
+                player,
+                status,
+                has_active_streak: false,
+                combo_multiplier_bps: 0,
+                decay_threshold_bps,
+                below_threshold: 0 < decay_threshold_bps,
+            };
+        };
+
+        let below_threshold = record.combo_multiplier_bps < decay_threshold_bps;
+
+        MultiplierDecayAccessor {
+            player: record.player,
+            status,
+            has_active_streak: record.streak_count > 0,
+            combo_multiplier_bps: record.combo_multiplier_bps,
+            decay_threshold_bps,
+            below_threshold,
+        }
+    }
 }

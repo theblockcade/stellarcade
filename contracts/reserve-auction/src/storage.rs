@@ -55,3 +55,11 @@ pub fn set_seller_stats(env: &Env, seller: &Address, stats: &SellerAuctionStats)
         .persistent()
         .extend_ttl(&key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
 }
+
+pub fn get_bid_delay_blocks(env: &Env) -> Option<u32> {
+    env.storage().instance().get(&DataKey::BidDelayBlocks)
+}
+
+pub fn set_bid_delay_blocks(env: &Env, blocks: u32) {
+    env.storage().instance().set(&DataKey::BidDelayBlocks, &blocks);
+}

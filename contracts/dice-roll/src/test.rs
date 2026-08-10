@@ -729,3 +729,82 @@ fn test_loss_stores_actual_result() {
     assert_eq!(roll.result, target_face);
     assert_eq!(roll.payout, 0);
 }
+
+// -------------------------------------------------------------------
+// 19. Rolling history snapshot — empty state
+// -------------------------------------------------------------------
+
+#[test]
+fn test_rolling_history_snapshot_empty() {
+    let env = Env::default();
+    let s = setup(&env);
+
+    let snap = s.dice_client.rolling_history_snapshot();
+    assert_eq!(snap.total_resolved, 0);
+    assert_eq!(snap.recent_game_ids.len(), 0);
+}
+
+// -------------------------------------------------------------------
+// 20. Rolling history snapshot — after resolved roll
+// -------------------------------------------------------------------
+
+#[test]
+fn test_rolling_history_snapshot_after_resolve() {
+    let env = Env::default();
+    let s = setup(&env);
+    env.mock_all_auths();
+
+    let player = Address::generate(&env);
+    s.token_sac.mint(&player, &500);
+
+    let game_id = 1u64;
+    let prediction = 3u32;
+    s.dice_client.roll(&player, &prediction, &100, &game_id);
+    let win_seed = find_seed_for_face(&env, game_id, prediction);
+    s.rng_client.fulfill_random(&s.oracle, &game_id, &win_seed);
+    s.dice_client.resolve_roll(&game_id);
+
+    let snap = s.dice_client.rolling_history_snapshot();
+    assert_eq!(snap.total_resolved, 1);
+    assert_eq!(snap.recent_game_ids.get(0).unwrap(), game_id);
+}
+
+// -------------------------------------------------------------------
+// 21. Cooldown window — player has never rolled
+// -------------------------------------------------------------------
+
+#[test]
+fn test_cooldown_window_never_rolled() {
+    let env = Env::default();
+    let s = setup(&env);
+
+    let player = Address::generate(&env);
+    let cw = s.dice_client.cooldown_window(&player);
+    assert!(!cw.player_has_rolled);
+    assert!(!cw.in_cooldown);
+    assert_eq!(cw.seconds_remaining, 0);
+    assert_eq!(cw.last_roll_at, 0);
+}
+
+// -------------------------------------------------------------------
+// 22. Cooldown window — player is in cooldown immediately after roll
+// -------------------------------------------------------------------
+
+#[test]
+fn test_cooldown_window_after_roll() {
+    let env = Env::default();
+    let s = setup(&env);
+    env.mock_all_auths();
+
+    let player = Address::generate(&env);
+    s.token_sac.mint(&player, &500);
+
+    // Place a roll — ledger timestamp is 0 in test env, cooldown = 30s
+    s.dice_client.roll(&player, &2u32, &100, &1u64);
+
+    let cw = s.dice_client.cooldown_window(&player);
+    assert!(cw.player_has_rolled);
+    assert!(cw.in_cooldown);
+    assert_eq!(cw.seconds_remaining, 30);
+    assert_eq!(cw.cooldown_secs, 30);
+}

@@ -82,3 +82,78 @@ fn rollover_due_after_end_time_and_paused_state_is_visible() {
     assert!(delay.rollover_due);
     assert_eq!(delay.seconds_until_rollover, 0);
 }
+
+#[test]
+fn rotation_queue_summary_success_path() {
+    let env = Env::default();
+    env.ledger().with_mut(|ledger| ledger.timestamp = 50);
+    let (client, admin) = setup(&env);
+
+    client.set_active_pool(&admin, &5, &10, &300, &0, &200);
+
+    let summary = client.rotation_queue_summary();
+    assert!(summary.configured);
+    assert!(!summary.paused);
+    assert!(summary.has_active_pool);
+    assert_eq!(summary.pool_id, 5);
+    assert_eq!(summary.item_count, 10);
+    assert_eq!(summary.reward_weight, 300);
+    assert_eq!(summary.seconds_until_rollover, 150);
+    assert!(!summary.rollover_due);
+}
+
+#[test]
+fn rotation_queue_summary_empty_state() {
+    let env = Env::default();
+    let (client, _) = setup(&env);
+
+    let summary = client.rotation_queue_summary();
+    assert!(summary.configured);
+    assert!(!summary.has_active_pool);
+    assert_eq!(summary.pool_id, 0);
+    assert_eq!(summary.seconds_until_rollover, 0);
+    assert!(!summary.rollover_due);
+}
+
+#[test]
+fn transition_gap_success_path() {
+    let env = Env::default();
+    env.ledger().with_mut(|ledger| ledger.timestamp = 100);
+    let (client, admin) = setup(&env);
+
+    client.set_active_pool(&admin, &2, &8, &150, &50, &300);
+
+    let gap = client.transition_gap();
+    assert!(gap.configured);
+    assert!(gap.has_active_pool);
+    assert!(!gap.transition_due);
+    assert_eq!(gap.ends_at, 300);
+    assert_eq!(gap.seconds_until_transition, 200);
+}
+
+#[test]
+fn transition_gap_due_after_end_time() {
+    let env = Env::default();
+    env.ledger().with_mut(|ledger| ledger.timestamp = 500);
+    let (client, admin) = setup(&env);
+
+    client.set_active_pool(&admin, &1, &4, &100, &0, &200);
+
+    let gap = client.transition_gap();
+    assert!(gap.has_active_pool);
+    assert!(gap.transition_due);
+    assert_eq!(gap.seconds_until_transition, 0);
+}
+
+#[test]
+fn transition_gap_empty_state() {
+    let env = Env::default();
+    let contract_id = env.register_contract(None, LootRotation);
+    let client = LootRotationClient::new(&env, &contract_id);
+
+    let gap = client.transition_gap();
+    assert!(!gap.configured);
+    assert!(!gap.has_active_pool);
+    assert!(!gap.transition_due);
+    assert_eq!(gap.seconds_until_transition, 0);
+}

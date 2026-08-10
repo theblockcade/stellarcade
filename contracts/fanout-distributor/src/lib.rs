@@ -6,8 +6,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Env};
 
 pub use types::{
-    BatchHealthBand, BatchHealthSnapshot, BatchProgressSummary, BatchRecord, BatchStatus, RetryGap,
-    RetryableFailure,
+    BatchHealthBand, BatchHealthSnapshot, BatchProgressSummary, BatchRecord, BatchStatus,
+    DelayWindow, DistributionRollupSummary, RetryGap, RetryableFailure,
 };
 
 const DEFAULT_RETRY_GAP_LEDGERS: u32 = 120;
@@ -275,6 +275,82 @@ impl FanoutDistributor {
     pub fn retry_window_accessor(env: Env, batch_id: u64) -> RetryGap {
         Self::retry_gap(env, batch_id)
     }
+
+    /// Return an aggregated distribution rollup summary across all batches.
+    ///
+    /// `completion_rate_bps` is floored basis-point math. Returns zero and
+    /// `configured = false` when the contract has not been initialized.
+    pub fn distribution_rollup_summary(env: Env) -> DistributionRollupSummary {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let total_batches = storage::get_total_batches(&env);
+        let completed_batches = storage::get_completed_batches(&env);
+        let pending_batches = storage::get_pending_batches(&env);
+        let failed_batches = storage::get_failed_batches(&env);
+        let total_distributed = storage::get_total_distributed(&env);
+
+        let completion_rate_bps = if total_batches > 0 {
+            ((completed_batches * 10_000) / total_batches) as u32
+        } else {
+            0
+        };
+
+        DistributionRollupSummary {
+            configured,
+            total_batches,
+            completed_batches,
+            pending_batches,
+            failed_batches,
+            total_distributed,
+            completion_rate_bps,
+        }
+    }
+
+    /// Return the delay window for a specific batch.
+    ///
+    /// Uses `DEFAULT_RETRY_GAP_LEDGERS` to project `delay_after_ledger` for
+    /// failed batches. `within_delay = true` when the batch has failed and the
+    /// delay window has not yet elapsed. Non-failed, completed, and missing
+    /// batches return `within_delay = false` and zeroed timing fields.
+    pub fn delay_window(env: Env, batch_id: u64) -> DelayWindow {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let current_ledger = env.ledger().sequence();
+
+        let Some(record) = storage::get_batch(&env, batch_id) else {
+            return DelayWindow {
+                configured,
+                exists: false,
+                batch_id,
+                failed: false,
+                delay_gap_ledgers: 0,
+                delay_after_ledger: 0,
+                current_ledger,
+                within_delay: false,
+            };
+        };
+
+        let active_failure = record.failed && !record.completed;
+        let delay_gap_ledgers = if active_failure {
+            DEFAULT_RETRY_GAP_LEDGERS
+        } else {
+            0
+        };
+        let delay_after_ledger = if active_failure {
+            current_ledger.saturating_add(delay_gap_ledgers)
+        } else {
+            0
+        };
+
+        DelayWindow {
+            configured,
+            exists: true,
+            batch_id,
+            failed: record.failed,
+            delay_gap_ledgers,
+            delay_after_ledger,
+            current_ledger,
+            within_delay: active_failure,
+        }
+    }
 }
 
 fn batch_status(record: &BatchRecord) -> BatchStatus {
@@ -406,5 +482,73 @@ mod test {
         assert_eq!(gap.exists, false);
         assert_eq!(gap.can_retry, false);
         assert_eq!(gap.retry_gap_ledgers, 0);
+    }
+
+    #[test]
+    fn test_distribution_rollup_summary_success_path() {
+        let env = Env::default();
+        let (client, admin) = setup(&env);
+
+        client.init(&admin);
+        client.create_batch(&admin, &1, &1_000, &5);
+        client.create_batch(&admin, &2, &2_000, &3);
+        client.distribute(&admin, &1, &1_000);
+        client.complete_batch(&admin, &1);
+
+        let summary = client.distribution_rollup_summary();
+        assert!(summary.configured);
+        assert_eq!(summary.total_batches, 2);
+        assert_eq!(summary.completed_batches, 1);
+        assert_eq!(summary.pending_batches, 1);
+        assert_eq!(summary.total_distributed, 1_000);
+        assert_eq!(summary.completion_rate_bps, 5_000);
+    }
+
+    #[test]
+    fn test_distribution_rollup_summary_empty_state() {
+        let env = Env::default();
+        let (client, _) = setup(&env);
+
+        let summary = client.distribution_rollup_summary();
+        assert!(!summary.configured);
+        assert_eq!(summary.total_batches, 0);
+        assert_eq!(summary.completion_rate_bps, 0);
+        assert_eq!(summary.total_distributed, 0);
+    }
+
+    #[test]
+    fn test_delay_window_failed_batch() {
+        let env = Env::default();
+        let (client, admin) = setup(&env);
+
+        client.init(&admin);
+        client.create_batch(&admin, &10, &500, &2);
+        client.mark_failed(&admin, &10);
+
+        let window = client.delay_window(&10);
+        assert!(window.configured);
+        assert!(window.exists);
+        assert!(window.failed);
+        assert!(window.within_delay);
+        assert_eq!(window.delay_gap_ledgers, DEFAULT_RETRY_GAP_LEDGERS);
+        assert_eq!(
+            window.delay_after_ledger,
+            window.current_ledger + DEFAULT_RETRY_GAP_LEDGERS
+        );
+    }
+
+    #[test]
+    fn test_delay_window_missing_batch() {
+        let env = Env::default();
+        let (client, admin) = setup(&env);
+
+        client.init(&admin);
+
+        let window = client.delay_window(&999);
+        assert!(window.configured);
+        assert!(!window.exists);
+        assert!(!window.within_delay);
+        assert_eq!(window.delay_gap_ledgers, 0);
+        assert_eq!(window.delay_after_ledger, 0);
     }
 }

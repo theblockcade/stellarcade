@@ -1,0 +1,17 @@
+[package]
+name = "voucher-escrow"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+testutils = ["soroban-sdk/testutils"]
+
+[dependencies]
+soroban-sdk = "25.1.1"
+
+[dev-dependencies]
+soroban-sdk = { version = "25.1.1", features = ["testutils"] }

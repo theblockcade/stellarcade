@@ -5,7 +5,10 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Vec};
 
-pub use types::{IdentityRecord, ProfileCompleteness, VerificationState, VerificationSummary};
+pub use types::{
+    IdentityRecord, IdentityRenewalState, ProfileCompleteness, RenewalWindowAccessor,
+    StatusVerificationSnapshot, VerificationState, VerificationSummary,
+};
 
 #[contracttype]
 #[derive(Clone)]
@@ -171,6 +174,131 @@ impl IdentityRegistry {
                 is_fully_verified: false,
                 pending_requirements,
             }
+        }
+    }
+
+    /// Point-in-time snapshot of an identity's verification status.
+    ///
+    /// Returns zeroed fields with `exists: false` when the identity is unknown.
+    pub fn status_verification_snapshot(
+        env: Env,
+        identity: Address,
+    ) -> StatusVerificationSnapshot {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+
+        match storage::get_identity(&env, &identity) {
+            Some(record) => {
+                let v = record.verification;
+                let completed_dimensions = (v.email_verified as u32)
+                    + (v.phone_verified as u32)
+                    + (v.government_id_verified as u32)
+                    + (v.wallet_linked as u32);
+                let score_bps = completed_dimensions * 2_500;
+                StatusVerificationSnapshot {
+                    identity,
+                    configured,
+                    exists: true,
+                    email_verified: v.email_verified,
+                    phone_verified: v.phone_verified,
+                    government_id_verified: v.government_id_verified,
+                    wallet_linked: v.wallet_linked,
+                    completed_dimensions,
+                    total_dimensions: 4,
+                    is_fully_verified: completed_dimensions == 4,
+                    score_bps,
+                }
+            }
+            None => StatusVerificationSnapshot {
+                identity,
+                configured,
+                exists: false,
+                email_verified: false,
+                phone_verified: false,
+                government_id_verified: false,
+                wallet_linked: false,
+                completed_dimensions: 0,
+                total_dimensions: 4,
+                is_fully_verified: false,
+                score_bps: 0,
+            },
+        }
+    }
+
+    /// Renewal-window details for a single identity.
+    ///
+    /// The caller supplies `expires_at_ledger` and `renewal_window_ledgers`.
+    /// Neither value is stored by the contract — the caller controls the
+    /// expiry policy.
+    pub fn renewal_window_accessor(
+        env: Env,
+        identity: Address,
+        expires_at_ledger: u32,
+        renewal_window_ledgers: u32,
+    ) -> RenewalWindowAccessor {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let current_ledger = env.ledger().sequence();
+
+        let Some(record) = storage::get_identity(&env, &identity) else {
+            return RenewalWindowAccessor {
+                identity,
+                configured,
+                exists: false,
+                state: if configured {
+                    IdentityRenewalState::Unknown
+                } else {
+                    IdentityRenewalState::NotConfigured
+                },
+                expires_at_ledger,
+                renewal_window_ledgers,
+                renewal_window_start: expires_at_ledger
+                    .saturating_sub(renewal_window_ledgers),
+                in_renewal_window: false,
+                is_expired: false,
+                ledgers_until_expiry: 0,
+                current_ledger,
+            };
+        };
+
+        let v = record.verification;
+        let is_fully_verified = v.email_verified
+            && v.phone_verified
+            && v.government_id_verified
+            && v.wallet_linked;
+
+        let is_expired = current_ledger > expires_at_ledger;
+        let renewal_window_start =
+            expires_at_ledger.saturating_sub(renewal_window_ledgers);
+        let in_renewal_window =
+            !is_expired && current_ledger >= renewal_window_start;
+
+        let state = if is_expired {
+            IdentityRenewalState::Expired
+        } else if in_renewal_window {
+            IdentityRenewalState::RenewalDue
+        } else if is_fully_verified {
+            IdentityRenewalState::Active
+        } else {
+            IdentityRenewalState::Unverified
+        };
+
+        let ledgers_until_expiry = if is_expired {
+            0
+        } else {
+            expires_at_ledger - current_ledger
+        };
+
+        RenewalWindowAccessor {
+            identity,
+            configured,
+            exists: true,
+            state,
+            expires_at_ledger,
+            renewal_window_ledgers,
+            renewal_window_start,
+            in_renewal_window,
+            is_expired,
+            ledgers_until_expiry,
+            current_ledger,
         }
     }
 }

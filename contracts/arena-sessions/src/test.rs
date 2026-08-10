@@ -4,6 +4,12 @@ use soroban_sdk::{
     Address, Env,
 };
 
+fn setup_with_session(env: &Env) -> (ArenaSessionsClient<'_>, Address, u64) {
+    let (client, _admin, player) = setup(env);
+    let session_id = client.start_session(&player, &1, &100, &10);
+    (client, player, session_id)
+}
+
 fn setup(env: &Env) -> (ArenaSessionsClient<'_>, Address, Address) {
     let admin = Address::generate(env);
     let player = Address::generate(env);
@@ -96,4 +102,86 @@ fn test_expired_session_can_be_swept() {
     let summary = client.player_summary(&player);
     assert_eq!(summary.active_session_id, None);
     assert_eq!(summary.expired_count, 1);
+}
+
+#[test]
+fn test_active_session_summary_has_active() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, player, session_id) = setup_with_session(&env);
+
+    let summary = client.active_session_summary(&player);
+    assert!(summary.has_active_session);
+    assert_eq!(summary.session_id, session_id);
+    assert_eq!(summary.arena_id, 1);
+    assert_eq!(summary.stake_amount, 100);
+    assert_eq!(summary.expires_at_ledger, 10);
+    assert_eq!(summary.ledgers_remaining, 10);
+}
+
+#[test]
+fn test_active_session_summary_no_session() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, player) = setup(&env);
+
+    let summary = client.active_session_summary(&player);
+    assert!(!summary.has_active_session);
+    assert_eq!(summary.session_id, 0);
+    assert_eq!(summary.stake_amount, 0);
+    assert_eq!(summary.ledgers_remaining, 0);
+}
+
+#[test]
+fn test_active_session_summary_returns_empty_after_completion() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, player, session_id) = setup_with_session(&env);
+
+    client.complete_session(&player, &session_id);
+
+    let summary = client.active_session_summary(&player);
+    assert!(!summary.has_active_session);
+    assert_eq!(summary.session_id, 0);
+}
+
+#[test]
+fn test_expiration_delay_active_session() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _player, session_id) = setup_with_session(&env);
+
+    let delay = client.expiration_delay(&session_id);
+    assert!(delay.exists);
+    assert!(delay.is_active);
+    assert!(!delay.already_expired);
+    assert_eq!(delay.expires_at_ledger, 10);
+    assert_eq!(delay.ledgers_remaining, 10);
+}
+
+#[test]
+fn test_expiration_delay_expired_session() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _player, session_id) = setup_with_session(&env);
+
+    env.ledger().set_sequence_number(15);
+    let delay = client.expiration_delay(&session_id);
+    assert!(delay.exists);
+    assert!(!delay.is_active);
+    assert!(delay.already_expired);
+    assert_eq!(delay.ledgers_remaining, 0);
+}
+
+#[test]
+fn test_expiration_delay_missing_session() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _player) = setup(&env);
+
+    let delay = client.expiration_delay(&999);
+    assert!(!delay.exists);
+    assert!(!delay.is_active);
+    assert!(!delay.already_expired);
+    assert_eq!(delay.expires_at_ledger, 0);
 }

@@ -8,7 +8,7 @@ pub mod types;
 mod test;
 
 use crate::storage::{get_gate, has_entered, mark_entered, set_gate};
-use crate::types::{Gate, GateStatusSnapshot, ReleaseDelay};
+use crate::types::{EntryStatusSummary, Gate, GateStatusSnapshot, ReleaseDelay, UnlockDelay};
 
 #[contract]
 pub struct LobbyGates;
@@ -96,6 +96,71 @@ impl LobbyGates {
                 is_open: false,
                 is_paused: false,
                 is_full: false,
+            },
+        }
+    }
+
+    /// Entry status summary: occupancy, capacity, and whether entry is allowed.
+    pub fn entry_status_summary(env: Env, id: u64) -> EntryStatusSummary {
+        let now = env.ledger().timestamp();
+
+        match get_gate(&env, id) {
+            Some(g) => {
+                let is_open = !g.is_paused && now >= g.release_time;
+                let remaining_slots = g.capacity.saturating_sub(g.occupancy);
+                let entry_allowed = is_open && remaining_slots > 0;
+                EntryStatusSummary {
+                    gate_exists: true,
+                    occupancy: g.occupancy,
+                    capacity: g.capacity,
+                    remaining_slots,
+                    is_open,
+                    is_paused: g.is_paused,
+                    entry_allowed,
+                }
+            }
+            None => EntryStatusSummary {
+                gate_exists: false,
+                occupancy: 0,
+                capacity: 0,
+                remaining_slots: 0,
+                is_open: false,
+                is_paused: false,
+                entry_allowed: false,
+            },
+        }
+    }
+
+    /// Time remaining until a gate is fully unlocked (released AND not paused).
+    pub fn unlock_delay(env: Env, id: u64) -> UnlockDelay {
+        let now = env.ledger().timestamp();
+
+        match get_gate(&env, id) {
+            Some(g) => {
+                let is_released = now >= g.release_time;
+                let is_unlocked = is_released && !g.is_paused;
+                let seconds_until_unlock = if is_unlocked {
+                    0
+                } else if !is_released {
+                    g.release_time - now
+                } else {
+                    // released but paused; no countdown makes sense yet
+                    0
+                };
+                UnlockDelay {
+                    gate_exists: true,
+                    is_unlocked,
+                    release_time: g.release_time,
+                    current_time: now,
+                    seconds_until_unlock,
+                }
+            }
+            None => UnlockDelay {
+                gate_exists: false,
+                is_unlocked: false,
+                release_time: 0,
+                current_time: now,
+                seconds_until_unlock: 0,
             },
         }
     }

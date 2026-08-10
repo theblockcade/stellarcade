@@ -5,7 +5,7 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
-pub use types::{ClaimReadiness, ClaimReadinessReason, MissionRecord, MissionSnapshot, MissionStatus};
+pub use types::{ClaimReadiness, ClaimReadinessReason, LedgerRecordSummary, MissionRecord, MissionSnapshot, MissionStatus, ValidationWindow};
 
 #[contracttype]
 #[derive(Clone)]
@@ -246,6 +246,64 @@ impl MissionLedger {
             threshold: mission.completion_threshold,
         }
     }
+
+    /// Compact numeric-only summary of a single ledger record; no address
+    /// fields, safe for indexers that poll without decoding complex types.
+    pub fn ledger_record_summary(env: Env, mission_id: u64) -> LedgerRecordSummary {
+        match storage::get_mission(&env, mission_id) {
+            Some(m) => LedgerRecordSummary {
+                mission_id,
+                exists: true,
+                paused: m.paused,
+                completion_threshold: m.completion_threshold,
+                completed_count: m.completed_count,
+                reward_amount: m.reward_amount,
+                total_claimed: m.total_claimed,
+                expires_at: m.expires_at,
+            },
+            None => LedgerRecordSummary {
+                mission_id,
+                exists: false,
+                paused: false,
+                completion_threshold: 0,
+                completed_count: 0,
+                reward_amount: 0,
+                total_claimed: 0,
+                expires_at: 0,
+            },
+        }
+    }
+
+    /// Timing information for the validation window of a mission.
+    pub fn validation_window(env: Env, mission_id: u64) -> ValidationWindow {
+        let now = env.ledger().timestamp();
+        let configured = env.storage().instance().has(&DataKey::Admin);
+
+        match storage::get_mission(&env, mission_id) {
+            Some(m) => {
+                let window_open = now < m.expires_at;
+                let seconds_remaining = if window_open { m.expires_at - now } else { 0 };
+                ValidationWindow {
+                    mission_id,
+                    configured,
+                    exists: true,
+                    expires_at: m.expires_at,
+                    now,
+                    seconds_remaining,
+                    window_open,
+                }
+            }
+            None => ValidationWindow {
+                mission_id,
+                configured,
+                exists: false,
+                expires_at: 0,
+                now,
+                seconds_remaining: 0,
+                window_open: false,
+            },
+        }
+    }
 }
 
 fn derive_status(mission: &MissionRecord, now: u64) -> MissionStatus {
@@ -411,5 +469,72 @@ mod test {
         let r = client.reward_claim_ready(&42u64, &player);
         assert_eq!(r.ready, false);
         assert_eq!(r.reason, ClaimReadinessReason::MissionUnknown);
+    }
+
+    #[test]
+    fn ledger_record_summary_reflects_mission_state() {
+        let (env, admin, client) = setup();
+        register(&env, &client, &admin, 1, 2, 5_000);
+
+        let summary = client.ledger_record_summary(&1u64);
+        assert_eq!(summary.exists, true);
+        assert_eq!(summary.paused, false);
+        assert_eq!(summary.completion_threshold, 2);
+        assert_eq!(summary.completed_count, 0);
+        assert_eq!(summary.reward_amount, 500);
+        assert_eq!(summary.total_claimed, 0);
+        assert_eq!(summary.expires_at, 5_000);
+
+        // After a claim the counts update.
+        let player = Address::generate(&env);
+        client.record_progress(&player, &1u64, &2u32);
+        client.claim(&player, &1u64);
+
+        let after = client.ledger_record_summary(&1u64);
+        assert_eq!(after.completed_count, 1);
+        assert_eq!(after.total_claimed, 500);
+    }
+
+    #[test]
+    fn ledger_record_summary_missing_mission() {
+        let (_env, _admin, client) = setup();
+        let summary = client.ledger_record_summary(&999u64);
+        assert_eq!(summary.exists, false);
+        assert_eq!(summary.completion_threshold, 0);
+        assert_eq!(summary.reward_amount, 0);
+    }
+
+    #[test]
+    fn validation_window_open_and_remaining() {
+        let (env, admin, client) = setup();
+        register(&env, &client, &admin, 1, 1, 2_000);
+
+        // Ledger starts at 1_000; expiry is 2_000 → 1_000s remain.
+        let vw = client.validation_window(&1u64);
+        assert_eq!(vw.exists, true);
+        assert_eq!(vw.configured, true);
+        assert!(vw.window_open);
+        assert_eq!(vw.expires_at, 2_000);
+        assert_eq!(vw.seconds_remaining, 1_000);
+    }
+
+    #[test]
+    fn validation_window_closed_after_expiry() {
+        let (env, admin, client) = setup();
+        register(&env, &client, &admin, 1, 1, 2_000);
+
+        env.ledger().set_timestamp(3_000);
+        let vw = client.validation_window(&1u64);
+        assert!(!vw.window_open);
+        assert_eq!(vw.seconds_remaining, 0);
+    }
+
+    #[test]
+    fn validation_window_missing_mission() {
+        let (_env, _admin, client) = setup();
+        let vw = client.validation_window(&999u64);
+        assert_eq!(vw.exists, false);
+        assert!(!vw.window_open);
+        assert_eq!(vw.seconds_remaining, 0);
     }
 }

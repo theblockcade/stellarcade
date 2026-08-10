@@ -35,6 +35,11 @@ impl ArenaReserves {
         }
     }
 
+    /// Title-aligned alias for the pending-claim summary accessor.
+    pub fn get_reserve_allocation_snapshot(env: Env, user: Address) -> PendingClaimSnapshot {
+        Self::get_pending_claim_snapshot(env, user)
+    }
+
     /// Returns the current rollover pressure for the system.
     /// 
     /// # Fallback and Zero-State Behavior
@@ -50,5 +55,10 @@ impl ArenaReserves {
             active_users: 0,
             timestamp: env.ledger().timestamp(),
         }
+    }
+
+    /// Title-aligned alias for the buffer-pressure accessor.
+    pub fn get_buffer_pressure(env: Env) -> RolloverPressure {
+        Self::get_rollover_pressure(env)
     }
 }

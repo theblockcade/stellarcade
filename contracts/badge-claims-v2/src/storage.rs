@@ -6,6 +6,7 @@ pub enum DataKey {
     Config,
     PendingClaim(Address),
     RolloverPressure,
+    ValidationDelay(Address),
 }
 
 pub fn set_config(env: &Env, config: &Config) {
@@ -30,4 +31,12 @@ pub fn set_rollover_pressure(env: &Env, amount: i128) {
 
 pub fn get_rollover_pressure(env: &Env) -> i128 {
     env.storage().instance().get(&DataKey::RolloverPressure).unwrap_or(0)
+}
+
+pub fn set_validation_delay(env: &Env, user: &Address, delay_ledger: u32) {
+    env.storage().persistent().set(&DataKey::ValidationDelay(user.clone()), &delay_ledger);
+}
+
+pub fn get_validation_delay(env: &Env, user: &Address) -> Option<u32> {
+    env.storage().persistent().get(&DataKey::ValidationDelay(user.clone()))
 }

@@ -29,3 +29,10 @@ pub struct ClaimReadiness {
     pub claimable_amount: i128,
     pub blocker: Option<String>,
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RewardTierSummary {
+    pub tier_level: u32,
+    pub reward_multiplier: u32,
+}

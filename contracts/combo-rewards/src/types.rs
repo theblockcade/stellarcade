@@ -49,6 +49,29 @@ pub struct ExpiryRiskAccessor {
 
 #[contracttype]
 #[derive(Clone)]
+pub struct RewardStreakSummary {
+    pub player: Address,
+    pub status: ComboRewardsStatus,
+    pub has_active_streak: bool,
+    pub streak_count: u32,
+    pub combo_multiplier_bps: u32,
+    pub expires_at_ledger: u32,
+    pub ledgers_remaining: u32,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct MultiplierDecayAccessor {
+    pub player: Address,
+    pub status: ComboRewardsStatus,
+    pub has_active_streak: bool,
+    pub combo_multiplier_bps: u32,
+    pub decay_threshold_bps: u32,
+    pub below_threshold: bool,
+}
+
+#[contracttype]
+#[derive(Clone)]
 pub enum DataKey {
     Config,
     Player(Address),

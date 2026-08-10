@@ -92,3 +92,44 @@ pub struct ClaimDelayInfo {
     pub pool_paused: bool,
     pub state: ClaimDelayState,
 }
+
+/// Allocation view for a prize pool returned by `prize_allocation_summary`.
+///
+/// `avg_share_per_member = floor(total_amount / eligible_member_count)`, or
+/// zero when no members are eligible. `fully_distributed` is true when
+/// `eligible_member_count > 0 && claimed_member_count == eligible_member_count`.
+/// Unknown pools return `pool_found = false` with all zeros.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrizeAllocationSummary {
+    pub pool_id: u32,
+    pub configured: bool,
+    pub pool_found: bool,
+    pub total_amount: u128,
+    pub claimed_amount: u128,
+    pub unclaimed_amount: u128,
+    pub eligible_member_count: u32,
+    pub claimed_member_count: u32,
+    pub avg_share_per_member: u128,
+    pub fully_distributed: bool,
+    pub paused: bool,
+}
+
+/// Claim-expiry view for a member returned by `claim_expiry_accessor`.
+///
+/// This contract does not configure a hard expiry on claims; `has_expiry` is
+/// always `false` and `expires_at` is always `0`. The accessor is a stable
+/// surface for future expiry support without a breaking interface change.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClaimExpiryInfo {
+    pub configured: bool,
+    pub member_found: bool,
+    pub pool_id: u32,
+    pub claim_window_opens_at: u64,
+    pub has_expiry: bool,
+    pub expires_at: u64,
+    pub is_expired: bool,
+    pub already_claimed: bool,
+    pub pool_paused: bool,
+}

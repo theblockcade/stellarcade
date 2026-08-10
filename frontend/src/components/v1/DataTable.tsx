@@ -21,6 +21,7 @@ export interface DataTableProps<T> {
   density?: TableDensityPreference;
   className?: string;
   testId?: string;
+  skeletonRowCount?: number;
   onSortChange?: (field: string, direction: SortDirection) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
@@ -32,6 +33,11 @@ function toggleDirection(current: SortDirection): SortDirection {
   return current === 'asc' ? 'desc' : 'asc';
 }
 
+function skeletonWidth(rowIndex: number, columnIndex: number): string {
+  const widths = ['72%', '56%', '64%', '48%', '80%'];
+  return widths[(rowIndex + columnIndex) % widths.length];
+}
+
 export function DataTable<T extends object>({
   columns,
   data,
@@ -41,6 +47,7 @@ export function DataTable<T extends object>({
   density = 'standard',
   className = '',
   testId = 'data-table',
+  skeletonRowCount,
   onSortChange,
   onPageChange,
   onPageSizeChange,
@@ -113,7 +120,52 @@ export function DataTable<T extends object>({
   };
 
   if (isLoading) {
-    return <div className="data-table-loading" data-testid="data-table-loading">Loading table...</div>;
+    const rowCount = Math.max(1, Math.min(skeletonRowCount ?? pageSize, 10));
+
+    return (
+      <div
+        className={[
+          'data-table',
+          'data-table--loading',
+          density === 'compact' ? 'data-table--compact' : '',
+          className,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        aria-busy="true"
+        data-testid="data-table-loading"
+        data-density={density}
+      >
+        <span className="data-table-loading__status" role="status" aria-live="polite">
+          Loading table rows...
+        </span>
+        <table aria-hidden="true">
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th key={String(column.key)} style={column.width ? { width: column.width } : undefined}>
+                  {column.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: rowCount }).map((_, rowIndex) => (
+              <tr key={`skeleton-row-${rowIndex}`} data-testid="data-table-skeleton-row">
+                {columns.map((column, columnIndex) => (
+                  <td key={`${String(column.key)}-skeleton-${rowIndex}`}>
+                    <span
+                      className="data-table-skeleton-cell"
+                      style={{ width: skeletonWidth(rowIndex, columnIndex) }}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   }
 
   if (data.length === 0) {

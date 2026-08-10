@@ -101,3 +101,80 @@ fn test_missing_escrow_returns_empty_state() {
     assert!(!readiness.exists);
     assert_eq!(readiness.blocker, Some(String::from_str(&env, "missing")));
 }
+
+#[test]
+fn active_listing_snapshot_locked_undisputed() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().with_mut(|l| l.timestamp = 100);
+    let (client, _admin, buyer, seller) = setup_client(&env);
+
+    let id = client.create_escrow(&buyer, &seller, &500, &1_000);
+    let snap = client.active_listing_snapshot(&id);
+    assert!(snap.exists);
+    assert!(snap.is_active);
+    assert_eq!(snap.amount, 500);
+    assert_eq!(snap.expiry, 1_000);
+    assert!(!snap.dispute_open);
+}
+
+#[test]
+fn active_listing_snapshot_false_when_disputed() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, buyer, seller) = setup_client(&env);
+
+    let id = client.create_escrow(&buyer, &seller, &500, &1_000);
+    client.raise_dispute(&buyer, &id);
+
+    let snap = client.active_listing_snapshot(&id);
+    assert!(snap.exists);
+    assert!(!snap.is_active);
+    assert!(snap.dispute_open);
+}
+
+#[test]
+fn active_listing_snapshot_missing_escrow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _buyer, _seller) = setup_client(&env);
+
+    let snap = client.active_listing_snapshot(&999);
+    assert!(!snap.exists);
+    assert!(!snap.is_active);
+    assert_eq!(snap.amount, 0);
+}
+
+#[test]
+fn expiry_delay_before_and_after_expiry() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().with_mut(|l| l.timestamp = 100);
+    let (client, _admin, buyer, seller) = setup_client(&env);
+
+    let id = client.create_escrow(&buyer, &seller, &100, &500);
+
+    env.ledger().with_mut(|l| l.timestamp = 300);
+    let before = client.expiry_delay(&id);
+    assert!(before.exists);
+    assert!(!before.expired);
+    assert_eq!(before.expiry, 500);
+    assert_eq!(before.seconds_until_expiry, 200);
+
+    env.ledger().with_mut(|l| l.timestamp = 600);
+    let after = client.expiry_delay(&id);
+    assert!(after.expired);
+    assert_eq!(after.seconds_until_expiry, 0);
+}
+
+#[test]
+fn expiry_delay_missing_escrow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _buyer, _seller) = setup_client(&env);
+
+    let delay = client.expiry_delay(&999);
+    assert!(!delay.exists);
+    assert!(!delay.expired);
+    assert_eq!(delay.seconds_until_expiry, 0);
+}

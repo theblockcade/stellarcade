@@ -40,6 +40,47 @@ pub struct RosterLock {
     pub lock_reason_code: u32,
 }
 
+/// Participation statistics for a clan season.
+///
+/// Returned by `participation_summary`. When the season is unknown,
+/// `exists` is `false` and all numeric fields are zero.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ParticipationSummary {
+    pub season_id: u32,
+    /// `true` when the season_id exists in storage.
+    pub exists: bool,
+    /// Number of clan members locked into this season.
+    pub locked_member_count: u32,
+    /// `true` when the roster was locked at some point during the season.
+    pub was_locked: bool,
+    /// Experience points carried over at season end.
+    pub carryover_xp: u32,
+    /// Rank carried over at season end.
+    pub carryover_rank: u32,
+}
+
+/// Ledger gap between two consecutive clan seasons.
+///
+/// Returned by `transition_gap`. When either season is missing,
+/// `gap_ledgers` is 0 and the corresponding `*_exists` flag is `false`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TransitionGap {
+    pub from_season_id: u32,
+    pub to_season_id: u32,
+    pub from_exists: bool,
+    pub to_exists: bool,
+    /// `season_end_ledger` of the `from` season.
+    pub from_end_ledger: u32,
+    /// `season_end_ledger` of the `to` season used as a proxy for its start
+    /// ledger; 0 when the season is missing.
+    pub to_start_ledger: u32,
+    /// Saturating difference between `from_end_ledger` and `to_start_ledger`;
+    /// 0 when either season is missing or the result would be negative.
+    pub gap_ledgers: u32,
+}
+
 /// Persistent season record written by admin mutations.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]

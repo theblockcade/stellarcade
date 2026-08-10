@@ -105,6 +105,12 @@ export {
 export type { SessionTimeoutModalProps } from "./SessionTimeoutModal";
 
 export {
+  SessionCountdownWidget,
+  default as SessionCountdownWidgetDefault,
+} from "./SessionCountdownWidget";
+export type { SessionCountdownWidgetProps } from "./SessionCountdownWidget";
+
+export {
   SegmentedControl,
   default as SegmentedControlDefault,
 } from "./SegmentedControl";
@@ -498,3 +504,101 @@ export type {
   GuidedActionFooterProps,
   GuidedAction,
 } from "./GuidedActionFooter";
+
+// Issue #942
+export { AccessibleDropdown, default as AccessibleDropdownDefault } from "./AccessibleDropdown";
+export type { AccessibleDropdownProps, DropdownOption } from "./AccessibleDropdown";
+
+// Issue #941
+export { BadgeCarousel, default as BadgeCarouselDefault } from "./BadgeCarousel";
+export type { BadgeCarouselProps, ProfileBadge } from "./BadgeCarousel";
+
+// Issue #936
+export { SettingsPanel, default as SettingsPanelDefault } from "./SettingsPanel";
+export type { SettingsPanelProps } from "./SettingsPanel";
+
+// Issue #935
+export { Tooltip, default as TooltipDefault } from "./Tooltip";
+export type { TooltipProps } from "./Tooltip";
+
+// Issue #944
+export { QueueStatusOverlay, default as QueueStatusOverlayDefault } from "./QueueStatusOverlay";
+export type { QueueStatusOverlayProps } from "./QueueStatusOverlay";
+
+// Issue #943
+export { TextDivider, default as TextDividerDefault } from "./TextDivider";
+export type { TextDividerProps, TextDividerAlignment, TextDividerVariant, TextDividerThickness } from "./TextDivider";
+
+// Issue #930
+export { LeaderboardComparer, default as LeaderboardComparerDefault } from "./LeaderboardComparer";
+export type { LeaderboardComparerProps, Player as LeaderboardPlayer, Metric as LeaderboardMetric } from "./LeaderboardComparer";
+
+// Issue #925
+export { FilterPillStrip, default as FilterPillStripDefault } from "./FilterPillStrip";
+export type { FilterPillStripProps, FilterPillOption } from "./FilterPillStrip";
+
+// Issue #974
+export { DashboardCardContainer, default as DashboardCardContainerDefault } from "./DashboardCardContainer";
+export type { DashboardCardContainerProps } from "./DashboardCardContainer";
+
+// Issue #975
+export { ConfirmationDialog, default as ConfirmationDialogDefault } from "./ConfirmationDialog";
+export type { ConfirmationDialogProps } from "./ConfirmationDialog";
+
+// Issue #976
+export { UserActivityTimeline, default as UserActivityTimelineDefault } from "./UserActivityTimeline";
+export type { UserActivityTimelineProps, UserActivity, ActivityType } from "./UserActivityTimeline";
+
+// Issue #977
+export { CopyableWalletKeyField, default as CopyableWalletKeyFieldDefault } from "./CopyableWalletKeyField";
+export type { CopyableWalletKeyFieldProps } from "./CopyableWalletKeyField";
+
+// Issue #939
+export {
+  RequestErrorStateBlock,
+  default as RequestErrorStateBlockDefault,
+} from "./RequestErrorStateBlock";
+export type {
+  RequestErrorStateBlockProps,
+  RequestErrorSecondaryAction,
+} from "./RequestErrorStateBlock";
+
+// Issues #926, #927, #929, #931
+export {
+  WalletTxHistoryDrawer,
+  default as WalletTxHistoryDrawerDefault,
+} from "./WalletTxHistoryDrawer";
+export type {
+  WalletTxHistoryDrawerProps,
+  WalletTxEntry,
+} from "./WalletTxHistoryDrawer";
+
+export {
+  TxPendingOverlay,
+  default as TxPendingOverlayDefault,
+} from "./TxPendingOverlay";
+export type { TxPendingOverlayProps } from "./TxPendingOverlay";
+
+export {
+  DashboardCardSkeleton,
+  default as DashboardCardSkeletonDefault,
+} from "./DashboardCardSkeleton";
+export type {
+  DashboardCardSkeletonProps,
+  DashboardCardSkeletonVariant,
+} from "./DashboardCardSkeleton";
+
+export {
+  InlineFieldError,
+  default as InlineFieldErrorDefault,
+  useFieldValidation,
+} from "./InlineFieldError";
+export type {
+  InlineFieldErrorProps,
+  FieldValidationState,
+} from "./InlineFieldError";
+
+export { AlertBanner, default as AlertBannerDefault } from "./AlertBanner";
+export type { AlertBannerProps, AlertBannerVariant, AlertBannerAction } from "./AlertBanner";
+
+

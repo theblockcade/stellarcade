@@ -43,3 +43,16 @@ pub struct PayoutDelayInfo {
     /// Whether the payout is immediately releasable.
     pub releasable: bool,
 }
+
+/// Routing paths configuration and status summary.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoutingPathsSummary {
+    pub is_initialized: bool,
+    pub admin: Option<Address>,
+    pub queue_length: u32,
+    pub delay_ledgers: u32,
+    pub pressure_threshold: u32,
+    pub fee_slippage: u32,
+    pub is_paused: bool,
+}

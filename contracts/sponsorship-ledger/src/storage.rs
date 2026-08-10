@@ -1,5 +1,5 @@
-use soroban_sdk::{contracttype, Address, Env};
 use crate::types::{PartnerCommitment, ReleaseSchedule};
+use soroban_sdk::{contracttype, Address, Env};
 
 #[contracttype]
 pub enum DataKey {
@@ -8,11 +8,15 @@ pub enum DataKey {
 }
 
 pub fn get_commitment(env: &Env, partner: Address) -> Option<PartnerCommitment> {
-    env.storage().persistent().get(&DataKey::Commitment(partner))
+    env.storage()
+        .persistent()
+        .get(&DataKey::Commitment(partner))
 }
 
 pub fn set_commitment(env: &Env, partner: Address, commitment: &PartnerCommitment) {
-    env.storage().persistent().set(&DataKey::Commitment(partner), commitment);
+    env.storage()
+        .persistent()
+        .set(&DataKey::Commitment(partner), commitment);
 }
 
 pub fn get_schedule(env: &Env, partner: Address) -> Option<ReleaseSchedule> {
@@ -20,5 +24,7 @@ pub fn get_schedule(env: &Env, partner: Address) -> Option<ReleaseSchedule> {
 }
 
 pub fn set_schedule(env: &Env, partner: Address, schedule: &ReleaseSchedule) {
-    env.storage().persistent().set(&DataKey::Schedule(partner), schedule);
+    env.storage()
+        .persistent()
+        .set(&DataKey::Schedule(partner), schedule);
 }

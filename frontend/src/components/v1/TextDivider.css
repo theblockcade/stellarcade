@@ -1,0 +1,109 @@
+.text-divider {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 1.5rem 0;
+  color: var(--text-muted, #8ea1bf);
+  background: transparent;
+}
+
+.text-divider__line {
+  border-top-color: color-mix(in oklab, var(--glass-border, rgba(255, 255, 255, 0.08)) 80%, transparent);
+}
+
+.text-divider__content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: var(--text-muted, #8ea1bf);
+  flex-shrink: 0;
+}
+
+.text-divider__label {
+  display: inline-block;
+}
+
+.text-divider__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  background: rgba(125, 226, 209, 0.1);
+  color: var(--accent, #7de2d1);
+  border: 1px solid rgba(125, 226, 209, 0.2);
+}
+
+/* Alignments */
+.text-divider--align-center .text-divider__line {
+  flex-grow: 1;
+}
+
+.text-divider--align-left .text-divider__line--left {
+  flex-grow: 0;
+  width: 1.5rem;
+}
+
+.text-divider--align-left .text-divider__line--right {
+  flex-grow: 1;
+}
+
+.text-divider--align-left .text-divider__content {
+  padding-left: 0.5rem;
+}
+
+.text-divider--align-right .text-divider__line--left {
+  flex-grow: 1;
+}
+
+.text-divider--align-right .text-divider__line--right {
+  flex-grow: 0;
+  width: 1.5rem;
+}
+
+.text-divider--align-right .text-divider__content {
+  padding-right: 0.5rem;
+}
+
+/* Variants */
+.text-divider--variant-solid .text-divider__line {
+  border-top-style: solid;
+}
+
+.text-divider--variant-dashed .text-divider__line {
+  border-top-style: dashed;
+}
+
+.text-divider--variant-dotted .text-divider__line {
+  border-top-style: dotted;
+}
+
+/* Thicknesses */
+.text-divider--thickness-thin .text-divider__line {
+  border-top-width: 1px;
+}
+
+.text-divider--thickness-medium .text-divider__line {
+  border-top-width: 2px;
+}
+
+.text-divider--thickness-thick .text-divider__line {
+  border-top-width: 4px;
+}
+
+/* No Content Divider fallback */
+.text-divider--no-content .text-divider__line--left {
+  flex-grow: 1;
+}
+.text-divider--no-content .text-divider__line--right {
+  display: none;
+}

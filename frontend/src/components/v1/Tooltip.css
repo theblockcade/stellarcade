@@ -1,0 +1,96 @@
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-bubble {
+  position: absolute;
+  background: #080c14;
+  border: 1px solid rgba(125, 226, 209, 0.35); /* Neon teal outline */
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  color: var(--text-main, #f5f7fb);
+  font-size: 0.74rem;
+  font-weight: 600;
+  z-index: 9999;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 10px rgba(125, 226, 209, 0.05);
+  animation: t-fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* Placement configurations */
+.tooltip-bubble--top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+}
+.tooltip-bubble--top .tooltip-arrow {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0;
+  border-color: rgba(125, 226, 209, 0.35) transparent transparent;
+}
+
+.tooltip-bubble--bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+}
+.tooltip-bubble--bottom .tooltip-arrow {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px;
+  border-color: transparent transparent rgba(125, 226, 209, 0.35);
+}
+
+.tooltip-bubble--left {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(-8px);
+}
+.tooltip-bubble--left .tooltip-arrow {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 0 5px 5px;
+  border-color: transparent transparent transparent rgba(125, 226, 209, 0.35);
+}
+
+.tooltip-bubble--right {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+}
+.tooltip-bubble--right .tooltip-arrow {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 5px 5px 0;
+  border-color: transparent rgba(125, 226, 209, 0.35) transparent transparent;
+}
+
+@keyframes t-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.95);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip-bubble {
+    animation: none;
+  }
+}

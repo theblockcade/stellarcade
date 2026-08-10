@@ -73,6 +73,25 @@ pub struct NextBonusPreview {
     pub claimable_now: bool,
 }
 
+/// Summary of the bonus multiplier configuration returned by
+/// `bonus_multiplier_summary()`.
+///
+/// Provides a single-call view of the active streak rules so the frontend
+/// can render reward tiers without knowing the internal `StreakRules` layout.
+/// All fields are zero-valued when the contract has not been initialised.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BonusMultiplierSummary {
+    /// `true` after `init` has been called.
+    pub configured: bool,
+    /// Reward tokens granted per completed streak unit.
+    pub reward_per_streak: i128,
+    /// Minimum streak length required to trigger a claim.
+    pub min_streak_to_claim: u32,
+    /// Window in seconds within which consecutive activities count as a streak.
+    pub streak_window_secs: u64,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExpiryPressure {
@@ -405,6 +424,34 @@ impl StreakBonus {
         }
         .publish(&env);
         Ok(())
+    }
+
+    /// Return a summary of the active bonus multiplier configuration.
+    ///
+    /// All fields are zero-valued when the contract has not been initialised
+    /// (i.e. no `StreakRules` are stored yet).
+    pub fn bonus_multiplier_summary(env: Env) -> BonusMultiplierSummary {
+        match read_rules(&env) {
+            None => BonusMultiplierSummary {
+                configured: false,
+                reward_per_streak: 0,
+                min_streak_to_claim: 0,
+                streak_window_secs: 0,
+            },
+            Some(rules) => BonusMultiplierSummary {
+                configured: true,
+                reward_per_streak: rules.reward_per_streak,
+                min_streak_to_claim: rules.min_streak_to_claim,
+                streak_window_secs: rules.streak_window_secs,
+            },
+        }
+    }
+
+    /// Return the streak window duration in seconds (i.e. the decay interval).
+    ///
+    /// Returns 0 when no rules have been configured.
+    pub fn decay_interval(env: Env) -> u64 {
+        read_rules(&env).map(|r| r.streak_window_secs).unwrap_or(0)
     }
 }
 

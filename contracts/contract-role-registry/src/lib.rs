@@ -1,12 +1,21 @@
 #![no_std]
 
+mod storage;
+pub mod types;
+
 use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Symbol, Vec};
+
+pub use types::{AdminView, RoleStatus, RoleTargetCount, TargetRoleCount};
+
+use storage::*;
 
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     Admin,
     Role(Address, Symbol),
+    TargetRoles(Address),
+    RoleTargets(Symbol),
 }
 
 #[contractevent(topics = ["role_assigned"])]
@@ -32,95 +41,109 @@ pub struct ContractRoleRegistry;
 
 #[contractimpl]
 impl ContractRoleRegistry {
-    /// Initializes the contract with an admin.
     pub fn init(env: Env, admin: Address) {
-        if env.storage().instance().has(&DataKey::Admin) {
+        if is_initialized(&env) {
             panic!("Already initialized");
         }
-        env.storage().instance().set(&DataKey::Admin, &admin);
+        set_admin(&env, &admin);
     }
 
-    /// Assigns a role to a given address. Requires admin authorization.
     pub fn assign_role(env: Env, target: Address, role: Symbol) {
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Not initialized");
+        let admin: Address = get_admin(&env).expect("Not initialized");
         admin.require_auth();
 
-        let key = DataKey::Role(target.clone(), role.clone());
-        if !env.storage().persistent().has(&key) {
-            env.storage().persistent().set(&key, &());
+        if !has_role(&env, &target, &role) {
+            set_role(&env, &target, &role);
 
             RoleAssigned { target, role }.publish(&env);
         }
     }
 
-    /// Revokes a role. Requires admin authorization.
     pub fn revoke_role(env: Env, target: Address, role: Symbol) {
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Not initialized");
+        let admin: Address = get_admin(&env).expect("Not initialized");
         admin.require_auth();
 
-        let key = DataKey::Role(target.clone(), role.clone());
-        if env.storage().persistent().has(&key) {
-            env.storage().persistent().remove(&key);
+        if has_role(&env, &target, &role) {
+            remove_role(&env, &target, &role);
 
             RoleRevoked { target, role }.publish(&env);
         }
     }
 
-    /// Public query method verifying if the target has the specific role.
     pub fn has_role(env: Env, target: Address, role: Symbol) -> bool {
-        env.storage().persistent().has(&DataKey::Role(target, role))
+        has_role(&env, &target, &role)
     }
 
-    /// Retrieves the current admin address.
     pub fn get_admin(env: Env) -> Address {
-        env.storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Not initialized")
+        get_admin(&env).expect("Not initialized")
     }
-    /// Assigns multiple roles in bulk. Requires admin authorization.
+
     pub fn bulk_assign_role(env: Env, assignments: Vec<(Address, Symbol)>) {
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Not initialized");
+        let admin: Address = get_admin(&env).expect("Not initialized");
         admin.require_auth();
 
-        for (target, role) in assignments.into_iter() {
-            let key = DataKey::Role(target.clone(), role.clone());
-            if !env.storage().persistent().has(&key) {
-                env.storage().persistent().set(&key, &());
+        for (target, role) in assignments.iter() {
+            if !has_role(&env, &target, &role) {
+                set_role(&env, &target, &role);
                 RoleAssigned { target, role }.publish(&env);
             }
         }
     }
 
-    /// Revokes multiple roles in bulk. Requires admin authorization.
     pub fn bulk_revoke_role(env: Env, revocations: Vec<(Address, Symbol)>) {
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Not initialized");
+        let admin: Address = get_admin(&env).expect("Not initialized");
         admin.require_auth();
 
-        for (target, role) in revocations.into_iter() {
-            let key = DataKey::Role(target.clone(), role.clone());
-            if env.storage().persistent().has(&key) {
-                env.storage().persistent().remove(&key);
+        for (target, role) in revocations.iter() {
+            if has_role(&env, &target, &role) {
+                remove_role(&env, &target, &role);
                 RoleRevoked { target, role }.publish(&env);
             }
         }
     }
+
+    pub fn is_initialized(env: Env) -> bool {
+        is_initialized(&env)
+    }
+
+    pub fn admin_view(env: Env) -> AdminView {
+        if is_initialized(&env) {
+            AdminView {
+                initialized: true,
+                admin: Some(get_admin(&env).expect("Not initialized")),
+            }
+        } else {
+            AdminView {
+                initialized: false,
+                admin: None,
+            }
+        }
+    }
+
+    pub fn role_status(env: Env, target: Address, role: Symbol) -> RoleStatus {
+        RoleStatus {
+            assigned: has_role(&env, &target, &role),
+            target,
+            role,
+        }
+    }
+
+    pub fn get_roles_of(env: Env, target: Address) -> Vec<Symbol> {
+        get_roles_of(&env, &target)
+    }
+
+    pub fn list_targets_with_role(env: Env, role: Symbol) -> Vec<Address> {
+        get_targets_with_role(&env, &role)
+    }
+
+    pub fn target_role_count(env: Env, target: Address) -> u32 {
+        get_roles_of(&env, &target).len()
+    }
+
+    pub fn role_target_count(env: Env, role: Symbol) -> u32 {
+        get_targets_with_role(&env, &role).len()
+    }
 }
+
 #[cfg(test)]
 mod test;

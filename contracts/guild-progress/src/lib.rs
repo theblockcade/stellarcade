@@ -17,7 +17,7 @@ use soroban_sdk::{contract, contractevent, contractimpl, Address, Env, Vec};
 mod types;
 mod storage;
 
-use types::{DataKey, Milestone, MilestoneStatus, MilestoneCoverageSnapshot, NextMilestoneTarget};
+use types::{DataKey, Milestone, MilestoneStatus, MilestoneCoverageSnapshot, NextMilestoneTarget, UpdateDelay};
 use storage::{
     compute_milestone_coverage_snapshot, get_guild_milestone_ids, get_guild_progress,
     get_milestone, get_next_milestone_id, get_next_milestone_target, set_guild_milestone_ids,
@@ -192,6 +192,35 @@ impl GuildProgress {
     /// Returns zero/completion state if all milestones done.
     pub fn get_next_milestone_target(env: Env, guild_id: Address) -> NextMilestoneTarget {
         get_next_milestone_target(&env, &guild_id)
+    }
+
+    /// Concise alias for `get_milestone_coverage_snapshot`.
+    /// Returns the current milestone-coverage snapshot for the guild.
+    pub fn progress_milestone_snapshot(
+        env: Env,
+        guild_id: Address,
+    ) -> MilestoneCoverageSnapshot {
+        compute_milestone_coverage_snapshot(&env, &guild_id)
+    }
+
+    /// Returns the gap between the guild's current progress and its next
+    /// uncompleted milestone target. When all milestones are completed
+    /// `progress_gap` is 0 and `all_milestones_completed` is `true`.
+    pub fn update_delay(env: Env, guild_id: Address) -> UpdateDelay {
+        let next = get_next_milestone_target(&env, &guild_id);
+        let progress_gap = if next.all_milestones_completed {
+            0
+        } else {
+            next.progress_remaining
+        };
+        UpdateDelay {
+            guild_id,
+            next_milestone_id: next.next_milestone_id,
+            target_progress: next.target_progress,
+            current_progress: next.current_progress,
+            progress_gap,
+            all_milestones_completed: next.all_milestones_completed,
+        }
     }
 
     /// List all milestone IDs for a guild (paginated).

@@ -19,3 +19,13 @@ pub struct ResolutionReadiness {
     pub is_open: bool,
     pub is_ready_to_resolve: bool,
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DuelStateSummary {
+    pub open_count: u32,
+    pub oldest_open_duel_id: u64,
+    pub newest_open_duel_id: u64,
+    pub paused: bool,
+    pub challenge_timeout: u64,
+}

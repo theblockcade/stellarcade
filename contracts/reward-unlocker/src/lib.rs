@@ -230,6 +230,20 @@ impl RewardUnlocker {
 
         result
     }
+
+    /// Returns an unlock schedules snapshot.
+    pub fn get_unlock_schedules_snapshot(env: Env, recipient: Address) -> UnlockQueueSummary {
+        compute_unlock_queue_summary(&env, &recipient)
+    }
+
+    /// Returns the release delay for a specific queue entry.
+    pub fn get_release_delay(env: Env, recipient: Address, queue_id: u32) -> u32 {
+        if let Some(queued_reward) = get_queued_reward(&env, &recipient, queue_id) {
+            queued_reward.cooldown_ledgers
+        } else {
+            0
+        }
+    }
 }
 
 // ──────────────────────────────────────────────────────────────

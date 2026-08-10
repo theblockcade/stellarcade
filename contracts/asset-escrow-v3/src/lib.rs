@@ -17,11 +17,11 @@ use soroban_sdk::{contract, contractevent, contractimpl, Address, Env, Vec};
 mod types;
 mod storage;
 
-use types::{BalanceLockSummary, DataKey, LockStatus, LockedAsset, UnlockReadinessInfo};
+use types::{BalanceLockSummary, DataKey, LockStatus, LockedAsset, ReleaseCooldownAccessor, UnlockReadinessInfo};
 use storage::{
     compute_balance_lock_summary, get_beneficiary_lock_ids, get_beneficiary_total_locked,
-    get_lock, get_unlock_readiness, set_beneficiary_lock_ids, set_beneficiary_total_locked,
-    set_lock,
+    get_lock, get_release_cooldown, get_unlock_readiness, set_beneficiary_lock_ids,
+    set_beneficiary_total_locked, set_lock,
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -202,6 +202,16 @@ impl AssetEscrowV3 {
         lock_id: u32,
     ) -> UnlockReadinessInfo {
         get_unlock_readiness(&env, &beneficiary, lock_id)
+    }
+
+    /// Get release cooldown for a specific lock.
+    /// Handles missing lock by treating as releasable.
+    pub fn get_release_cooldown(
+        env: Env,
+        beneficiary: Address,
+        lock_id: u32,
+    ) -> ReleaseCooldownAccessor {
+        get_release_cooldown(&env, &beneficiary, lock_id)
     }
 
     /// List all lock IDs for a beneficiary (paginated).

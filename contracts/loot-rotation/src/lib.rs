@@ -5,7 +5,7 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
-pub use types::{ActivePoolSnapshot, LootPool, RolloverDelay};
+pub use types::{ActivePoolSnapshot, LootPool, RotationQueueSummary, RolloverDelay, TransitionGap};
 
 #[contract]
 pub struct LootRotation;
@@ -85,6 +85,47 @@ impl LootRotation {
                 now,
                 seconds_until_rollover: 0,
             },
+        }
+    }
+
+    /// Returns a rotation queue summary combining pool state and rollover timing.
+    ///
+    /// Zero-state: `has_active_pool = false` and zeroed numeric fields when no
+    /// pool has been configured. `rollover_due = true` once `ends_at` is reached.
+    pub fn rotation_queue_summary(env: Env) -> RotationQueueSummary {
+        let snapshot = Self::active_pool_snapshot(env);
+        let rollover_due = snapshot.has_active_pool && snapshot.seconds_until_rollover == 0;
+        RotationQueueSummary {
+            configured: snapshot.configured,
+            paused: snapshot.paused,
+            has_active_pool: snapshot.has_active_pool,
+            pool_id: snapshot.pool_id,
+            item_count: snapshot.item_count,
+            reward_weight: snapshot.reward_weight,
+            starts_at: snapshot.starts_at,
+            ends_at: snapshot.ends_at,
+            now: snapshot.now,
+            seconds_until_rollover: snapshot.seconds_until_rollover,
+            rollover_due,
+        }
+    }
+
+    /// Returns transition timing for the active pool in a compact shape.
+    ///
+    /// `transition_due = true` once `ends_at` is reached or passed.
+    /// Missing pools return `has_active_pool = false` and zeroed timing fields.
+    pub fn transition_gap(env: Env) -> TransitionGap {
+        let snapshot = Self::active_pool_snapshot(env);
+        let transition_due = snapshot.has_active_pool && snapshot.seconds_until_rollover == 0;
+        TransitionGap {
+            configured: snapshot.configured,
+            paused: snapshot.paused,
+            has_active_pool: snapshot.has_active_pool,
+            transition_due,
+            pool_id: snapshot.pool_id,
+            ends_at: snapshot.ends_at,
+            now: snapshot.now,
+            seconds_until_transition: snapshot.seconds_until_rollover,
         }
     }
 

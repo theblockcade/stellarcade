@@ -94,3 +94,42 @@ pub struct PlayerBucketSummary {
     pub demotion_window_secs: u64,
     pub bucket_player_count: u32,
 }
+
+/// Snapshot of a player's ladder standing within their assigned bucket.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LadderStandingsSnapshot {
+    pub configured: bool,
+    pub player_found: bool,
+    pub bucket_found: bool,
+    pub state: PlayerBucketState,
+    pub bucket_id: u32,
+    pub current_streak: u32,
+    pub min_streak: u32,
+    pub max_streak: u32,
+    /// How far the player is above the bucket minimum (0 if at or below).
+    pub streak_margin: u32,
+    /// Percentage of the bucket range the player has covered (0–100).
+    pub bucket_progress_pct: u32,
+    pub bucket_player_count: u32,
+}
+
+/// Checkpoint delay info for a player, showing time until the next
+/// demotion checkpoint triggers.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CheckpointDelay {
+    pub configured: bool,
+    pub player_found: bool,
+    pub bucket_found: bool,
+    pub bucket_id: u32,
+    pub last_extended_at: u64,
+    pub demotion_window_secs: u64,
+    /// Timestamp at which the next checkpoint fires.
+    pub checkpoint_at: u64,
+    /// Seconds remaining until checkpoint (0 when overdue or missing).
+    pub delay_remaining: u64,
+    /// True when the checkpoint has already passed.
+    pub is_overdue: bool,
+    pub bucket_paused: bool,
+}

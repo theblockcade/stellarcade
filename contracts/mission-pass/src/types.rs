@@ -48,3 +48,15 @@ pub struct PassRecord {
     pub completed_missions: u32,
     pub next_unlock_threshold: u32,
 }
+
+/// Pass tier and expiration snapshot.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PassTierSnapshot {
+    pub pass_id: u32,
+    pub exists: bool,
+    pub total_missions: u32,
+    pub next_unlock_threshold: u32,
+    pub season_expiry: u64,
+    pub is_expired: bool,
+}

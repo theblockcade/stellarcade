@@ -53,6 +53,30 @@ pub struct CallSnapshot {
 }
 
 // ---------------------------------------------------------------------------
+// Accessor types
+// ---------------------------------------------------------------------------
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HandlerStatusSnapshot {
+    pub configured: bool,
+    pub route_count: u32,
+    pub has_registry: bool,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RouteTimeoutAccessor {
+    pub route_id: u32,
+    pub exists: bool,
+    pub timeout_ledgers: u32,
+    pub dispatched_at: u32,
+    pub deadline_ledger: u32,
+    pub timed_out: bool,
+    pub current_ledger: u32,
+}
+
+// ---------------------------------------------------------------------------
 // Errors
 // ---------------------------------------------------------------------------
 
@@ -281,6 +305,48 @@ impl CrossContractHandler {
             route_id,
             status,
         })
+    }
+
+    /// Return a snapshot of the handler's configuration state: whether it has been
+    /// initialized, how many routes are registered, and whether a registry contract
+    /// is set. This is a read-only accessor and does not mutate storage.
+    pub fn handler_status_snapshot(env: Env) -> HandlerStatusSnapshot {
+        let configured = env.storage().instance().has(&DataKey::Admin);
+        let route_count: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::NextRouteId)
+            .unwrap_or(0);
+        let has_registry = env.storage().instance().has(&DataKey::RegistryContract);
+        HandlerStatusSnapshot {
+            configured,
+            route_count,
+            has_registry,
+        }
+    }
+
+    /// Compute timeout metadata for a route given caller-supplied dispatch ledger and
+    /// timeout window. Returns whether the route exists and whether it has timed out.
+    /// This is a read-only accessor and does not mutate storage.
+    pub fn route_timeout_accessor(
+        env: Env,
+        route_id: u32,
+        dispatched_at: u32,
+        timeout_ledgers: u32,
+    ) -> RouteTimeoutAccessor {
+        let current_ledger = env.ledger().sequence();
+        let exists = env.storage().instance().has(&DataKey::Route(route_id));
+        let deadline_ledger = dispatched_at.saturating_add(timeout_ledgers);
+        let timed_out = exists && current_ledger > deadline_ledger;
+        RouteTimeoutAccessor {
+            route_id,
+            exists,
+            timeout_ledgers,
+            dispatched_at,
+            deadline_ledger,
+            timed_out,
+            current_ledger,
+        }
     }
 
     /// Mark a pending request as failed. Caller must be admin or target_contract for that request's route.

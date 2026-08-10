@@ -113,3 +113,123 @@ fn duplicate_completion_panics() {
     client.record_completion(&admin, &user, &5, &1);
     client.record_completion(&admin, &user, &5, &2);
 }
+
+// ── quest_progress_snapshot ──────────────────────────────────────────────────
+
+#[test]
+fn quest_progress_snapshot_completed_and_unpaid() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin, user) = setup(&env);
+
+    client.upsert_quest(&admin, &10, &750u128, &false);
+    client.record_completion(&admin, &user, &10, &5_000);
+
+    let snapshot = client.quest_progress_snapshot(&10, &user);
+    assert!(snapshot.quest_exists);
+    assert!(snapshot.completion_exists);
+    assert_eq!(snapshot.state, QuestState::Active);
+    assert_eq!(snapshot.payout_per_completion, 750u128);
+    assert_eq!(snapshot.completed_at, 5_000);
+    assert!(!snapshot.is_paid);
+}
+
+#[test]
+fn quest_progress_snapshot_paid() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin, user) = setup(&env);
+
+    client.upsert_quest(&admin, &11, &200u128, &false);
+    client.record_completion(&admin, &user, &11, &100);
+    client.mark_paid(&admin, &user, &11);
+
+    let snapshot = client.quest_progress_snapshot(&11, &user);
+    assert!(snapshot.is_paid);
+}
+
+#[test]
+fn quest_progress_snapshot_missing_quest() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, user) = setup(&env);
+
+    let snapshot = client.quest_progress_snapshot(&999, &user);
+    assert!(!snapshot.quest_exists);
+    assert!(!snapshot.completion_exists);
+    assert_eq!(snapshot.state, QuestState::Missing);
+    assert_eq!(snapshot.payout_per_completion, 0u128);
+}
+
+#[test]
+fn quest_progress_snapshot_no_completion() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin, _user) = setup(&env);
+
+    client.upsert_quest(&admin, &12, &100u128, &false);
+    let other = Address::generate(&env);
+
+    let snapshot = client.quest_progress_snapshot(&12, &other);
+    assert!(snapshot.quest_exists);
+    assert!(!snapshot.completion_exists);
+    assert_eq!(snapshot.completed_at, 0);
+}
+
+// ── reward_decay ─────────────────────────────────────────────────────────────
+
+#[test]
+fn reward_decay_shows_paid_ratio() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin, _user) = setup(&env);
+
+    client.upsert_quest(&admin, &20, &100u128, &false);
+    let u1 = Address::generate(&env);
+    let u2 = Address::generate(&env);
+    let u3 = Address::generate(&env);
+    let u4 = Address::generate(&env);
+    client.record_completion(&admin, &u1, &20, &1);
+    client.record_completion(&admin, &u2, &20, &2);
+    client.record_completion(&admin, &u3, &20, &3);
+    client.record_completion(&admin, &u4, &20, &4);
+
+    client.mark_paid(&admin, &u1, &20);
+    client.mark_paid(&admin, &u2, &20);
+
+    let decay = client.reward_decay(&20);
+    assert!(decay.exists);
+    assert_eq!(decay.total_payout_paid, 200u128);
+    assert_eq!(decay.total_payout_owed, 200u128);
+    assert_eq!(decay.decay_pct, 50);
+    assert_eq!(decay.pending_completion_count, 2);
+    assert_eq!(decay.paid_completion_count, 2);
+}
+
+#[test]
+fn reward_decay_missing_quest() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _user) = setup(&env);
+
+    let decay = client.reward_decay(&999);
+    assert!(!decay.exists);
+    assert_eq!(decay.state, QuestState::Missing);
+    assert_eq!(decay.decay_pct, 0);
+    assert_eq!(decay.total_payout_owed, 0u128);
+}
+
+#[test]
+fn reward_decay_no_completions_yet() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin, _user) = setup(&env);
+
+    client.upsert_quest(&admin, &21, &50u128, &false);
+
+    let decay = client.reward_decay(&21);
+    assert!(decay.exists);
+    assert_eq!(decay.decay_pct, 0);
+    assert_eq!(decay.pending_completion_count, 0);
+    assert_eq!(decay.paid_completion_count, 0);
+}

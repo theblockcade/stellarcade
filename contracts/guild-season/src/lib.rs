@@ -7,7 +7,7 @@ mod types;
 #[cfg(test)]
 mod test;
 
-pub use types::{ActiveSeasonSnapshot, SeasonData};
+pub use types::{ActiveSeasonSnapshot, SeasonData, SeasonPerformanceSummary, TierCutoffAccessor};
 
 #[contract]
 pub struct GuildSeason;
@@ -84,5 +84,75 @@ impl GuildSeason {
             .filter(|s| s.season_id == season_id)
             .map(|s| s.reward_threshold)
             .unwrap_or(0)
+    }
+
+    /// Return a performance summary for the active season including whether
+    /// the season is currently active (within its time window) and how many
+    /// seconds remain until it ends.
+    pub fn season_performance_summary(env: Env) -> SeasonPerformanceSummary {
+        let now = env.ledger().timestamp();
+        if let Some(season) = storage::get_active_season(&env) {
+            let is_active = season.starts_at <= now && now <= season.ends_at;
+            let seconds_remaining = if is_active {
+                season.ends_at.saturating_sub(now)
+            } else {
+                0
+            };
+            SeasonPerformanceSummary {
+                has_active_season: true,
+                is_paused: storage::is_paused(&env),
+                season_id: season.season_id,
+                guild_count: season.guild_count,
+                reward_threshold: season.reward_threshold,
+                starts_at: season.starts_at,
+                ends_at: season.ends_at,
+                now,
+                is_active,
+                seconds_remaining,
+            }
+        } else {
+            SeasonPerformanceSummary {
+                has_active_season: false,
+                is_paused: storage::is_paused(&env),
+                season_id: 0,
+                guild_count: 0,
+                reward_threshold: 0,
+                starts_at: 0,
+                ends_at: 0,
+                now,
+                is_active: false,
+                seconds_remaining: 0,
+            }
+        }
+    }
+
+    /// Return the tier cutoff in basis points: reward_threshold * 10_000 /
+    /// guild_count. Returns 0 when there is no active season or guild_count is 0.
+    pub fn tier_cutoff_accessor(env: Env) -> TierCutoffAccessor {
+        if let Some(season) = storage::get_active_season(&env) {
+            let tier_cutoff_bps = if season.guild_count > 0 {
+                u32::try_from(
+                    (season.reward_threshold as u128 * 10_000) / season.guild_count as u128,
+                )
+                .unwrap_or(0)
+            } else {
+                0
+            };
+            TierCutoffAccessor {
+                has_active_season: true,
+                season_id: season.season_id,
+                reward_threshold: season.reward_threshold,
+                tier_cutoff_bps,
+                guild_count: season.guild_count,
+            }
+        } else {
+            TierCutoffAccessor {
+                has_active_season: false,
+                season_id: 0,
+                reward_threshold: 0,
+                tier_cutoff_bps: 0,
+                guild_count: 0,
+            }
+        }
     }
 }

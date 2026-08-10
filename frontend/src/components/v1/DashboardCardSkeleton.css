@@ -1,0 +1,60 @@
+.dashboard-card-skeleton-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-card-skeleton-grid--metric {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.dashboard-card-skeleton-grid--list {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.dashboard-card-skeleton-grid--chart {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.dashboard-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+.dashboard-card-skeleton--metric {
+  min-height: 100px;
+}
+
+.dashboard-card-skeleton--list {
+  min-height: 120px;
+}
+
+.dashboard-card-skeleton--chart {
+  min-height: 160px;
+}
+
+.dashboard-card-skeleton__title {
+  /* inherit skeleton base styles */
+}
+
+.dashboard-card-skeleton__number {
+  /* large number placeholder */
+}
+
+.dashboard-card-skeleton__subtitle {
+  /* small subtitle placeholder */
+}
+
+.dashboard-card-skeleton__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dashboard-card-skeleton__chart-area {
+  flex: 1;
+}

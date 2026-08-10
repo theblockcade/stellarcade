@@ -6,7 +6,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String};
 
 pub use types::{
-    EscrowLifecycleState, EscrowRecord, EscrowStatusSnapshot, EscrowViewState, ReleaseReadiness,
+    ActiveListingSnapshot, EscrowLifecycleState, EscrowRecord, EscrowStatusSnapshot,
+    EscrowViewState, ExpiryDelay, ReleaseReadiness,
 };
 
 #[contracttype]
@@ -161,6 +162,63 @@ impl EscrowMarketplace {
                 expires_at: None,
                 dispute_open: false,
             }
+        }
+    }
+
+    /// Compact active-listing check: confirms the escrow is Locked and
+    /// undisputed without returning full address fields.
+    pub fn active_listing_snapshot(env: Env, escrow_id: u64) -> ActiveListingSnapshot {
+        let now = env.ledger().timestamp();
+        match storage::get_escrow(&env, escrow_id) {
+            Some(r) => {
+                let is_active =
+                    matches!(r.status, EscrowLifecycleState::Locked) && !r.dispute_open;
+                ActiveListingSnapshot {
+                    escrow_id,
+                    exists: true,
+                    is_active,
+                    amount: r.amount,
+                    expiry: r.expiry,
+                    dispute_open: r.dispute_open,
+                    now,
+                }
+            }
+            None => ActiveListingSnapshot {
+                escrow_id,
+                exists: false,
+                is_active: false,
+                amount: 0,
+                expiry: 0,
+                dispute_open: false,
+                now,
+            },
+        }
+    }
+
+    /// Seconds remaining before the escrow expires and the buyer may release.
+    pub fn expiry_delay(env: Env, escrow_id: u64) -> ExpiryDelay {
+        let now = env.ledger().timestamp();
+        match storage::get_escrow(&env, escrow_id) {
+            Some(r) => {
+                let expired = now >= r.expiry;
+                let seconds_until_expiry = if expired { 0 } else { r.expiry - now };
+                ExpiryDelay {
+                    escrow_id,
+                    exists: true,
+                    expiry: r.expiry,
+                    now,
+                    seconds_until_expiry,
+                    expired,
+                }
+            }
+            None => ExpiryDelay {
+                escrow_id,
+                exists: false,
+                expiry: 0,
+                now,
+                seconds_until_expiry: 0,
+                expired: false,
+            },
         }
     }
 }

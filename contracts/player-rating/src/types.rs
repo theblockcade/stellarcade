@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Vec};
+use soroban_sdk::{contracttype, Address, Vec, Symbol};
 
 /// Summary of player rating volatility.
 #[contracttype]
@@ -28,4 +28,14 @@ pub struct RecentAdjustmentSnapshot {
     pub adjustment_count: u32,
     /// List of recent game IDs affecting rating.
     pub recent_games: Vec<Symbol>,
+}
+
+/// Snapshot of player rating distribution.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RatingDistributionSnapshot {
+    pub total_players: u32,
+    pub under_1000: u32,
+    pub rating_1000_to_1999: u32,
+    pub rating_2000_and_above: u32,
 }

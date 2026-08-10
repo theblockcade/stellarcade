@@ -89,3 +89,39 @@ fn test_overloaded_flag() {
     let summary = client.route_pressure_summary();
     assert!(summary.overloaded);
 }
+
+// ---------------------------------------------------------------------------
+// fee_slippage and routing_paths_summary tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_fee_slippage_getter_setter() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin) = setup(&env);
+
+    assert_eq!(client.fee_slippage(), 0);
+
+    client.set_fee_slippage(&admin, &250);
+    assert_eq!(client.fee_slippage(), 250);
+}
+
+#[test]
+fn test_routing_paths_summary() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin) = setup(&env);
+
+    let summary = client.routing_paths_summary();
+    assert!(summary.is_initialized);
+    assert_eq!(summary.admin, Some(admin.clone()));
+    assert_eq!(summary.queue_length, 0);
+    assert_eq!(summary.fee_slippage, 0);
+    assert!(!summary.is_paused);
+
+    client.set_fee_slippage(&admin, &150);
+    client.set_paused(&admin, &true);
+    let summary_updated = client.routing_paths_summary();
+    assert_eq!(summary_updated.fee_slippage, 150);
+    assert!(summary_updated.is_paused);
+}

@@ -1,0 +1,231 @@
+.queue-status-overlay-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(8, 12, 21, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: q-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.queue-status-overlay-card {
+  background: linear-gradient(135deg, rgba(20, 28, 45, 0.75) 0%, rgba(10, 14, 23, 0.95) 100%);
+  border: 1px solid rgba(125, 226, 209, 0.15); /* Accent tint border */
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 40px rgba(125, 226, 209, 0.05);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  animation: q-scale-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Matchmaking Pulse/Radar Animation */
+.queue-status-overlay__animation {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.queue-status-overlay__ping,
+.queue-status-overlay__ping-inner {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(125, 226, 209, 0.15);
+  animation: q-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.queue-status-overlay__ping-inner {
+  animation-delay: 0.6s;
+  background: rgba(125, 226, 209, 0.08);
+}
+
+.queue-status-overlay__spinner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid rgba(125, 226, 209, 0.1);
+  border-top-color: #7de2d1; /* Accent primary */
+  border-right-color: #7de2d1;
+  animation: q-rotate 1.2s linear infinite;
+  z-index: 2;
+  box-shadow: 0 0 15px rgba(125, 226, 209, 0.2);
+}
+
+/* Typography & Info styles */
+.queue-status-overlay__title {
+  font-family: var(--font-display, inherit);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main, #f5f7fb);
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0.03em;
+}
+
+.queue-status-overlay__status {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--accent, #7de2d1);
+  margin: 0 0 1.5rem 0;
+  letter-spacing: 0.01em;
+  opacity: 0.9;
+}
+
+.queue-status-overlay__timer {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--text-main, #f5f7fb);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  text-shadow: 0 0 20px rgba(245, 247, 251, 0.1);
+}
+
+.queue-status-overlay__est-wait {
+  font-size: 0.85rem;
+  color: var(--text-muted, #8ea1bf);
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+.queue-status-overlay__time-value {
+  color: var(--text-main, #f5f7fb);
+  font-weight: 600;
+}
+
+/* Progress bar styles */
+.queue-status-overlay__progress-container {
+  width: 100%;
+  margin-bottom: 2.5rem;
+  text-align: left;
+}
+
+.queue-status-overlay__progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted, #8ea1bf);
+  margin-bottom: 0.5rem;
+}
+
+.queue-status-overlay__progress-count {
+  color: var(--accent, #7de2d1);
+}
+
+.queue-status-overlay__progress-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.queue-status-overlay__progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #34c37b, #7de2d1);
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px rgba(125, 226, 209, 0.4);
+}
+
+/* Cancel Button */
+.queue-status-overlay__cancel-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted, #8ea1bf);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.85rem 2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.queue-status-overlay__cancel-btn:hover {
+  background: rgba(166, 61, 78, 0.15); /* Soft red overlay */
+  border-color: rgba(255, 109, 135, 0.4);
+  color: #ffabc1;
+  box-shadow: 0 0 15px rgba(255, 109, 135, 0.1);
+}
+
+.queue-status-overlay__cancel-btn:focus-visible {
+  outline: 2px solid #ff6d87;
+  outline-offset: 2px;
+}
+
+.queue-status-overlay__cancel-btn:active {
+  transform: scale(0.98);
+}
+
+/* Keyframe animations */
+@keyframes q-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes q-scale-up {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes q-ping {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes q-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-status-overlay-backdrop,
+  .queue-status-overlay-card,
+  .queue-status-overlay__progress-bar-fill {
+    animation: none;
+    transition: none;
+  }
+  .queue-status-overlay__ping,
+  .queue-status-overlay__ping-inner,
+  .queue-status-overlay__spinner {
+    animation: none;
+  }
+  .queue-status-overlay__spinner {
+    border-top-color: #7de2d1;
+    border-right-color: #7de2d1;
+    border-bottom-color: #7de2d1;
+    border-left-color: #7de2d1;
+  }
+}

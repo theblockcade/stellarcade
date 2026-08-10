@@ -7,7 +7,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    ClaimSaturation, DropConfigInput, DropRecord, DropWindowSnapshot, DropWindowState,
+    ClaimSaturation, DropAllocationSnapshot, DropClaimWindowAccessor, DropConfigInput,
+    DropRecord, DropWindowSnapshot, DropWindowState,
 };
 
 #[contracttype]
@@ -144,6 +145,123 @@ impl CreatorDrops {
             claimed_supply: drop.claimed_supply,
             remaining_supply,
             claim_count: drop.claim_count,
+            can_claim: state == DropWindowState::Open,
+        }
+    }
+
+    /// Return the supply allocation split for `drop_id`.
+    ///
+    /// Both `claimed_bps` and `remaining_bps` use floor division in basis
+    /// points. A missing or unconfigured drop returns zeroed fields with
+    /// `exists: false`.
+    pub fn drop_allocation_snapshot(env: Env, drop_id: u64) -> DropAllocationSnapshot {
+        let configured = is_configured(&env);
+        let Some(drop) = storage::get_drop(&env, drop_id) else {
+            return DropAllocationSnapshot {
+                drop_id,
+                configured,
+                exists: false,
+                total_supply: 0,
+                claimed_supply: 0,
+                remaining_supply: 0,
+                claimed_bps: 0,
+                remaining_bps: 0,
+                is_fully_allocated: false,
+            };
+        };
+
+        let remaining_supply = drop
+            .total_supply
+            .checked_sub(drop.claimed_supply)
+            .expect("Drop supply invariant violated");
+
+        let (claimed_bps, remaining_bps) = if drop.total_supply == 0 {
+            (0u32, 0u32)
+        } else {
+            let c = u32::try_from(
+                (u64::from(drop.claimed_supply) * 10_000) / u64::from(drop.total_supply),
+            )
+            .expect("bps overflow");
+            let r = u32::try_from(
+                (u64::from(remaining_supply) * 10_000) / u64::from(drop.total_supply),
+            )
+            .expect("bps overflow");
+            (c, r)
+        };
+
+        DropAllocationSnapshot {
+            drop_id,
+            configured,
+            exists: true,
+            total_supply: drop.total_supply,
+            claimed_supply: drop.claimed_supply,
+            remaining_supply,
+            claimed_bps,
+            remaining_bps,
+            is_fully_allocated: remaining_supply == 0,
+        }
+    }
+
+    /// Return claim-window details for `drop_id`.
+    ///
+    /// The caller supplies `claim_window_secs` — the number of seconds after
+    /// `ends_at` within which a late claim may still be processed off-chain.
+    /// The contract does not store this threshold.
+    pub fn claim_window_accessor(
+        env: Env,
+        drop_id: u64,
+        claim_window_secs: u64,
+    ) -> DropClaimWindowAccessor {
+        let configured = is_configured(&env);
+        let now = env.ledger().timestamp();
+
+        let Some(drop) = storage::get_drop(&env, drop_id) else {
+            return DropClaimWindowAccessor {
+                drop_id,
+                configured,
+                exists: false,
+                state: if configured {
+                    DropWindowState::Missing
+                } else {
+                    DropWindowState::NotConfigured
+                },
+                starts_at: 0,
+                ends_at: 0,
+                now,
+                claim_window_secs,
+                claim_window_end: 0,
+                in_claim_window: false,
+                secs_until_window_end: 0,
+                can_claim: false,
+            };
+        };
+
+        let state = read_drop_state(now, &drop);
+        let claim_window_end = drop.ends_at.saturating_add(claim_window_secs);
+
+        // In claim window = drop has closed (state Closed or SoldOut or past ends_at)
+        // and we haven't exceeded claim_window_end yet.
+        let in_claim_window =
+            now > drop.ends_at && now <= claim_window_end && !drop.paused;
+
+        let secs_until_window_end = if now <= claim_window_end {
+            claim_window_end - now
+        } else {
+            0
+        };
+
+        DropClaimWindowAccessor {
+            drop_id,
+            configured,
+            exists: true,
+            state,
+            starts_at: drop.starts_at,
+            ends_at: drop.ends_at,
+            now,
+            claim_window_secs,
+            claim_window_end,
+            in_claim_window,
+            secs_until_window_end,
             can_claim: state == DropWindowState::Open,
         }
     }

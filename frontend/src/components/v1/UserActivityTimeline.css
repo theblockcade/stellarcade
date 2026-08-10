@@ -1,0 +1,128 @@
+.user-activity-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.user-activity-timeline__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(125, 226, 209, 0.1);
+}
+
+.user-activity-timeline__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main, #f5f7fb);
+}
+
+.user-activity-timeline__status {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #8b92a0);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-activity-timeline__status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: rgba(125, 226, 209, 0.6);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.user-activity-timeline__container {
+  padding: 1rem 0;
+  border-left: 2px solid rgba(125, 226, 209, 0.15);
+  padding-left: 1.5rem;
+  min-height: 100px;
+}
+
+.user-activity-timeline__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  background: rgba(15, 20, 25, 0.3);
+  border-radius: 8px;
+  border: 1px dashed rgba(125, 226, 209, 0.15);
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.user-activity-timeline__empty-text {
+  margin: 0;
+  color: var(--text-secondary, #8b92a0);
+  font-size: 0.95rem;
+}
+
+.user-activity-timeline__footer {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(125, 226, 209, 0.1);
+}
+
+.user-activity-timeline__more-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #8b92a0);
+  font-style: italic;
+}
+
+.user-activity-timeline__actions {
+  display: none;
+}
+
+.user-activity-timeline__activity-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Screen reader only text utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .user-activity-timeline__container {
+    padding-left: 1rem;
+  }
+
+  .user-activity-timeline__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

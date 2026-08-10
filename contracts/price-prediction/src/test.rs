@@ -51,6 +51,7 @@ fn btc(env: &Env) -> Symbol {
 }
 
 struct Setup<'a> {
+    admin: Address,
     client: PricePredictionClient<'a>,
     oracle_client: MockOracleClient<'a>,
     token_addr: Address,
@@ -77,14 +78,7 @@ fn setup(env: &Env) -> Setup<'_> {
     oracle_client.set_price(&btc(env), &50_000);
 
     // Init: min=10, max=10000, house edge 500 bps (5%)
-    client.init(
-        &admin,
-        &oracle_id,
-        &token_addr,
-        &10i128,
-        &10_000i128,
-        &500i128,
-    );
+    client.init(&admin, &oracle_id, &token_addr, &100, &10_000, &500);
 
     // Fund contract for payouts
     token_sac.mint(&contract_id, &1_000_000i128);
@@ -95,6 +89,7 @@ fn setup(env: &Env) -> Setup<'_> {
     });
 
     Setup {
+        admin,
         client,
         oracle_client,
         token_addr,
@@ -1039,4 +1034,48 @@ fn test_place_prediction_on_settled_round_rejected() {
         .client
         .try_place_prediction(&player, &1u64, &DIRECTION_UP, &100);
     assert!(result.is_err());
+}
+
+// -------------------------------------------------------------------
+// 31. Resolution Delay and Prediction Status Summary tests
+// -------------------------------------------------------------------
+
+#[test]
+fn test_resolution_delay_getter_setter() {
+    let env = Env::default();
+    let s = setup(&env);
+    env.mock_all_auths();
+
+    // Default value should be 0
+    assert_eq!(s.client.resolution_delay(), 0);
+
+    // Set resolution delay (admin only)
+    s.client.set_resolution_delay(&3600);
+    assert_eq!(s.client.resolution_delay(), 3600);
+}
+
+#[test]
+fn test_prediction_status_summary() {
+    let env = Env::default();
+
+    // Uninitialized summary
+    let contract_id = env.register(PricePrediction, ());
+    let client = PricePredictionClient::new(&env, &contract_id);
+    let summary_uninit = client.prediction_status_summary();
+    assert!(!summary_uninit.is_initialized);
+    assert_eq!(summary_uninit.admin, None);
+
+    // Initialized summary
+    let s = setup(&env);
+    env.mock_all_auths();
+    s.client.set_resolution_delay(&60);
+
+    let summary = s.client.prediction_status_summary();
+    assert!(summary.is_initialized);
+    assert_eq!(summary.admin, Some(s.admin));
+    assert_eq!(summary.token, Some(s.token_addr));
+    assert_eq!(summary.min_wager, 100);
+    assert_eq!(summary.max_wager, 10_000);
+    assert_eq!(summary.house_edge_bps, 500);
+    assert_eq!(summary.resolution_delay, 60);
 }

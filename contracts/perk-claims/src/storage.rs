@@ -7,6 +7,7 @@ pub enum DataKey {
     Perk(u64),
     Queued(u64, Address),
     Claimed(u64, Address),
+    CooldownDelay,
 }
 
 pub fn get_perk(env: &Env, id: u64) -> Option<Perk> {

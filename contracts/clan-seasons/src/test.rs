@@ -154,3 +154,92 @@ fn test_roster_lock_missing() {
     assert_eq!(lock.locked_member_count, 0);
     assert_eq!(lock.lock_reason_code, 0);
 }
+
+// ---------------------------------------------------------------------------
+// participation_summary — known season
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_participation_summary_known_season() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    client.upsert_season(
+        &admin, &10, &4000, &7, &3_000_000, &true,
+        &2_900_000, &true, &20, &1,
+    );
+
+    let summary = client.participation_summary(&10);
+    assert!(summary.exists);
+    assert_eq!(summary.season_id, 10);
+    assert_eq!(summary.locked_member_count, 20);
+    assert!(summary.was_locked);
+    assert_eq!(summary.carryover_xp, 4000);
+    assert_eq!(summary.carryover_rank, 7);
+}
+
+// ---------------------------------------------------------------------------
+// participation_summary — unknown season returns zero-state
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_participation_summary_unknown_season() {
+    let env = Env::default();
+    let (client, _) = setup(&env);
+
+    let summary = client.participation_summary(&42);
+    assert!(!summary.exists);
+    assert_eq!(summary.season_id, 42);
+    assert_eq!(summary.locked_member_count, 0);
+    assert!(!summary.was_locked);
+    assert_eq!(summary.carryover_xp, 0);
+    assert_eq!(summary.carryover_rank, 0);
+}
+
+// ---------------------------------------------------------------------------
+// transition_gap — two configured seasons
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_transition_gap_two_known_seasons() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    // from season ends at ledger 2_000_000
+    client.upsert_season(
+        &admin, &20, &1000, &5, &2_000_000, &false,
+        &0, &false, &0, &0,
+    );
+    // to season proxy-start (season_end_ledger) = 1_800_000
+    client.upsert_season(
+        &admin, &21, &2000, &6, &1_800_000, &false,
+        &0, &false, &0, &0,
+    );
+
+    let gap = client.transition_gap(&20, &21);
+    assert!(gap.from_exists);
+    assert!(gap.to_exists);
+    assert_eq!(gap.from_end_ledger, 2_000_000);
+    assert_eq!(gap.to_start_ledger, 1_800_000);
+    assert_eq!(gap.gap_ledgers, 200_000);
+}
+
+// ---------------------------------------------------------------------------
+// transition_gap — missing season handled gracefully
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_transition_gap_missing_season() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    client.upsert_season(
+        &admin, &30, &500, &2, &1_500_000, &false,
+        &0, &false, &0, &0,
+    );
+
+    let gap = client.transition_gap(&30, &999);
+    assert!(gap.from_exists);
+    assert!(!gap.to_exists);
+    assert_eq!(gap.gap_ledgers, 0);
+}

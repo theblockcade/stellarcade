@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use soroban_sdk::{testutils::Address as _, Address, Env};
+use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, testutils::LedgerInfo, Address, Env};
 
 use super::*;
 
@@ -124,4 +124,60 @@ fn test_unlock_gap_missing() {
     assert_eq!(gap.next_unlock_threshold, 0);
     assert_eq!(gap.current_progress, 0);
     assert!(!gap.locked);
+}
+
+// ---------------------------------------------------------------------------
+// season_expiry and pass_tier_snapshot tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_season_expiry_getter_setter() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    assert_eq!(client.season_expiry(), 0);
+
+    client.set_season_expiry(&admin, &500_000);
+    assert_eq!(client.season_expiry(), 500_000);
+}
+
+#[test]
+fn test_pass_tier_snapshot() {
+    let env = Env::default();
+    let (client, admin) = setup(&env);
+
+    client.set_season_expiry(&admin, &100);
+
+    // Test missing pass
+    let snap_missing = client.pass_tier_snapshot(&99);
+    assert!(!snap_missing.exists);
+    assert_eq!(snap_missing.season_expiry, 100);
+    assert!(!snap_missing.is_expired);
+
+    // Test existing pass
+    client.upsert_pass(&admin, &5, &12, &3, &6);
+    
+    // Not expired yet (ledger=0)
+    let snap = client.pass_tier_snapshot(&5);
+    assert!(snap.exists);
+    assert_eq!(snap.pass_id, 5);
+    assert_eq!(snap.total_missions, 12);
+    assert_eq!(snap.next_unlock_threshold, 6);
+    assert_eq!(snap.season_expiry, 100);
+    assert!(!snap.is_expired);
+
+    // Move ledger sequence past expiry
+    env.ledger().set(LedgerInfo {
+        protocol_version: 22,
+        sequence_number: 150,
+        timestamp: 0,
+        network_id: [0; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 0,
+    });
+
+    let snap_expired = client.pass_tier_snapshot(&5);
+    assert!(snap_expired.is_expired);
 }

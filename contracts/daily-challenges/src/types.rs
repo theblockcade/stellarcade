@@ -1,5 +1,37 @@
 use soroban_sdk::{contracttype, Address, Symbol};
 
+/// Aggregated completion status summary returned by `completion_status_summary`.
+///
+/// Counts completions and claimed rewards across all registered challenges for
+/// a specific player. Zero-state: all counts zero when the player has no
+/// records, or when no challenges have been registered.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompletionStatusSummary {
+    pub configured: bool,
+    pub paused: bool,
+    pub total_challenges: u32,
+    pub completed_count: u32,
+    pub claimed_count: u32,
+    pub unclaimed_count: u32,
+    pub completion_rate_bps: u32,
+}
+
+/// Reset delay information returned by `reset_delay`.
+///
+/// Zero-state: `configured = false` and zeroed timing fields when no refresh
+/// interval has been set. `reset_due = true` once the refresh is overdue.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResetDelay {
+    pub configured: bool,
+    pub interval_ledgers: u32,
+    pub last_reset_at: u32,
+    pub next_reset_at: u32,
+    pub ledgers_until_reset: u32,
+    pub reset_due: bool,
+}
+
 /// A single daily challenge definition.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]

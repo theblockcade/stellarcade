@@ -89,3 +89,18 @@ pub struct StreamRecord {
     pub total_funding: i128,
     pub funding_target: i128,
 }
+
+/// Stream disbursement snapshot for a prize stream.
+///
+/// Zero-state: `exists` is false and all numeric fields are zero when the
+/// requested stream has not been configured.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamDisbursementSnapshot {
+    pub stream_id: u32,
+    pub exists: bool,
+    pub total_streamed: i128,
+    pub last_outflow_ledger: u32,
+    pub release_interval: u64,
+    pub is_draining: bool,
+}

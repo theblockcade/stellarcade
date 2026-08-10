@@ -22,7 +22,7 @@ mod types;
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    FundingGap, SettlementReadiness, StreamBacklogSnapshot, StreamOutflowSummary, StreamRecord,
+    FundingGap, SettlementReadiness, StreamBacklogSnapshot, StreamOutflowSummary, StreamRecord, StreamDisbursementSnapshot,
 };
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
@@ -36,6 +36,7 @@ pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 pub enum DataKey {
     Admin,
     Stream(u32),
+    ReleaseInterval,
 }
 
 // ---------------------------------------------------------------------------
@@ -224,6 +225,46 @@ impl PrizeStreamer {
                 remaining_gap: 0,
                 is_draining: false,
                 blocked_reason_code: 3,
+            },
+        }
+    }
+
+    /// Return the configured release interval (defaults to 0).
+    pub fn release_interval(env: Env) -> u64 {
+        env.storage()
+            .instance()
+            .get(&DataKey::ReleaseInterval)
+            .unwrap_or(0)
+    }
+
+    /// Set the release interval. Admin only.
+    pub fn set_release_interval(env: Env, admin: Address, interval: u64) -> Result<(), Error> {
+        require_admin(&env, &admin)?;
+        env.storage()
+            .instance()
+            .set(&DataKey::ReleaseInterval, &interval);
+        Ok(())
+    }
+
+    /// Return a stream disbursement snapshot for `stream_id`.
+    pub fn stream_disbursement_snapshot(env: Env, stream_id: u32) -> StreamDisbursementSnapshot {
+        let interval = Self::release_interval(env.clone());
+        match storage::get_stream(&env, stream_id) {
+            Some(record) => StreamDisbursementSnapshot {
+                stream_id,
+                exists: true,
+                total_streamed: record.total_streamed,
+                last_outflow_ledger: record.last_outflow_ledger,
+                release_interval: interval,
+                is_draining: record.is_draining,
+            },
+            None => StreamDisbursementSnapshot {
+                stream_id,
+                exists: false,
+                total_streamed: 0,
+                last_outflow_ledger: 0,
+                release_interval: interval,
+                is_draining: false,
             },
         }
     }

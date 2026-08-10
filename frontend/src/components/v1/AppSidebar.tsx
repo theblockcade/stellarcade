@@ -91,6 +91,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
 
       <nav
         id="primary-dashboard-navigation"
+        role="navigation"
         className={`app-sidebar ${isCollapsed ? 'is-collapsed' : ''} ${isMobileOpen ? 'is-mobile-open' : ''}`.trim()}
         aria-label="Primary dashboard"
         aria-hidden={isClosedMobileNavigation ? true : undefined}

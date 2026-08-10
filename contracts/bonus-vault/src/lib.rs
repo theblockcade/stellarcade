@@ -131,6 +131,77 @@ impl BonusVaultContract {
         Self::get_release_threshold_accessor(env)
     }
 
+    pub fn vault_allocation_summary(env: Env) -> VaultAllocationSummary {
+        let Some(cfg) = get_config(&env) else {
+            return VaultAllocationSummary {
+                status: BonusVaultStatus::Unconfigured,
+                pending_accrual: 0,
+                release_threshold: 0,
+                allocated_bps: 0,
+                headroom: 0,
+            };
+        };
+
+        let state = get_state(&env).unwrap_or(BonusVaultState {
+            pending_accrual: 0,
+            release_threshold: 0,
+        });
+
+        let allocated_bps = if state.release_threshold > 0 {
+            ((state.pending_accrual as u128 * 10_000u128) / state.release_threshold as u128) as u32
+        } else {
+            0
+        };
+
+        let headroom = state
+            .release_threshold
+            .saturating_sub(state.pending_accrual);
+
+        VaultAllocationSummary {
+            status: if cfg.paused {
+                BonusVaultStatus::Paused
+            } else {
+                BonusVaultStatus::Active
+            },
+            pending_accrual: state.pending_accrual,
+            release_threshold: state.release_threshold,
+            allocated_bps,
+            headroom,
+        }
+    }
+
+    pub fn unlock_window_accessor(env: Env, unlock_threshold: i128) -> UnlockWindowAccessor {
+        let Some(cfg) = get_config(&env) else {
+            return UnlockWindowAccessor {
+                status: BonusVaultStatus::Unconfigured,
+                pending_accrual: 0,
+                unlock_threshold,
+                unlockable: false,
+                shortfall: unlock_threshold.max(0),
+            };
+        };
+
+        let state = get_state(&env).unwrap_or(BonusVaultState {
+            pending_accrual: 0,
+            release_threshold: 0,
+        });
+
+        let unlockable = state.pending_accrual >= unlock_threshold;
+        let shortfall = unlock_threshold.saturating_sub(state.pending_accrual);
+
+        UnlockWindowAccessor {
+            status: if cfg.paused {
+                BonusVaultStatus::Paused
+            } else {
+                BonusVaultStatus::Active
+            },
+            pending_accrual: state.pending_accrual,
+            unlock_threshold,
+            unlockable,
+            shortfall,
+        }
+    }
+
     /// Return the pending outflow pressure summary.
     ///
     /// Zero-state returns `Unconfigured` with zeroed numeric fields.

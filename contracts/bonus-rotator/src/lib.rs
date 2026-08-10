@@ -7,7 +7,7 @@ mod types;
 #[cfg(test)]
 mod test;
 
-pub use types::{ActiveBonusCycleSnapshot, BonusCycle};
+pub use types::{ActiveBonusCycleSnapshot, BonusCycle, CycleDelay, RotatorStatusSummary};
 
 #[contract]
 pub struct BonusRotator;
@@ -77,5 +77,41 @@ impl BonusRotator {
 
     pub fn next_rollover_at(env: Env) -> u64 {
         storage::get_cycle(&env).map(|c| c.ends_at).unwrap_or(0)
+    }
+
+    pub fn rotator_status_summary(env: Env) -> RotatorStatusSummary {
+        let paused = storage::is_paused(&env);
+        match storage::get_cycle(&env) {
+            Some(c) => RotatorStatusSummary {
+                is_configured: true,
+                is_paused: paused,
+                active_cycle_id: c.cycle_id,
+                bonus_bps: c.bonus_bps,
+                cycle_starts_at: c.starts_at,
+                cycle_ends_at: c.ends_at,
+            },
+            None => RotatorStatusSummary {
+                is_configured: false,
+                is_paused: paused,
+                active_cycle_id: 0,
+                bonus_bps: 0,
+                cycle_starts_at: 0,
+                cycle_ends_at: 0,
+            },
+        }
+    }
+
+    pub fn cycle_delay(env: Env) -> CycleDelay {
+        let now = env.ledger().timestamp();
+        match storage::get_cycle(&env) {
+            Some(c) => CycleDelay {
+                has_active_cycle: true,
+                seconds_until_end: if c.ends_at > now { c.ends_at - now } else { 0 },
+            },
+            None => CycleDelay {
+                has_active_cycle: false,
+                seconds_until_end: 0,
+            },
+        }
     }
 }

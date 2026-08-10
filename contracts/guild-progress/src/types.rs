@@ -64,6 +64,24 @@ pub struct NextMilestoneTarget {
     pub all_milestones_completed: bool,
 }
 
+/// Gap between current progress and the next uncompleted milestone.
+#[contracttype]
+#[derive(Clone)]
+pub struct UpdateDelay {
+    /// Guild identifier.
+    pub guild_id: Address,
+    /// Next uncompleted milestone ID (0 if none / all done).
+    pub next_milestone_id: u32,
+    /// Progress threshold of the next milestone.
+    pub target_progress: i128,
+    /// Current guild progress.
+    pub current_progress: i128,
+    /// How far until the next milestone (0 if all completed).
+    pub progress_gap: i128,
+    /// `true` when all milestones are completed.
+    pub all_milestones_completed: bool,
+}
+
 /// Storage key discriminants.
 #[contracttype]
 pub enum DataKey {

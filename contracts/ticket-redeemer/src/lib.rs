@@ -11,7 +11,8 @@ use crate::storage::{
     set_config, set_next_ticket_id, set_queue_entry, set_scan_window,
 };
 use crate::types::{
-    QueueEntry, QueueEntryView, QueueSnapshot, RedeemerConfig, ScanWindow, TicketStatus,
+    QueueEntry, QueueEntryView, QueueSnapshot, RedeemerConfig, RedemptionCountSummary, ScanWindow,
+    TicketStatus,
 };
 use soroban_sdk::{contract, contracterror, contractimpl, Address, Env, Vec};
 
@@ -222,7 +223,7 @@ impl TicketRedeemer {
     ///
     /// If the ticket does not exist, returns a view with `exists: false` and all fields `None`.
     pub fn get_queue_entry(env: Env, ticket_id: u64) -> QueueEntryView {
-        match get_queue_entry(&env, ticket_id) {
+        match storage::get_queue_entry(&env, ticket_id) {
             Some(entry) => QueueEntryView {
                 exists: true,
                 ticket_id: Some(entry.ticket_id),
@@ -240,6 +241,38 @@ impl TicketRedeemer {
                 redeemed_at: None,
             },
         }
+    }
+
+    /// Returns a summary of redemption counts.
+    pub fn get_redemption_summary(env: Env) -> RedemptionCountSummary {
+        let all_ids = get_all_ids(&env);
+        let mut total_pending: u64 = 0;
+        let mut total_redeemed: u64 = 0;
+        let mut total_expired: u64 = 0;
+        let mut total_cancelled: u64 = 0;
+
+        for ticket_id in all_ids.iter() {
+            if let Some(entry) = storage::get_queue_entry(&env, ticket_id) {
+                match entry.status {
+                    TicketStatus::Pending => total_pending += 1,
+                    TicketStatus::Redeemed => total_redeemed += 1,
+                    TicketStatus::Expired => total_expired += 1,
+                    TicketStatus::Cancelled => total_cancelled += 1,
+                }
+            }
+        }
+
+        RedemptionCountSummary {
+            total_pending,
+            total_redeemed,
+            total_expired,
+            total_cancelled,
+        }
+    }
+
+    /// Returns the validation delay (scan window size).
+    pub fn get_validation_delay(env: Env) -> u32 {
+        get_config(&env).map(|c| c.scan_window_size).unwrap_or(0)
     }
 
     /// Returns the current scan window state, or None if no window exists.

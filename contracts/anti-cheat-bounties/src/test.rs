@@ -191,3 +191,85 @@ fn test_double_init_fails() {
     let result = client.try_init(&admin, &token);
     assert_eq!(result, Err(Ok(Error::AlreadyInitialized)));
 }
+
+// ── active_bounty_summary ─────────────────────────────────────────────────────
+
+#[test]
+fn test_active_bounty_summary_empty() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, _poster) = setup(&env);
+
+    let summary = client.active_bounty_summary();
+    assert!(summary.configured);
+    assert_eq!(summary.live_count, 0);
+    assert_eq!(summary.under_review_count, 0);
+    assert_eq!(summary.total_live_reward, 0);
+}
+
+#[test]
+fn test_active_bounty_summary_counts_live_and_under_review() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, poster) = setup(&env);
+
+    // Two live bounties with deadline in the future (ledger 0 currently)
+    client.post_bounty(&poster, &game_id(&env), &100_000, &2, &500);
+    let id2 = client.post_bounty(&poster, &game_id(&env), &50_000, &1, &500);
+    // Move one to UnderReview
+    client.begin_adjudication(&id2);
+
+    let summary = client.active_bounty_summary();
+    assert_eq!(summary.live_count, 1);
+    assert_eq!(summary.under_review_count, 1);
+    assert_eq!(summary.total_live_reward, 100_000);
+}
+
+#[test]
+fn test_active_bounty_summary_excludes_past_deadline() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, poster) = setup(&env);
+
+    // deadline=1; at ledger 0 it's technically open (0 <= 1), so it's live
+    client.post_bounty(&poster, &game_id(&env), &200_000, &2, &1);
+
+    let summary = client.active_bounty_summary();
+    // ledger 0 <= deadline 1, so it is live
+    assert_eq!(summary.live_count, 1);
+    assert_eq!(summary.total_live_reward, 200_000);
+}
+
+// ── claim_window_accessor ─────────────────────────────────────────────────────
+
+#[test]
+fn test_claim_window_accessor_open_bounty() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, poster) = setup(&env);
+
+    let id = client.post_bounty(&poster, &game_id(&env), &100_000, &2, &100);
+    // claim_window_ledgers = 50 → window runs from ledger 101 to 150
+    let window = client.claim_window_accessor(&id, &50u32);
+
+    assert!(window.configured);
+    assert!(window.exists);
+    assert_eq!(window.report_deadline_ledger, 100);
+    assert_eq!(window.claim_window_end_ledger, 150);
+    // At ledger 0, we're before the deadline; not in claim window yet
+    assert!(!window.in_claim_window);
+    assert_eq!(window.ledgers_until_window_end, 150);
+}
+
+#[test]
+fn test_claim_window_accessor_unknown_bounty() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _token, _poster) = setup(&env);
+
+    let window = client.claim_window_accessor(&9999u64, &50u32);
+    assert!(window.configured);
+    assert!(!window.exists);
+    assert!(!window.in_claim_window);
+    assert_eq!(window.ledgers_until_window_end, 0);
+}

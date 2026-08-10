@@ -31,3 +31,20 @@ pub struct LobbyData {
     pub max_seats: u32,
     pub participants: Vec<Participant>,
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LobbyConfigSnapshot {
+    pub lobby_id: u64,
+    pub exists: bool,
+    pub max_seats: u32,
+    pub participant_count: u32,
+    pub paused: bool,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StartGraceConfig {
+    pub grace_blocks: u32,
+    pub configured: bool,
+}

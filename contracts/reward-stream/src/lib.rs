@@ -9,7 +9,7 @@ mod types;
 
 pub use types::{
     DepletionBand, DripPressureSummary, PauseRecoveryAccessor, StreamData, StreamHealthSummary,
-    StreamPressureSnapshot, WithdrawalReadiness,
+    StreamPerformanceSummary, StreamPressureSnapshot, UnlockIntervalAccessor, WithdrawalReadiness,
 };
 
 #[contract]
@@ -211,6 +211,66 @@ impl RewardStream {
                 remaining: 0,
                 recovery_ready: false,
                 blocked_reason_code: 4,
+            }
+        }
+    }
+
+    /// Return stream performance metrics for the configured stream.
+    ///
+    /// `utilization_bps` uses the same floored basis-point math as
+    /// `stream_pressure_snapshot`. Missing or zero-allocation streams return
+    /// `is_configured = false` with all zeros.
+    pub fn stream_performance_summary(env: Env) -> StreamPerformanceSummary {
+        if let Some(s) = storage::get_stream(&env) {
+            let remaining = (s.total_allocated - s.total_withdrawn).max(0);
+            let utilization_bps = pressure_bps(s.total_allocated, s.total_withdrawn);
+            StreamPerformanceSummary {
+                is_configured: s.total_allocated > 0,
+                stream_id: s.stream_id,
+                total_allocated: s.total_allocated,
+                total_withdrawn: s.total_withdrawn,
+                remaining,
+                utilization_bps,
+                is_depleted: remaining == 0 && s.total_allocated > 0,
+                paused: s.paused,
+            }
+        } else {
+            StreamPerformanceSummary {
+                is_configured: false,
+                stream_id: 0,
+                total_allocated: 0,
+                total_withdrawn: 0,
+                remaining: 0,
+                utilization_bps: 0,
+                is_depleted: false,
+                paused: false,
+            }
+        }
+    }
+
+    /// Return unlock-interval details for the configured stream.
+    ///
+    /// `time_until_unlock` is `unlock_time.saturating_sub(now)`, clamped to
+    /// zero once past the unlock point. Missing streams return
+    /// `is_configured = false` with all zeros.
+    pub fn unlock_interval_accessor(env: Env, now: u64) -> UnlockIntervalAccessor {
+        if let Some(s) = storage::get_stream(&env) {
+            UnlockIntervalAccessor {
+                is_configured: s.total_allocated > 0,
+                stream_id: s.stream_id,
+                unlock_time: s.unlock_time,
+                time_until_unlock: s.unlock_time.saturating_sub(now),
+                is_past_unlock: now >= s.unlock_time,
+                paused: s.paused,
+            }
+        } else {
+            UnlockIntervalAccessor {
+                is_configured: false,
+                stream_id: 0,
+                unlock_time: 0,
+                time_until_unlock: 0,
+                is_past_unlock: false,
+                paused: false,
             }
         }
     }

@@ -12,4 +12,5 @@ pub enum DataKey {
     /// u32 — pending_count threshold at which overloaded=true
     PressureThreshold,
     Paused,
+    FeeSlippage,
 }

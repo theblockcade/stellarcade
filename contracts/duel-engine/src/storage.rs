@@ -38,8 +38,22 @@ pub fn get_newest(env: &Env) -> u64 {
     env.storage().instance().get(&NEWEST).unwrap_or(0)
 }
 pub fn set_duel_open(env: &Env, duel_id: u64, is_open: bool) {
-    env.storage().persistent().set(&(DUEL_PREFIX, duel_id), &is_open);
+    env.storage()
+        .persistent()
+        .set(&(DUEL_PREFIX, duel_id), &is_open);
 }
 pub fn get_duel_open(env: &Env, duel_id: u64) -> Option<bool> {
     env.storage().persistent().get(&(DUEL_PREFIX, duel_id))
+}
+
+const CHALLENGE_TIMEOUT: Symbol = symbol_short!("ctimeout");
+
+pub fn set_challenge_timeout(env: &Env, timeout: u64) {
+    env.storage().instance().set(&CHALLENGE_TIMEOUT, &timeout);
+}
+pub fn get_challenge_timeout(env: &Env) -> u64 {
+    env.storage()
+        .instance()
+        .get(&CHALLENGE_TIMEOUT)
+        .unwrap_or(0)
 }
