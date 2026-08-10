@@ -16,6 +16,7 @@
     "lint": "eslint src tests --ext .ts,.tsx"
   },
   "dependencies": {
+    "@stellarcade/tokens": "workspace:*",
     "@stellar/stellar-sdk": "^14.5.0",
     "@testing-library/dom": "^10.4.1",
     "lucide-react": "^1.21.0",
