@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { Award, Bot, Code2, Gauge, ScrollText, ShieldCheck, Trophy, Wallet, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { FaqAccordionMonochrome } from "@/components/ui/faq-monochrome";
 import { LandingNav } from "./landing/nav";
 import { FairnessProofMockup, PrizePoolMockup, QuestMockup } from "./landing/mockups";
 import { CinematicFooter } from "@/components/ui/motion-footer";
@@ -63,28 +58,40 @@ const FEATURES = [
 
 const FAQS = [
   {
-    q: "Is StellarCade custodial?",
-    a: "No. StellarCade never holds your keys or your funds — you connect with Freighter and every transaction is signed in your own wallet.",
+    question: "Is StellarCade custodial?",
+    answer:
+      "No. StellarCade never holds your keys or your funds — you connect with Freighter and every transaction is signed in your own wallet.",
+    meta: "Custody",
   },
   {
-    q: "How do I know a round wasn't rigged?",
-    a: "Before you bet, the server publishes sha256(serverSeed) — a commitment it can't change afterward. Once the round settles, it reveals serverSeed, and you (or the SDK) can recompute the hash and the outcome yourself, offline. If it doesn't match, the round is provably invalid.",
+    question: "How do I know a round wasn't rigged?",
+    answer:
+      "Before you bet, the server publishes sha256(serverSeed) — a commitment it can't change afterward. Once the round settles, it reveals serverSeed, and you (or the SDK) can recompute the hash and the outcome yourself, offline. If it doesn't match, the round is provably invalid.",
+    meta: "Fairness",
   },
   {
-    q: "What wallet do I need?",
-    a: "Freighter, the Stellar browser wallet. No seed phrase ever leaves it — StellarCade only ever requests a signature.",
+    question: "What wallet do I need?",
+    answer:
+      "Freighter, the Stellar browser wallet. No seed phrase ever leaves it — StellarCade only ever requests a signature.",
+    meta: "Wallet",
   },
   {
-    q: "What happens if I disagree with a result?",
-    a: "Every settlement writes to a hash-chained audit log. The arbiter service exposes a dispute-resolution path that resolves against that chain, so a disagreement is checked against cryptographic history, not just a support agent's word.",
+    question: "What happens if I disagree with a result?",
+    answer:
+      "Every settlement writes to a hash-chained audit log. The arbiter service exposes a dispute-resolution path that resolves against that chain, so a disagreement is checked against cryptographic history, not just a support agent's word.",
+    meta: "Disputes",
   },
   {
-    q: "Can I play without the website?",
-    a: "Yes — the StellarCade Telegram and Discord bot let you link your wallet (via a signature challenge, no custody involved) and play, check stats, and claim rewards straight from chat.",
+    question: "Can I play without the website?",
+    answer:
+      "Yes — the StellarCade Telegram and Discord bot let you link your wallet (via a signature challenge, no custody involved) and play, check stats, and claim rewards straight from chat.",
+    meta: "Bot",
   },
   {
-    q: "Is there a developer SDK?",
-    a: "Yes. @stellarcade/sdk ships the same fairness-verification and wallet-connector code the app itself runs on, so you can build your own tools against StellarCade rounds.",
+    question: "Is there a developer SDK?",
+    answer:
+      "Yes. @stellarcade/sdk ships the same fairness-verification and wallet-connector code the app itself runs on, so you can build your own tools against StellarCade rounds.",
+    meta: "Developers",
   },
 ];
 
@@ -103,8 +110,10 @@ export default function LandingPage() {
               text (see neon-mesh.tsx) — so pointer events stay enabled here
               (that's what drives the mesh's cursor interaction) while the
               real hero content below still receives its own clicks, since
-              it's positioned later in DOM order at the same stacking level. */}
-          <NeonMesh className="absolute inset-0 h-full" />
+              it's positioned later in DOM order at the same stacking level.
+              opacity-60: toned down further so it reads as texture behind
+              the real headline/CTAs, not a competing focal point. */}
+          <NeonMesh className="absolute inset-0 h-full opacity-60" />
 
           <span className={styles.eyebrow}>
             <span className={styles.dot} />
@@ -311,14 +320,7 @@ export default function LandingPage() {
                   Frequently asked questions
                 </h2>
               </div>
-              <Accordion type="single" collapsible className={styles.faqAccordion}>
-                {FAQS.map((faq, i) => (
-                  <AccordionItem key={faq.q} value={`item-${i}`}>
-                    <AccordionTrigger>{faq.q}</AccordionTrigger>
-                    <AccordionContent>{faq.a}</AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              <FaqAccordionMonochrome items={FAQS} />
             </div>
           </div>
         </section>

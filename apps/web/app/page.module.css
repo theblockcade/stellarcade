@@ -280,10 +280,6 @@
   }
 }
 
-.faqAccordion {
-  border-top: 1px solid var(--glass-border);
-}
-
 /* Closing CTA and footer are now the cinematic scroll-reveal footer — see
    src/components/ui/motion-footer.tsx (styled with Tailwind, not this
    module). */

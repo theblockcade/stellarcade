@@ -80,7 +80,9 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
       targetAngleY: -0.3,
       angleX: 0.2,
       angleY: -0.3,
-      radius: 180,
+      // Toned down from the source's radius:180 / force:22 — a background
+      // layer sitting behind real hero copy shouldn't react this forcefully.
+      radius: 130,
     };
 
     let points: Point3D[] = [];
@@ -182,10 +184,12 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
     let time = 0;
 
     // @stellarcade/tokens: --sc-bg-dark, --sc-accent (as an RGB triplet for
-    // the rgba() template below), --sc-accent literal for the "hot" glow.
+    // the rgba() template below). The "hot" glow is --sc-accent at reduced
+    // alpha rather than a solid fill — the source's full-opacity neon was
+    // too loud for a layer sitting behind real hero copy.
     const bgColor = "#050505";
     const baseMeshColor = "0, 255, 204";
-    const neonAccent = "#00ffcc";
+    const neonAccent = "rgba(0, 255, 204, 0.55)";
 
     const render = () => {
       time += 0.025;
@@ -250,7 +254,7 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < mouse.radius && dist > 0) {
-            const force = (1 - dist / mouse.radius) * 22;
+            const force = (1 - dist / mouse.radius) * 14;
             const angle = Math.atan2(dy, dx);
             p.x += (Math.cos(angle) * force) / p.projScale;
             p.y += (Math.sin(angle) * force) / p.projScale;
@@ -295,8 +299,8 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
 
         ctx.strokeStyle = isHot
           ? neonAccent
-          : `rgba(${baseMeshColor}, ${Math.min(1, Math.max(0.1, 0.25 * avgScale))})`;
-        ctx.lineWidth = isHot ? 2 * avgScale : 0.8 * avgScale;
+          : `rgba(${baseMeshColor}, ${Math.min(0.7, Math.max(0.04, 0.12 * avgScale))})`;
+        ctx.lineWidth = isHot ? 1.4 * avgScale : 0.6 * avgScale;
 
         ctx.beginPath();
         ctx.moveTo(c.p1.projX, c.p1.projY);
@@ -310,10 +314,10 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
         const dy = mouse.y - p.projY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 100) {
+        if (dist < 80) {
           ctx.fillStyle = neonAccent;
           ctx.beginPath();
-          ctx.arc(p.projX, p.projY, 2.5 * p.projScale, 0, Math.PI * 2);
+          ctx.arc(p.projX, p.projY, 1.8 * p.projScale, 0, Math.PI * 2);
           ctx.fill();
         }
       }
