@@ -1,4 +1,4 @@
-import ProfileSettings from "../../src/components/ProfileSettings";
+import ProfileSettings from "../../../src/components/ProfileSettings";
 
 /**
  * Thin Next route wrapper — ProfileSettings itself has no router
