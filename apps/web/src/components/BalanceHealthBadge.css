@@ -1,0 +1,7 @@
+.balance-health-badge {
+  flex-shrink: 0;
+}
+
+.balance-health-badge--unknown {
+  opacity: 0.82;
+}
