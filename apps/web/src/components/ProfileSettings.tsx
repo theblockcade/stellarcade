@@ -9,6 +9,8 @@ import SensitiveActionChecklist from './SensitiveActionChecklist';
 import { StickyActionsFooter } from './StickyActionsFooter';
 import { CollapsibleStatsGroup } from './CollapsibleStatsGroup';
 import { RewardBalanceSparklineCard } from './RewardBalanceSparklineCard';
+import { AlertBanner } from './AlertBanner';
+import { CopyButton } from './CopyButton';
 import GlobalStateStore from '../services/global-state-store';
 import { useWalletStatus } from '../hooks/useWalletStatus';
 import type { RecentAccount } from './AccountSwitcher.types';
@@ -221,14 +223,10 @@ const ProfileSettings: React.FC = () => {
       <h1 id="profile-settings-heading">Profile Settings</h1>
 
       {error && (
-        <div role="alert" className="error-message" data-testid="profile-settings-error">
-          {error}
-        </div>
+        <AlertBanner variant="error" message={error} testId="profile-settings-error" />
       )}
       {success && (
-        <div role="status" className="success-message" data-testid="profile-settings-success">
-          {success}
-        </div>
+        <AlertBanner variant="success" message={success} testId="profile-settings-success" />
       )}
 
       <form
@@ -239,13 +237,18 @@ const ProfileSettings: React.FC = () => {
       >
         <div className="form-row">
           <label htmlFor="profile-address">Wallet Address</label>
-          <input
-            id="profile-address"
-            type="text"
-            value={profile?.address ?? ''}
-            readOnly
-            aria-readonly
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              id="profile-address"
+              type="text"
+              value={profile?.address ?? ''}
+              readOnly
+              aria-readonly
+            />
+            {profile?.address && (
+              <CopyButton text={profile.address} testId="profile-address-copy" />
+            )}
+          </div>
         </div>
 
         <div className="form-row">
