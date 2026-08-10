@@ -1,0 +1,29 @@
+{
+  "name": "@stellarcade/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "StellarCade web app (Next.js). Migration target for frontend/ (Vite) — see MIGRATION.md for what's ported vs pending.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@stellarcade/tokens": "workspace:*",
+    "next": "^16.2.11",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.0"
+  }
+}
