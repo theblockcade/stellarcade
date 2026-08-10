@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 96px 24px;
+  padding: 140px 24px 96px;
   position: relative;
   overflow: hidden;
 }
@@ -77,11 +77,156 @@
   margin-top: 36px;
 }
 
-.features {
-  padding: 80px 24px 120px;
+/* ── Hero product mockups ─────────────────────────────────────────────── */
+
+.stage {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 72px;
+}
+
+.stageCardWrap {
+  transition: transform 0.2s ease;
+}
+
+.stageCardOffset {
+  transform: translateY(-24px);
+}
+
+@media (min-width: 900px) {
+  .stageCardOffset {
+    transform: translateY(-40px);
+  }
+}
+
+/* ── Generic section shell ────────────────────────────────────────────── */
+
+.sec {
+  padding: 88px 24px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.wrap {
   max-width: 1080px;
   margin: 0 auto;
 }
+
+.secHead {
+  max-width: 640px;
+  margin: 0 auto 48px;
+  text-align: center;
+}
+
+.secTitle {
+  margin: 14px 0 0;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.secBody {
+  margin: 14px 0 0;
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── 3-step explainer (fairness / bot) ────────────────────────────────── */
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 32px;
+}
+
+.step h4 {
+  margin: 10px 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.step p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.stepNum {
+  font-family: var(--sc-font-mono, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── Platform cards ────────────────────────────────────────────────────── */
+
+.platGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.platCard {
+  padding: 32px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+}
+
+.platCardAccent {
+  background: linear-gradient(135deg, rgba(0, 255, 204, 0.08), transparent 60%);
+}
+
+.platCard h3 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.platCard p {
+  margin: 0 0 20px;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.platBtn {
+  margin-bottom: 24px;
+}
+
+.miniPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--bg-dark);
+  border: 1px solid var(--glass-border);
+}
+
+.miniRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.mono {
+  font-family: var(--sc-font-mono, monospace);
+  font-size: 12px;
+}
+
+.ok {
+  color: var(--sc-success);
+}
+
+/* ── Feature grid ──────────────────────────────────────────────────────── */
 
 .featureGrid {
   display: grid;
@@ -98,6 +243,16 @@
   padding: 32px 28px;
 }
 
+.featureIcon {
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.featureIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .featureCard h3 {
   margin: 0 0 10px;
   font-size: 17px;
@@ -111,19 +266,97 @@
   line-height: 1.6;
 }
 
-.footer {
+/* ── FAQ ───────────────────────────────────────────────────────────────── */
+
+.faqGrid {
+  display: grid;
+  grid-template-columns: minmax(200px, 320px) 1fr;
+  gap: 48px;
+}
+
+@media (max-width: 720px) {
+  .faqGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.faqAccordion {
   border-top: 1px solid var(--glass-border);
-  padding: 32px 24px;
+}
+
+/* ── Closing CTA ───────────────────────────────────────────────────────── */
+
+.closingCta {
+  padding: 64px 24px;
+  margin: 0 24px 24px;
+  border-radius: 24px;
+  border: 1px solid var(--glass-border);
+  background: radial-gradient(ellipse 80% 100% at 50% 0%, var(--accent-glow), transparent 70%);
   text-align: center;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+
+.footerNew {
+  border-top: 1px solid var(--glass-border);
+  padding: 56px 24px 32px;
+}
+
+.footerCols {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, 1fr);
+  gap: 32px;
+}
+
+@media (max-width: 720px) {
+  .footerCols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.footerBrand p {
+  margin: 10px 0 0;
   color: var(--text-dim);
   font-size: 13px;
+  line-height: 1.6;
+  max-width: 32ch;
 }
 
-.footer a {
+.brandMark {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footerCol h4 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-dim);
-  margin: 0 8px;
 }
 
-.footer a:hover {
+.footerCol a {
+  color: var(--text-main);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.footerCol a:hover {
   color: var(--accent);
+}
+
+.footerBottom {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--glass-border);
+  color: var(--text-dim);
+  font-size: 13px;
 }
