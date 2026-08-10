@@ -10,7 +10,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
-    globals: false,
+    // Matches frontend/vitest.config.ts's `globals: true` — most ported
+    // test files come from there and rely on describe/it/expect/vi as
+    // ambient globals rather than importing them from "vitest". Keeping
+    // this in sync avoids editing every ported test file's imports.
+    globals: true,
   },
   resolve: {
     alias: {
