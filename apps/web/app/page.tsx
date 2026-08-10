@@ -10,7 +10,7 @@ import {
 import { LandingNav } from "./landing/nav";
 import { FairnessProofMockup, PrizePoolMockup, QuestMockup } from "./landing/mockups";
 import { CinematicFooter } from "@/components/ui/motion-footer";
-import { FloatingPathsBackground } from "@/components/ui/floating-paths";
+import { NeonMesh } from "@/components/ui/neon-mesh";
 import styles from "./page.module.css";
 
 const FEATURES = [
@@ -99,12 +99,12 @@ export default function LandingPage() {
 
       <main id="main">
         <section className={styles.hero}>
-          <FloatingPathsBackground
-            position={-1}
-            className="absolute inset-0 h-full pointer-events-none"
-          >
-            {null}
-          </FloatingPathsBackground>
+          {/* Purely decorative background — mouse-reactive mesh, no overlay
+              text (see neon-mesh.tsx) — so pointer events stay enabled here
+              (that's what drives the mesh's cursor interaction) while the
+              real hero content below still receives its own clicks, since
+              it's positioned later in DOM order at the same stacking level. */}
+          <NeonMesh className="absolute inset-0 h-full" />
 
           <span className={styles.eyebrow}>
             <span className={styles.dot} />
