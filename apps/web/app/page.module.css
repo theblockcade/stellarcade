@@ -106,6 +106,7 @@
 /* ── Generic section shell ────────────────────────────────────────────── */
 
 .sec {
+  position: relative;
   padding: 88px 24px;
   border-top: 1px solid var(--glass-border);
 }

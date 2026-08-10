@@ -104,17 +104,22 @@ export default function LandingPage() {
 
       <LandingNav />
 
+      {/* Shared background for every content section (hero through FAQ) —
+          fixed to the viewport rather than sized to the full scrollable page,
+          both for perf (one viewport-sized physics mesh instead of one
+          scaled to a multi-screen-tall page) and so it stays put while
+          scrolling. No overlay text (see neon-mesh.tsx) — pointer events
+          stay enabled, since that's what drives the mesh's cursor
+          interaction, while real content still receives its own clicks: the
+          nav has an explicit z-index above it, the footer renders later in
+          DOM (plus has its own opaque background), and every .sec section
+          below is position:relative so its content stacks above this fixed,
+          auto-z-index sibling. opacity-60: reads as background texture, not
+          a competing focal point. */}
+      <NeonMesh className="fixed inset-0 h-screen opacity-60" />
+
       <main id="main">
         <section className={styles.hero}>
-          {/* Purely decorative background — mouse-reactive mesh, no overlay
-              text (see neon-mesh.tsx) — so pointer events stay enabled here
-              (that's what drives the mesh's cursor interaction) while the
-              real hero content below still receives its own clicks, since
-              it's positioned later in DOM order at the same stacking level.
-              opacity-60: toned down further so it reads as texture behind
-              the real headline/CTAs, not a competing focal point. */}
-          <NeonMesh className="absolute inset-0 h-full opacity-60" />
-
           <span className={styles.eyebrow}>
             <span className={styles.dot} />
             Live on Stellar testnet
