@@ -213,6 +213,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "badge-ledger"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "base16ct"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1185,6 +1192,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
+name = "raffle-escrow"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "rand"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1871,6 +1885,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sponsor-payouts"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2553,6 +2574,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellarcade-quest-ledger-v2"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "stellarcade-quest-redeemer"
 version = "0.1.0"
 dependencies = [
@@ -2896,6 +2924,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellarcade-wallet-reserves"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+]
+
+[[package]]
 name = "stellarcade-wordle-clone"
 version = "0.1.0"
 dependencies = [
@@ -2998,6 +3033,13 @@ checksum = "2e70e4c5a0e0a8a4823ad65dfe1a6930e4f4d756dcd9dd7939022b5e8c501215"
 dependencies = [
  "num-conv",
  "time-core",
+]
+
+[[package]]
+name = "treasury-streams"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
 ]
 
 [[package]]
