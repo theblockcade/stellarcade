@@ -65,7 +65,12 @@ export function FaqAccordionMonochrome({ items, className }: FaqAccordionMonochr
         return (
           <li
             key={item.question}
-            className="group relative overflow-hidden rounded-3xl border border-border bg-card backdrop-blur-xl transition-all duration-500 hover:-translate-y-0.5 focus-within:-translate-y-0.5 shadow-[0_36px_140px_-60px_rgba(10,10,10,0.95)]"
+            // bg-card (--sc-bg-card) is only 5% white — fine as a glass tint
+            // over a solid page, but this app now runs an animated mesh
+            // behind every section, so a literal near-opaque background is
+            // used instead of the token (still blurred, so it still reads as
+            // "glass," just not see-through to the moving lines underneath).
+            className="group relative overflow-hidden rounded-3xl border border-border bg-[rgba(10,10,10,0.85)] backdrop-blur-xl transition-all duration-500 hover:-translate-y-0.5 focus-within:-translate-y-0.5 shadow-[0_36px_140px_-60px_rgba(10,10,10,0.95)]"
             onMouseMove={setCardGlow}
             onMouseLeave={clearCardGlow}
           >

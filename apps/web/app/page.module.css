@@ -176,11 +176,20 @@
   padding: 32px;
   border-radius: 20px;
   border: 1px solid var(--glass-border);
-  background: var(--bg-card);
+  /* --bg-card (@stellarcade/tokens' --sc-bg-card) is only 5% white — a subtle
+     glass tint over a solid page background, but with the neon-mesh now
+     running behind every section, that same 5% let the animated lines bleed
+     straight through the card. Matches the near-solid + blur treatment the
+     hero mockup cards already use (see landing/mockups.module.css's .card). */
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(16px);
 }
 
 .platCardAccent {
-  background: linear-gradient(135deg, rgba(0, 255, 204, 0.08), transparent 60%);
+  background:
+    linear-gradient(135deg, rgba(0, 255, 204, 0.08), transparent 60%),
+    rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(16px);
 }
 
 .platCard h3 {
