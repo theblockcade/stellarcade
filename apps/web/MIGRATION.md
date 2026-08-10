@@ -55,13 +55,23 @@ differently than React 18 — `AppSidebar`'s mobile-nav hiding needed a real
 `inert={boolean}` prop instead of the `inert: ""` string hack the original
 React 18 code used.
 
+## `ProfileSettings` — now ported too
+
+Live at `/profile`. Also pulled in `WalletSessionService` (520 lines),
+`useWalletStatus`, `account-memory-service`, and `typed-api-sdk`'s
+`ApiClient` (retry logic + error mapping, 381 lines, 36 ported tests).
+Verified in a running `next dev` server: heading, form fields, sticky save
+footer, both reward-trend cards, the profile-overview stats group (all 4
+metrics), and the account switcher all rendered — including the expected
+"resource not found" error state on the reward cards, since no backend is
+running in this dev environment (that's correct behavior, not a bug).
+
 ## Not yet ported (real work remaining)
 
 | Page/piece | Frontend size | Depends on |
 |---|---|---|
 | `GameLobby` (`/`, `/games` in the old app) | 1150 lines | Deep: `hooks/v1/*`, `services/soroban-contract-client`, `services/soroban-contract-dev`, many `components/v1/*` |
-| `ProfileSettings` (`/profile`) | 384 lines | `AccountSwitcher`, `DraftPresenceIndicator`, `SensitiveActionChecklist`, `StickyActionsFooter`, `CollapsibleStatsGroup`, `RewardBalanceSparklineCard`, `useWalletStatus` (`GlobalStateStore` is now ported) |
-| ~160 remaining `components/v1/*` | — | Not audited component-by-component yet |
+| ~155 remaining `components/v1/*` | — | Not audited component-by-component yet |
 
 ## Suggested order for the next slice
 
