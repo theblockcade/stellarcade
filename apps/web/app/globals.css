@@ -1,3 +1,5 @@
+@import "tailwindcss";
+@import "tw-animate-css";
 @import "@stellarcade/tokens/css";
 
 /* Same alias pattern as frontend/src/index.css: keep the --accent/--bg-dark/
@@ -18,45 +20,127 @@
   --glass-border: var(--sc-border-glass);
 }
 
-* {
-  box-sizing: border-box;
+/*
+ * shadcn/ui (via 21st.dev) token bridge. Sources the same @stellarcade/tokens
+ * values as above rather than hardcoding new colors — this is a second view
+ * onto the same palette, not a competing one.
+ *
+ * --accent above is this app's brand color (bright teal, used directly all
+ * over the ported CSS, e.g. AppShell.css). shadcn's "accent" role is a
+ * different concept — a neutral hover/highlight surface — so it's bridged
+ * through --shadcn-accent* here instead of reusing the --accent name, which
+ * would silently repaint every existing var(--accent) usage.
+ */
+:root {
+  --radius: 0.75rem;
+
+  --background: var(--sc-bg-dark);
+  --foreground: var(--sc-text-main);
+
+  --card: var(--sc-bg-card);
+  --card-foreground: var(--sc-text-main);
+
+  --popover: var(--sc-bg-card);
+  --popover-foreground: var(--sc-text-main);
+
+  --primary: var(--sc-accent);
+  --primary-foreground: #000000;
+
+  --secondary: var(--sc-bg-card);
+  --secondary-foreground: var(--sc-text-main);
+
+  --muted: var(--sc-bg-card);
+  --muted-foreground: var(--sc-text-dim);
+
+  --shadcn-accent: var(--sc-bg-card);
+  --shadcn-accent-foreground: var(--sc-text-main);
+
+  --destructive: var(--sc-error);
+  --destructive-foreground: #ffffff;
+
+  --border: var(--sc-border-glass);
+  --input: var(--sc-border-glass);
+  --ring: var(--sc-accent);
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  font-family: var(--font-family);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--shadcn-accent);
+  --color-accent-foreground: var(--shadcn-accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-family);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-a {
-  color: inherit;
-}
+/*
+ * Wrapped in Tailwind's "base" cascade layer (declared by @import
+ * "tailwindcss" above) rather than left unlayered. Per the CSS cascade-layers
+ * spec, unlayered rules always beat layered ones regardless of specificity —
+ * an unlayered `a { color: inherit }` would silently win over every
+ * shadcn/Tailwind utility class (e.g. text-primary-foreground on a Button
+ * rendered as a Link via asChild), even though the utility class has higher
+ * specificity. Layering these keeps them in the same cascade Tailwind's
+ * utilities layer is designed to override.
+ */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-.skip-link {
-  position: absolute;
-  left: -9999px;
-  top: auto;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  z-index: 1000;
-  padding: 0.75rem 1.5rem;
-  background: var(--accent);
-  color: #000;
-  font-weight: 600;
-  text-decoration: none;
-  border-radius: 0 0 8px 0;
-}
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-family);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
 
-.skip-link:focus {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: auto;
-  height: auto;
-  z-index: 1000;
+  a {
+    color: inherit;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    z-index: 1000;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0 0 8px 0;
+  }
+
+  .skip-link:focus {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    z-index: 1000;
+  }
 }
