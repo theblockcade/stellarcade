@@ -1,0 +1,237 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`WalletStatusCard > Snapshots > matches snapshot for connected state 1`] = `
+<div
+  aria-label="Wallet status"
+  class="wallet-status-card"
+  data-testid="wallet-status-card"
+  role="region"
+>
+  <div
+    class="wallet-status-card__header"
+  >
+    <span
+      aria-label="Wallet status: Connected"
+      class="status-pill status-pill--success status-pill--compact wallet-status-card__badge wallet-status-card__badge--connected"
+      data-testid="wallet-status-badge"
+      data-tone="success"
+      role="status"
+    >
+      <span
+        aria-hidden="true"
+        class="status-pill__icon"
+      >
+        <span
+          class="wallet-status-card__badge-dot"
+        />
+      </span>
+      <span
+        class="status-pill__label"
+      >
+        Connected
+      </span>
+    </span>
+    <div
+      class="wallet-status-card__provider"
+    >
+      <span>
+        Freighter
+      </span>
+    </div>
+    <div
+      class="wallet-status-card__environment"
+    >
+      <span
+        aria-label="Network environment: Testnet"
+        class="environment-badge environment-badge--testnet environment-badge--small"
+        data-environment="testnet"
+        data-testid="environment-badge"
+        role="status"
+      >
+        <span
+          aria-hidden="true"
+          class="environment-badge__icon"
+        />
+        <span
+          class="environment-badge__label"
+        >
+          Testnet
+        </span>
+      </span>
+    </div>
+  </div>
+  <div
+    class="wallet-status-card__body"
+  >
+    <div
+      class="wallet-status-card__row"
+    >
+      <span
+        class="wallet-status-card__label"
+      >
+        Address
+      </span>
+      <span
+        class="wallet-status-card__value wallet-status-card__value--mono"
+        data-testid="wallet-address"
+        title="GABCDEFGHIJKLMNOPQRSTUVWXYZ1234"
+      >
+        GABCDE…1234
+      </span>
+    </div>
+    <div
+      class="wallet-status-card__row"
+    >
+      <span
+        class="wallet-status-card__label"
+      >
+        Network
+      </span>
+      <span
+        class="wallet-status-card__value"
+        data-testid="wallet-network"
+      >
+        testnet
+      </span>
+    </div>
+  </div>
+  <div
+    class="wallet-status-card__actions"
+  >
+    <button
+      class="wallet-status-card__btn wallet-status-card__btn--disconnect"
+      data-testid="wallet-action-btn"
+      type="button"
+    >
+      Disconnect
+    </button>
+  </div>
+</div>
+`;
+
+exports[`WalletStatusCard > Snapshots > matches snapshot for disconnected state 1`] = `
+<div
+  aria-label="Wallet status"
+  class="wallet-status-card"
+  data-testid="wallet-status-card"
+  role="region"
+>
+  <div
+    class="wallet-status-card__header"
+  >
+    <span
+      aria-label="Wallet status: Disconnected"
+      class="status-pill status-pill--neutral status-pill--compact wallet-status-card__badge wallet-status-card__badge--disconnected"
+      data-testid="wallet-status-badge"
+      data-tone="neutral"
+      role="status"
+    >
+      <span
+        aria-hidden="true"
+        class="status-pill__icon"
+      >
+        <span
+          class="wallet-status-card__badge-dot"
+        />
+      </span>
+      <span
+        class="status-pill__label"
+      >
+        Disconnected
+      </span>
+    </span>
+  </div>
+  <div
+    class="wallet-status-card__body"
+  >
+    <div
+      class="wallet-status-card__row"
+    >
+      <span
+        class="wallet-status-card__label"
+      >
+        Address
+      </span>
+      <span
+        class="wallet-status-card__value wallet-status-card__value--muted"
+        data-testid="wallet-address"
+      >
+        —
+      </span>
+    </div>
+    <div
+      class="wallet-status-card__row"
+    >
+      <span
+        class="wallet-status-card__label"
+      >
+        Network
+      </span>
+      <span
+        class="wallet-status-card__value wallet-status-card__value--muted"
+        data-testid="wallet-network"
+      >
+        —
+      </span>
+    </div>
+  </div>
+  <div
+    class="wallet-status-card__actions"
+  >
+    <button
+      class="wallet-status-card__btn wallet-status-card__btn--connect"
+      data-testid="wallet-action-btn"
+      type="button"
+    >
+      Connect
+    </button>
+  </div>
+</div>
+`;
+
+exports[`WalletStatusCard > Snapshots > matches snapshot for loading state 1`] = `
+<div
+  aria-busy="true"
+  aria-label="Loading wallet status"
+  class="wallet-status-card wallet-status-card--skeleton"
+  data-testid="wallet-status-card"
+>
+  <div
+    class="wallet-status-card__header"
+  >
+    <div
+      class="stellarcade-skeleton stellarcade-skeleton-base wallet-status-card__skeleton-badge"
+      data-testid="skeleton-base"
+      style="width: 90px; height: 22px; border-radius: 9999px;"
+    />
+    <div
+      class="stellarcade-skeleton stellarcade-skeleton-base wallet-status-card__skeleton-line"
+      data-testid="skeleton-base"
+      style="width: 80px; height: 14px;"
+    />
+  </div>
+  <div
+    class="wallet-status-card__body"
+  >
+    <div
+      class="stellarcade-skeleton stellarcade-skeleton-base wallet-status-card__skeleton-line"
+      data-testid="skeleton-base"
+      style="width: 60%; height: 14px;"
+    />
+    <div
+      class="stellarcade-skeleton stellarcade-skeleton-base wallet-status-card__skeleton-line"
+      data-testid="skeleton-base"
+      style="width: 40%; height: 14px;"
+    />
+  </div>
+  <div
+    class="wallet-status-card__actions"
+  >
+    <div
+      class="stellarcade-skeleton stellarcade-skeleton-base"
+      data-testid="skeleton-base"
+      style="width: 100px; height: 36px;"
+    />
+  </div>
+</div>
+`;
