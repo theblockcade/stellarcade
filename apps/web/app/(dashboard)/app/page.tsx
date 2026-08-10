@@ -1,4 +1,4 @@
-import GameLobby from "../../src/components/GameLobby";
+import GameLobby from "../../../src/components/GameLobby";
 
 /**
  * The arcade lobby route — what the landing page's "Enter the arcade" CTA
