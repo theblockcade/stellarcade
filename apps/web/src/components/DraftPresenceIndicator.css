@@ -1,0 +1,106 @@
+.draft-presence {
+  --draft-bg: color-mix(in oklab, var(--surface-elevated, rgba(255, 255, 255, 0.08)) 92%, transparent);
+  --draft-border: color-mix(in oklab, var(--glass-border, rgba(255, 255, 255, 0.16)) 86%, transparent);
+  --draft-text: var(--text-main, #f5f7fb);
+  --draft-text-muted: var(--text-secondary, #a8b5c8);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--draft-border);
+  border-radius: 0.5rem;
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.draft-presence--saving {
+  --draft-border: color-mix(in oklab, #3b82f6 45%, rgba(255, 255, 255, 0.16));
+}
+
+.draft-presence--saved {
+  --draft-border: color-mix(in oklab, #22c55e 45%, rgba(255, 255, 255, 0.16));
+}
+
+.draft-presence--conflict {
+  --draft-border: color-mix(in oklab, #f59e0b 45%, rgba(255, 255, 255, 0.16));
+}
+
+.draft-presence--stale {
+  opacity: 0.7;
+}
+
+.draft-presence__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  font-size: 0.875rem;
+}
+
+.draft-presence__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.draft-presence__time {
+  color: var(--draft-text-muted);
+  font-weight: 400;
+}
+
+.draft-presence__spinner {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid color-mix(in oklab, #3b82f6 30%, transparent);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: draft-spin 0.8s linear infinite;
+}
+
+@keyframes draft-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.draft-presence__action {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--draft-border);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--draft-text);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease-in-out;
+}
+
+.draft-presence__action:hover {
+  background: color-mix(in oklab, var(--surface-elevated, rgba(255, 255, 255, 0.08)) 85%, transparent);
+}
+
+.draft-presence__action--discard {
+  color: var(--draft-text-muted);
+}
+
+.draft-presence__action:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent, #7de2d1) 55%, white);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .draft-presence__label {
+    display: none;
+  }
+
+  .draft-presence__time {
+    display: none;
+  }
+}

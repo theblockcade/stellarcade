@@ -1,0 +1,106 @@
+/**
+ * Themeable form error summary — uses CSS variables aligned with app tokens.
+ */
+.form-error-summary {
+  --form-error-bg: var(--stc-error-bg, rgba(220, 53, 69, 0.08));
+  --form-error-border: var(--stc-error-border, #dc3545);
+  --form-error-text: var(--stc-error-text, #842029);
+  --form-error-link: var(--stc-error-link, #0d6efd);
+  --form-error-radius: var(--stc-radius-md, 6px);
+  --form-error-padding: var(--stc-space-md, 12px);
+
+  border: 1px solid var(--form-error-border);
+  background: var(--form-error-bg);
+  color: var(--form-error-text);
+  border-radius: var(--form-error-radius);
+  padding: var(--form-error-padding);
+  margin-bottom: 1rem;
+}
+
+.form-error-summary__title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.form-error-summary__list {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.form-error-summary__item {
+  margin: 0.35rem 0;
+}
+
+.form-error-summary__link {
+  color: var(--form-error-link);
+  text-decoration: underline;
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.form-error-summary__link:focus-visible {
+  outline: 2px solid var(--form-error-link);
+  outline-offset: 2px;
+}
+
+.form-error-summary__field {
+  text-transform: capitalize;
+}
+
+.form-error-summary__message {
+  display: inline;
+}
+
+/* Pending-submit indicator */
+.form-error-summary__pending {
+  font-size: 0.8125rem;
+  color: var(--form-error-text);
+  font-style: italic;
+  margin-bottom: 0.5rem;
+  opacity: 0.8;
+}
+
+/* Dimmed error list during pending submit */
+.form-error-summary__list--dimmed {
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+.field-hint {
+  --field-hint-bg: var(--stc-error-bg, rgba(220, 53, 69, 0.08));
+  --field-hint-border: var(--stc-error-border, #dc3545);
+  --field-hint-text: var(--stc-error-text, #842029);
+  --field-hint-radius: var(--stc-radius-sm, 4px);
+  --field-hint-padding: var(--stc-space-xs, 4px);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  padding: var(--field-hint-padding) 0.5rem;
+  border-radius: var(--field-hint-radius);
+  border: 1px solid var(--field-hint-border);
+  background: var(--field-hint-bg);
+  color: var(--field-hint-text);
+  margin-top: 0.25rem;
+}
+
+.field-hint--error {
+  --field-hint-bg: var(--stc-error-bg, rgba(220, 53, 69, 0.08));
+  --field-hint-border: var(--stc-error-border, #dc3545);
+  --field-hint-text: var(--stc-error-text, #842029);
+}
+
+.field-hint--warning {
+  --field-hint-bg: var(--stc-warning-bg, rgba(255, 193, 7, 0.08));
+  --field-hint-border: var(--stc-warning-border, #ffc107);
+  --field-hint-text: var(--stc-warning-text, #856404);
+}
+
+.field-hint--info {
+  --field-hint-bg: var(--stc-info-bg, rgba(13, 110, 253, 0.08));
+  --field-hint-border: var(--stc-info-border, #0d6efd);
+  --field-hint-text: var(--stc-info-text, #0a58ca);
+}

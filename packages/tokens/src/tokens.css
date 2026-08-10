@@ -1,0 +1,28 @@
+/*
+ * @stellarcade/tokens — CSS custom properties.
+ * Mirrors src/colors.ts and src/typography.ts exactly. Import this instead
+ * of redefining these values locally. Component-scoped tokens (--cef-*,
+ * --chr-*, --csg-*, etc.) are intentionally NOT here — they stay local to
+ * their components. This file only carries the tokens that should be
+ * shared app-wide.
+ */
+:root {
+  --sc-bg-dark: #050505;
+  --sc-bg-card: rgba(255, 255, 255, 0.05);
+
+  --sc-accent: #00ffcc;
+  --sc-accent-glow: rgba(0, 255, 204, 0.4);
+
+  --sc-text-main: #ffffff;
+  --sc-text-dim: #a0a0a0;
+
+  --sc-border-glass: rgba(255, 255, 255, 0.1);
+
+  --sc-error: #ef4444;
+  --sc-warning: #f59e0b;
+  --sc-success: #22c55e;
+  --sc-info: #3b82f6;
+
+  --sc-font-base: "Outfit", sans-serif;
+  --sc-font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+}

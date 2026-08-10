@@ -1,0 +1,40 @@
+"use client";
+
+import React from "react";
+import { useI18n, type Locale } from "../i18n/provider";
+
+/** Ported verbatim from frontend/src/components/LocaleSwitcher.tsx. */
+
+const localeNames: Record<Locale, string> = {
+  en: "English",
+  es: "Español",
+  fr: "Français",
+  de: "Deutsch",
+  ja: "日本語",
+};
+
+export const LocaleSwitcher: React.FC = () => {
+  const { locale, setLocale, resetLocale, t } = useI18n();
+
+  const handleLocaleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLocale = event.target.value as Locale;
+    setLocale(newLocale);
+  };
+
+  return (
+    <div className="locale-switcher">
+      <select value={locale} onChange={handleLocaleChange} className="locale-select">
+        {Object.entries(localeNames).map(([code, name]) => (
+          <option key={code} value={code}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <button type="button" onClick={resetLocale} className="locale-reset-btn" title={t("locale.reset", "Reset to Default")}>
+        ↺
+      </button>
+    </div>
+  );
+};
+
+export default LocaleSwitcher;

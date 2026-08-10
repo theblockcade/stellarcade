@@ -1,12 +1,19 @@
+@import "@stellarcade/tokens/css";
+
+/* Root tokens now alias @stellarcade/tokens' --sc-* custom properties
+   instead of hardcoding values — packages/tokens/src/colors.ts is the
+   source of truth, tested against this exact set of values (see
+   packages/tokens/src/colors.test.ts). Existing --accent/--bg-dark/etc
+   names are kept unchanged so no component needs to be touched. */
 :root {
-  --font-family: "Outfit", sans-serif;
-  --bg-dark: #050505;
-  --bg-card: rgba(255, 255, 255, 0.05);
-  --accent: #00ffcc;
-  --accent-glow: rgba(0, 255, 204, 0.4);
-  --text-main: #ffffff;
-  --text-dim: #a0a0a0;
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --font-family: var(--sc-font-base);
+  --bg-dark: var(--sc-bg-dark);
+  --bg-card: var(--sc-bg-card);
+  --accent: var(--sc-accent);
+  --accent-glow: var(--sc-accent-glow);
+  --text-main: var(--sc-text-main);
+  --text-dim: var(--sc-text-dim);
+  --glass-border: var(--sc-border-glass);
 }
 
 * {

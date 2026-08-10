@@ -1,0 +1,89 @@
+/*
+ * Ported from frontend/src/index.css — extracted just the app-shell layout
+ * rules (app-container/app-main-layout/app-header/logo/app-content/
+ * app-footer/footer-*). The rest of that 1900+ line file is per-page/
+ * per-component styling already ported alongside each component's own
+ * .css file elsewhere in this directory.
+ */
+
+.app-container {
+  min-height: 100vh;
+}
+
+.app-main-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .app-main-layout {
+    margin-left: 280px;
+  }
+}
+
+.app-header {
+  padding: 1.5rem 2rem 1.5rem 4.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+@media (min-width: 1024px) {
+  .app-header {
+    padding-left: 2rem;
+  }
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+
+.app-content {
+  flex: 1;
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.app-content:focus {
+  outline: none;
+}
+
+.app-content:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.app-footer {
+  padding: 2rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footer-links a {
+  color: var(--text-dim);
+  text-decoration: none;
+}

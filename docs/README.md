@@ -5,6 +5,8 @@ Welcome to the official documentation for Stellarcade. This folder contains all 
 ## 📖 Available Guides
 
 - **[Architecture](ARCHITECTURE.md)**: High-level system design and data flow.
+- **[Design](design.md)**: Shared design tokens (`packages/tokens`), and the semantic-color drift found across frontend components.
+- **[Contracts Status](../contracts/STATUS.md)**: Classification of all 151 contract crates (implemented/partial/stub).
 - **[Game Rules](GAME_RULES.md)**: Mechanics, payouts, and fairness for each game.
 - **[API Documentation](API_DOCUMENTATION.md)**: REST API reference for frontend integration.
 - **[Setup Guide](SETUP.md)**: Local development environment configuration.

@@ -1,0 +1,49 @@
+.segmented-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  flex-wrap: wrap;
+}
+
+.segmented-control__button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim, #a0a0a0);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.4rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.segmented-control__button:hover,
+.segmented-control__button:focus-visible {
+  color: var(--text-main, #ffffff);
+  outline: none;
+}
+
+.segmented-control__button.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main, #ffffff);
+}
+
+.segmented-control__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.segmented-control__count {
+  min-width: 1.3rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 0.76rem;
+  text-align: center;
+}

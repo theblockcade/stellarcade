@@ -1,0 +1,212 @@
+/**
+ * FormErrorSummary — reusable validation error list with field anchors (v1).
+ *
+ * Renders structured [{ field, message }] with accessible semantics and
+ * keyboard-friendly jump links to matching field elements by id.
+ */
+
+import React, { useCallback, useId } from 'react';
+
+import './FormErrorSummary.css';
+
+export interface FormFieldError {
+  field: string;
+  message: string;
+}
+
+export type FieldHintVariant = 'error' | 'warning' | 'info';
+
+export interface FieldHintProps {
+  message: string;
+  variant?: FieldHintVariant;
+  fieldId?: string;
+  className?: string;
+  testId?: string;
+}
+
+export interface FormErrorSummaryProps {
+  /** Structured errors to display */
+  errors: FormFieldError[];
+  /** Prefix for generated anchor hrefs; field id becomes `${fieldIdPrefix}${field}` */
+  fieldIdPrefix?: string;
+  /** Optional title above the list */
+  title?: string;
+  className?: string;
+  testId?: string;
+  /**
+   * When true, indicates a submission is in progress.
+   * Shows a pending indicator and dims the stale error list so users understand
+   * the form is being re-submitted. Errors are not hidden — they remain accessible
+   * as context until the new submission resolves.
+   */
+  isPendingSubmit?: boolean;
+  /** Label shown in the pending indicator. @default 'Submitting…' */
+  pendingLabel?: string;
+  /** 
+   * Optional callback to intercept jump link clicks (e.g., for multi-step forms
+   * where the field may be on another, currently hidden step). 
+   */
+  onFocusJump?: (field: string) => void;
+}
+
+function fieldToDomId(prefix: string, field: string): string {
+  const safe = field.replace(/[^a-zA-Z0-9_-]/g, '-');
+  return `${prefix}${safe}`;
+}
+
+export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
+  errors,
+  fieldIdPrefix = 'field-',
+  title = 'Please fix the following:',
+  className = '',
+  testId = 'form-error-summary',
+  isPendingSubmit = false,
+  pendingLabel = 'Submitting…',
+  onFocusJump,
+}) => {
+  const baseId = useId().replace(/:/g, '');
+
+  const focusField = useCallback(
+    (field: string) => {
+      if (onFocusJump) {
+        onFocusJump(field);
+        return;
+      }
+      
+      const id = fieldToDomId(fieldIdPrefix, field);
+      const el = document.getElementById(id);
+      if (el && 'focus' in el && typeof (el as HTMLElement).focus === 'function') {
+        (el as HTMLElement).focus();
+        try {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } catch {
+          el.scrollIntoView();
+        }
+      }
+    },
+    [fieldIdPrefix, onFocusJump],
+  );
+
+  const onKeyJump = useCallback(
+    (e: React.KeyboardEvent<HTMLAnchorElement>, field: string) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        focusField(field);
+      }
+    },
+    [focusField],
+  );
+
+  if (!errors.length && !isPendingSubmit) {
+    return null;
+  }
+
+  const listId = `${testId}-list-${baseId}`;
+
+  return (
+    <div
+      className={`form-error-summary ${className}`.trim()}
+      data-testid={testId}
+      role="region"
+      aria-labelledby={`${testId}-title-${baseId}`}
+      aria-describedby={listId}
+      aria-busy={isPendingSubmit}
+    >
+      <div
+        id={`${testId}-title-${baseId}`}
+        className="form-error-summary__title"
+      >
+        {title}
+      </div>
+
+      {isPendingSubmit && (
+        <div
+          className="form-error-summary__pending"
+          role="status"
+          aria-live="polite"
+          data-testid={`${testId}-pending`}
+        >
+          {pendingLabel}
+        </div>
+      )}
+
+      {errors.length > 0 && (
+        <ul
+          className={`form-error-summary__list${isPendingSubmit ? ' form-error-summary__list--dimmed' : ''}`}
+          id={listId}
+          role="list"
+          aria-live="polite"
+          aria-relevant="additions removals"
+        >
+          {errors.map((err, i) => {
+            const targetId = fieldToDomId(fieldIdPrefix, err.field);
+            return (
+              <li
+                key={`${err.field}-${i}`}
+                className="form-error-summary__item"
+                role="listitem"
+              >
+                <a
+                  href={`#${targetId}`}
+                  className="form-error-summary__link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    focusField(err.field);
+                  }}
+                  onKeyDown={(e) => onKeyJump(e, err.field)}
+                  data-testid={`${testId}-link-${err.field}`}
+                  aria-describedby={`${testId}-msg-${baseId}-${i}`}
+                >
+                  <span className="form-error-summary__field">{err.field}</span>
+                </a>
+                <span
+                  id={`${testId}-msg-${baseId}-${i}`}
+                  className="form-error-summary__message"
+                  role="alert"
+                >
+                  {err.message}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+FormErrorSummary.displayName = 'FormErrorSummary';
+
+export const FieldHint: React.FC<FieldHintProps> = ({
+  message,
+  variant = 'error',
+  fieldId,
+  className = '',
+  testId = 'field-hint',
+}) => {
+  const hintId = useId().replace(/:/g, '');
+
+  const variantClasses: Record<FieldHintVariant, string> = {
+    error: 'field-hint--error',
+    warning: 'field-hint--warning',
+    info: 'field-hint--info',
+  };
+
+  return (
+    <span
+      id={hintId}
+      className={`field-hint ${variantClasses[variant]} ${className}`.trim()}
+      role={variant === 'error' ? 'alert' : 'status'}
+      aria-live="polite"
+      aria-describedby={fieldId}
+      data-testid={testId}
+      data-variant={variant}
+    >
+      {message}
+    </span>
+  );
+};
+
+FieldHint.displayName = 'FieldHint';
+
+export default FormErrorSummary;
