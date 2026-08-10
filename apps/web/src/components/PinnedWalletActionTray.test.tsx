@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { PinnedWalletActionTray } from "./PinnedWalletActionTray.js";
+import { PinnedWalletActionTray } from "./PinnedWalletActionTray";
 
 describe("PinnedWalletActionTray", () => {
   it("renders wallet repeat action buttons", () => {

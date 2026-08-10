@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   BalanceHealthBadge,
   getBalanceHealthMeta,
-} from "./BalanceHealthBadge.js";
+} from "./BalanceHealthBadge";
 
 describe("BalanceHealthBadge", () => {
   it("renders healthy balance state", () => {

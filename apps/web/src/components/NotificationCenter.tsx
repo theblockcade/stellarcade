@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { useErrorStore } from "../store/errorStore.js";
-import { SegmentedControl } from "./SegmentedControl.js";
+import { useErrorStore } from "../store/errorStore";
+import { SegmentedControl } from "./SegmentedControl";
 import "./NotificationCenter.css";
 
 /** Ported verbatim from frontend/src/components/v1/NotificationCenter.tsx. */

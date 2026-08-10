@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SegmentedControl } from "./SegmentedControl.js";
+import { SegmentedControl } from "./SegmentedControl";
 
 describe("SegmentedControl", () => {
   it("marks the active segment and keeps the others inactive", () => {

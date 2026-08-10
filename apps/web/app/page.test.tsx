@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import LandingPage from "./page.js";
+import LandingPage from "./page";
 
 describe("LandingPage", () => {
   it("renders the hero heading", () => {

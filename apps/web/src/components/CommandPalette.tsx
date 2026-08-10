@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import GlobalStateStore from "../services/global-state-store.js";
+import GlobalStateStore from "../services/global-state-store";
 import "./CommandPalette.css";
 
 /** Ported from frontend/src/components/v1/CommandPalette.tsx — only the import paths changed. */

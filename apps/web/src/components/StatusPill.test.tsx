@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { StatusPill } from './StatusPill.js';
+import { StatusPill } from './StatusPill';
 
 describe('StatusPill', () => {
   it('renders the requested label and tone', () => {

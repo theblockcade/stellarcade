@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_FEATURE_FLAGS, FeatureFlagsProvider, useFeatureFlags } from "./feature-flags.js";
+import { DEFAULT_FEATURE_FLAGS, FeatureFlagsProvider, useFeatureFlags } from "./feature-flags";
 
 function Probe() {
   const { flags, getFlag, setFlag, resetFlags } = useFeatureFlags();

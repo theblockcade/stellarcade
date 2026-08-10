@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { useErrorStore } from "./errorStore.js";
-import { ErrorDomain, ErrorSeverity } from "../types/errors.js";
-import type { AppError } from "../types/errors.js";
+import { useErrorStore } from "./errorStore";
+import { ErrorDomain, ErrorSeverity } from "../types/errors";
+import type { AppError } from "../types/errors";
 
 function makeError(code: string, message = "test error"): AppError {
   return {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import NotificationCenter from "./NotificationCenter.js";
-import { useErrorStore } from "../store/errorStore.js";
+import NotificationCenter from "./NotificationCenter";
+import { useErrorStore } from "../store/errorStore";
 
 beforeEach(() => {
   useErrorStore.getState().clearToasts();

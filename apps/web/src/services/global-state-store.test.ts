@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import GlobalStateStore from "./global-state-store.js";
+import GlobalStateStore from "./global-state-store";
 import {
   isBannerDismissed,
   persistBannerDismissal,
@@ -8,7 +8,7 @@ import {
   deleteSavedFilterPreset,
   getTableDensityPreference,
   persistTableDensityPreference,
-} from "./global-state-store.js";
+} from "./global-state-store";
 
 /**
  * Ported from frontend/tests/global-state.test.ts, minus the two cases that

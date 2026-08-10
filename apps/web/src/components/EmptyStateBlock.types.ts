@@ -5,7 +5,7 @@
  * EmptyStateBlock component, providing a clean contract for consumers.
  */
 
-import type { AppError } from '../types/errors.js';
+import type { AppError } from '../types/errors';
 
 /**
  * Context variant that provides default icon, title, and description.

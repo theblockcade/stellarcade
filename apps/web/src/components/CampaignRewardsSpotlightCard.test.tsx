@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { describe, expect, it, vi } from "vitest";
-import { CampaignRewardsSpotlightCard } from "./CampaignRewardsSpotlightCard.js";
+import { CampaignRewardsSpotlightCard } from "./CampaignRewardsSpotlightCard";
 
 describe("CampaignRewardsSpotlightCard", () => {
   it("renders active campaign and rewards copy", () => {

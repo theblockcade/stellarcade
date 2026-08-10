@@ -9,8 +9,8 @@
  * - Error integration
  */
 
-import type { AppError } from '../types/errors.js';
-import { ErrorSeverity } from '../types/errors.js';
+import type { AppError } from '../types/errors';
+import { ErrorSeverity } from '../types/errors';
 import type {
   EmptyStateBlockProps,
   VariantConfig,

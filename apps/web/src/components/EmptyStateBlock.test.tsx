@@ -15,9 +15,9 @@ import { describe, expect, it, vi } from 'vitest';
 // jest-dom matchers are registered globally in vitest.setup.ts (the
 // /vitest variant, which is compatible with globals:false — the plain
 // '@testing-library/jest-dom' import here required a global `expect`).
-import { EmptyStateBlock } from './EmptyStateBlock.js';
-import type { AppError } from '../types/errors.js';
-import { ErrorDomain, ErrorSeverity } from '../types/errors.js';
+import { EmptyStateBlock } from './EmptyStateBlock';
+import type { AppError } from '../types/errors';
+import { ErrorDomain, ErrorSeverity } from '../types/errors';
 
 describe('EmptyStateBlock', () => {
   describe('Rendering with minimal props', () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useI18n, type Locale } from "../i18n/provider.js";
+import { useI18n, type Locale } from "../i18n/provider";
 
 /** Ported verbatim from frontend/src/components/LocaleSwitcher.tsx. */
 

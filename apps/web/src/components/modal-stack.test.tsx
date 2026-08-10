@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ModalOverlay, ModalStackProvider } from "./modal-stack.js";
+import { ModalOverlay, ModalStackProvider } from "./modal-stack";
 
 describe("ModalOverlay", () => {
   it("renders nothing when inactive", () => {

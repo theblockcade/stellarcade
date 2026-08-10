@@ -7,12 +7,12 @@ import {
   SkeletonPreset,
   LoadingState,
   PageSkeletonOrchestrator,
-} from "./LoadingSkeletonSet.js";
+} from "./LoadingSkeletonSet";
 import {
   parseDimension,
   classNames,
   prefersReducedMotion,
-} from "../utils/skeletonUtils.js";
+} from "../utils/skeletonUtils";
 import {
   SKELETON_PRESETS,
   skHeightThumbnail,
@@ -24,8 +24,8 @@ import {
   skSizeAvatarMd,
   skRadiusMd,
   skRadiusLg,
-} from "./skeleton.tokens.js";
-import type { SkeletonPresetType } from "./skeleton.tokens.js";
+} from "./skeleton.tokens";
+import type { SkeletonPresetType } from "./skeleton.tokens";
 
 // ── Utility tests ───────────────────────────────────────────────────
 

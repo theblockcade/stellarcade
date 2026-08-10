@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { I18nProvider, useI18n, resolveIntlLocale, isSupportedLocale } from "./provider.js";
+import { I18nProvider, useI18n, resolveIntlLocale, isSupportedLocale } from "./provider";
 
 function Probe() {
   const { locale, t, setLocale } = useI18n();

@@ -4,7 +4,7 @@ import {
   classNames,
   parseDimension,
   useReducedMotion,
-} from "../utils/skeletonUtils.js";
+} from "../utils/skeletonUtils";
 import {
   SKELETON_PRESETS,
   skRadiusSm,

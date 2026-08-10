@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AppSidebar } from "./AppSidebar.js";
+import { AppSidebar } from "./AppSidebar";
 
 function mockMatchMedia(matches: boolean) {
   Object.defineProperty(window, "matchMedia", {
