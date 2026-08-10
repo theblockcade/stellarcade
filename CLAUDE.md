@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL RULE — GitHub Account Changes
+
+**NEVER make any changes to GitHub accounts, organizations, or repository settings without explicit written confirmation from the user first.** This includes:
+- GitHub organization profile settings (name, description, location, URL, etc.)
+- GitHub account or profile settings
+- Repository settings, permissions, or access control via API or otherwise
+
+Always show the user exactly what will be changed and wait for a clear "yes, do it" before proceeding. No exceptions.
+
 ## Project Overview
 
 **StellarCade** is a decentralized arcade gaming platform on the Stellar blockchain using Soroban smart contracts. The project has two main components:
