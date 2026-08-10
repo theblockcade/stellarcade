@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import styles from "./page.module.css";
 
 const FEATURES = [
@@ -44,12 +45,14 @@ export default function LandingPage() {
           </p>
 
           <div className={styles.cta}>
-            <Link href="/app" className={`${styles.btn} ${styles.btnPrimary}`}>
-              Enter the arcade
-            </Link>
-            <Link href="/games" className={`${styles.btn} ${styles.btnSecondary}`}>
-              Browse games
-            </Link>
+            <Button asChild variant="brand" size="pill">
+              <Link href="/app">Enter the arcade</Link>
+            </Button>
+            {/* No dedicated /games route (see AppShell's routeToPath) — GameLobby
+                at /app serves both the lobby and the games concern. */}
+            <Button asChild variant="brand-outline" size="pill">
+              <Link href="/app">Browse games</Link>
+            </Button>
           </div>
         </section>
 

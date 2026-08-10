@@ -77,44 +77,6 @@
   margin-top: 36px;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 13px 26px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 15px;
-  text-decoration: none;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-}
-
-.btnPrimary {
-  background: var(--accent);
-  color: #001a14;
-}
-
-.btnPrimary:hover {
-  box-shadow: 0 10px 30px var(--accent-glow);
-}
-
-.btnSecondary {
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
-  color: var(--text-main);
-}
-
-.btnSecondary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .features {
   padding: 80px 24px 120px;
   max-width: 1080px;
