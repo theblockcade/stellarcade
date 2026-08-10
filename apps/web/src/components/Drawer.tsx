@@ -106,7 +106,10 @@ export const Drawer: React.FC<DrawerProps> = ({
         aria-label={title ?? 'Drawer'}
         tabIndex={-1}
         data-testid={testId}
-        {...(!open ? { inert: '' as unknown as string } : {})}
+        // React 19 supports `inert` as a real boolean prop — see the same
+        // fix in AppSidebar.tsx for why this differs from the original
+        // React 18 `inert: ""` string hack.
+        inert={!open || undefined}
       >
         <div className="drawer__header">
           {title && <h2 className="drawer__title">{title}</h2>}
