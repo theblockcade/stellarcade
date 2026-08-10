@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/accordion";
 import { LandingNav } from "./landing/nav";
 import { FairnessProofMockup, PrizePoolMockup, QuestMockup } from "./landing/mockups";
+import { CinematicFooter } from "@/components/ui/motion-footer";
+import { FloatingPathsBackground } from "@/components/ui/floating-paths";
 import styles from "./page.module.css";
 
 const FEATURES = [
@@ -97,6 +99,13 @@ export default function LandingPage() {
 
       <main id="main">
         <section className={styles.hero}>
+          <FloatingPathsBackground
+            position={-1}
+            className="absolute inset-0 h-full pointer-events-none"
+          >
+            {null}
+          </FloatingPathsBackground>
+
           <span className={styles.eyebrow}>
             <span className={styles.dot} />
             Live on Stellar testnet
@@ -314,53 +323,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* CTA */}
-        <section className={styles.wrap}>
-          <div className={styles.closingCta}>
-            <h2 className={styles.secTitle}>Ready to play a provably-fair round?</h2>
-            <p className={styles.secBody}>
-              Connect Freighter and enter the arcade — or build your own tools against
-              @stellarcade/sdk.
-            </p>
-            <div className={styles.cta}>
-              <Button asChild variant="brand" size="pill">
-                <Link href="/app">Enter the arcade</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
       </main>
 
-      <footer className={styles.footerNew}>
-        <div className={styles.wrap}>
-          <div className={styles.footerCols}>
-            <div className={styles.footerBrand}>
-              <span className={styles.brandMark}>StellarCade</span>
-              <p>A decentralized, provably-fair arcade on Stellar/Soroban.</p>
-            </div>
-            <div className={styles.footerCol}>
-              <h4>Product</h4>
-              <Link href="/app">Games</Link>
-              <Link href="/portfolio">Portfolio</Link>
-              <a href="#features">Quests &amp; badges</a>
-            </div>
-            <div className={styles.footerCol}>
-              <h4>Fairness</h4>
-              <a href="#fairness">How it works</a>
-              <a href="#platforms">Developer SDK</a>
-              <a href="#bot">Telegram &amp; Discord</a>
-            </div>
-            <div className={styles.footerCol}>
-              <h4>Legal</h4>
-              <Link href="/terms">Terms</Link>
-              <Link href="/privacy">Privacy</Link>
-            </div>
-          </div>
-          <div className={styles.footerBottom}>
-            <span>© 2026 StellarCade. All rights reserved.</span>
-          </div>
-        </div>
-      </footer>
+      {/* Cinematic scroll-reveal footer (see src/components/ui/motion-footer.tsx)
+          replaces the old static closing-CTA section + link-column footer —
+          it covers both roles: closing CTA ("Ready to enter?") and site nav
+          (arcade/games/portfolio/FAQ/terms/privacy). */}
+      <CinematicFooter />
     </>
   );
 }
