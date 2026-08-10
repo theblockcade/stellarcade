@@ -144,6 +144,19 @@
   gap: 32px;
 }
 
+/* These 3-step blocks (fairness + bot explainers) never had a background of
+   their own — they didn't need one when only the hero had a moving
+   background behind it. Now that the mesh runs behind every section, plain
+   text sitting directly over it reads as broken/unstyled, so they get the
+   same near-solid + blur treatment as .platCard and the FAQ cards. */
+.step {
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(16px);
+}
+
 .step h4 {
   margin: 10px 0 8px;
   font-size: 16px;

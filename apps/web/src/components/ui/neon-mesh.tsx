@@ -122,6 +122,14 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
       mouse.targetAngleY = 0;
     };
 
+    // e.relatedTarget is null only when the pointer actually leaves the
+    // document/viewport (not when it moves between two elements inside it) —
+    // the standard way to detect "cursor left the window" from a
+    // document-level listener.
+    const handleDocumentMouseOut = (e: MouseEvent) => {
+      if (!e.relatedTarget) handleMouseLeave();
+    };
+
     const initMesh = () => {
       points = [];
       constraints = [];
@@ -178,8 +186,14 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
 
     handleResize();
     window.addEventListener("resize", handleResize);
-    container.addEventListener("mousemove", handleMouseMove);
-    container.addEventListener("mouseleave", handleMouseLeave);
+    // Listening on the mesh's own container (as the source component did)
+    // only fires while the mouse is over an *uncovered* patch of it — fine
+    // when the mesh lived only behind the hero's mostly-empty space, but now
+    // that it runs behind every section, real content covers most of the
+    // page and the container itself receives almost no mousemove events.
+    // window-level tracking follows the cursor regardless of what's on top.
+    window.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseout", handleDocumentMouseOut);
 
     let time = 0;
 
@@ -330,8 +344,8 @@ export function NeonMesh({ title = "", subtitle = "", description = "", classNam
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", handleResize);
-      container.removeEventListener("mousemove", handleMouseMove);
-      container.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseout", handleDocumentMouseOut);
     };
   }, []);
 
