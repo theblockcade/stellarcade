@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Portfolio } from "../../src/components/Portfolio";
+import { Portfolio } from "../../../src/components/Portfolio";
 
 /**
  * Thin Next route wrapper around the ported Portfolio component. The
@@ -17,8 +17,10 @@ export default function PortfolioPage() {
   return (
     <Portfolio
       onOpenWallet={() => router.push("/profile")}
-      onBrowseRewards={() => router.push("/games")}
-      onBrowseCollectibles={() => router.push("/games")}
+      // There is no dedicated /games route (see AppShell's routeToPath) —
+      // GameLobby at /app serves both the lobby and the games concern.
+      onBrowseRewards={() => router.push("/app")}
+      onBrowseCollectibles={() => router.push("/app")}
     />
   );
 }
