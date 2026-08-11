@@ -22,6 +22,16 @@
 - **Frontend**: Vite + React (TypeScript)
 - **Infrastructure**: Docker, GitHub Actions
 
+## 📦 TypeScript SDK
+
+StellarCade ships with an official, open-source TypeScript SDK for wallet connection, game interactions, and client-side fairness verification:
+
+```bash
+npm install @stellarcade/sdk @stellar/stellar-sdk
+```
+
+For setup and client configuration details, see the [stellarcade-sdk repository](https://github.com/TheBlockCade/stellarcade-sdk).
+
 ## 🚀 Quick Start
 
 ### Prerequisites
