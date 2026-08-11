@@ -122,16 +122,16 @@ export type { SkeletonShape, SkeletonPresetType } from "./skeleton.tokens";
 
 // Quest Components
 export { QuestCard, default as QuestCardDefault } from "./QuestCard";
-export type { QuestCardProps } from "../types/v1/quest";
+export type { QuestCardProps } from "../types/quest";
 
 export { QuestProgressBar, default as QuestProgressBarDefault } from "./QuestProgressBar";
-export type { QuestProgressBarProps } from "../types/v1/quest";
+export type { QuestProgressBarProps } from "../types/quest";
 
 export { QuestProgressRing, default as QuestProgressRingDefault } from "./QuestProgressRing";
-export type { QuestProgressRingProps } from "../types/v1/quest";
+export type { QuestProgressRingProps } from "../types/quest";
 
 export { QuestWorkspaceHeader, default as QuestWorkspaceHeaderDefault } from "./QuestWorkspaceHeader";
-export type { QuestWorkspaceHeaderProps } from "../types/v1/quest";
+export type { QuestWorkspaceHeaderProps } from "../types/quest";
 
 export { Timeline, default as TimelineDefault } from "./Timeline";
 export type { TimelineProps, TimelineItemData, TimelineItemStatus } from "./Timeline";
@@ -310,7 +310,7 @@ export { CoinFlipResultCard } from "./CoinFlipResultCard";
 export type { CoinFlipResultCardProps } from "./CoinFlipResultCard";
 
 export { CompactMetadataStack } from "./CompactMetadataStack";
-export type { CompactMetadataStackProps, MetadataEntry } from "./CompactMetadataStack";
+export type { CompactMetadataStackProps, MetadataItem } from "./CompactMetadataStack";
 
 export { ExpandableMetricsBlock } from "./ExpandableMetricsBlock";
 export type { ExpandableMetricsBlockProps, Metric } from "./ExpandableMetricsBlock";
