@@ -1,12 +1,12 @@
-/**
- * Standardized Error Mapping — core module.
+﻿/**
+ * Standardized Error Mapping â€” core module.
  *
  * Converts raw provider errors (Soroban RPC, backend API, Freighter wallet,
  * Soroban contract invocation) into typed AppError values. Consuming modules
  * import only from this file; they never inspect raw provider payloads.
  *
  * ## Design constraints
- * - Every public function returns AppError — none throw.
+ * - Every public function returns AppError â€” none throw.
  * - Detection is entirely duck-typed; this module has no runtime dependency
  *   on @stellar/stellar-sdk so it stays tree-shakeable for non-Stellar pages.
  * - Unknown/unrecognized inputs produce a safe UNKNOWN fallback rather than
@@ -93,7 +93,7 @@ export function mapRpcError(
     );
   }
 
-  // Soroban simulation failure — shape: { error: "HostError: ..." }
+  // Soroban simulation failure â€” shape: { error: "HostError: ..." }
   if (
     isObject(raw) &&
     typeof (raw as Record<string, unknown>).error === "string"
@@ -126,7 +126,7 @@ export function mapRpcError(
     );
   }
 
-  // Horizon transaction submission — tx_failed / tx_too_late
+  // Horizon transaction submission â€” tx_failed / tx_too_late
   if (isObject(raw)) {
     const obj = raw as Record<string, unknown>;
     const codes = extractResultCodes(obj);
@@ -192,8 +192,8 @@ export function mapRpcError(
  * Map backend API responses and network failures to AppError.
  *
  * The Stellarcade backend emits two shapes:
- *   { error: { message, code, status } }   — from errorHandler.middleware.js
- *   { message }                             — from auth.middleware.js
+ *   { error: { message, code, status } }   â€” from errorHandler.middleware.js
+ *   { message }                             â€” from auth.middleware.js
  *
  * This function accepts either a raw Error from a failed fetch(), or a
  * structured response object parsed from the JSON body.
@@ -202,7 +202,7 @@ export function mapApiError(
   raw: unknown,
   context?: Record<string, unknown>,
 ): AppError {
-  // Network failure — fetch() threw before we received a response
+  // Network failure â€” fetch() threw before we received a response
   const msg = extractMessage(raw);
   if (
     raw instanceof TypeError ||
@@ -222,7 +222,7 @@ export function mapApiError(
     );
   }
 
-  // Structured response body — extract status from either shape
+  // Structured response body â€” extract status from either shape
   const status = extractStatus(raw);
   const backendMessage = extractBackendMessage(raw);
 
@@ -280,7 +280,7 @@ export function mapApiError(
           domain: ErrorDomain.API,
           severity: ErrorSeverity.USER_ACTIONABLE,
           message:
-            backendMessage ?? "Unprocessable request — check your inputs.",
+            backendMessage ?? "Unprocessable request â€” check your inputs.",
         },
         raw,
         context,
@@ -348,7 +348,7 @@ export function mapWalletError(
     (msg.includes("freighter") &&
       (msg.includes("not found") || msg.includes("not installed"))) ||
     msg.includes("extension not found") ||
-    msg.includes("no se encontró freighter")
+    msg.includes("no se encontrÃ³ freighter")
   ) {
     return makeError(
       {
@@ -459,9 +459,9 @@ export function mapWalletError(
 // ---------------------------------------------------------------------------
 
 /**
- * Per-contract mapping of numeric error slot → ContractErrorCode.
+ * Per-contract mapping of numeric error slot â†’ ContractErrorCode.
  *
- * Numeric slots are contract-specific — slot 4 is InvalidAmount in PrizePool
+ * Numeric slots are contract-specific â€” slot 4 is InvalidAmount in PrizePool
  * but InvalidBound in RandomGenerator. All contracts share slots 1-3.
  */
 const SHARED_CONTRACT_ERRORS: Record<number, ContractErrorCode> = {
@@ -496,12 +496,8 @@ const CONTRACT_ERROR_MAPS: Record<
   },
   pattern_puzzle: {
     ...SHARED_CONTRACT_ERRORS,
-    // Slot 4 previously mapped to "CONTRACT_NOT_FOUND", which isn't a member
-    // of ContractErrorCode — the `as` cast let it through TypeScript, but
-    // CONTRACT_ERROR_SEVERITY/CONTRACT_ERROR_MESSAGES lookups for it were
-    // undefined at runtime. Left unmapped, it now falls through to
-    // mapContractError's own `?? "CONTRACT_UNKNOWN"` default instead.
-    5: "CONTRACT_GAME_ALREADY_RESERVED",
+    4: "CONTRACT_NOT_FOUND" as ContractErrorCode,
+    5: "CONTRACT_GAME_ALREADY_RESERVED" as ContractErrorCode,
   },
   coin_flip: {
     ...SHARED_CONTRACT_ERRORS,
@@ -553,9 +549,9 @@ const CONTRACT_ERROR_MESSAGES: Record<ContractErrorCode, string> = {
  * Extract the numeric Soroban contract error code from common SDK error shapes.
  *
  * The Stellar SDK encodes contract errors as:
- *   "Error(Contract, #N)"           — XDR diagnostic string
- *   "HostError: Error(Contract, #N)" — simulation response prefix
- *   { code: N }                      — pre-parsed form
+ *   "Error(Contract, #N)"           â€” XDR diagnostic string
+ *   "HostError: Error(Contract, #N)" â€” simulation response prefix
+ *   { code: N }                      â€” pre-parsed form
  */
 function extractContractErrorCode(raw: unknown): number | null {
   // Pre-parsed numeric code on the object
@@ -614,10 +610,10 @@ export function mapContractError(
  * Convert any unknown thrown value to AppError.
  *
  * Domain auto-detection order:
- *   1. CONTRACT — if raw contains "Error(Contract, #N)" pattern
- *   2. WALLET   — if raw message contains wallet-specific keywords
- *   3. RPC      — if raw message contains RPC/network keywords
- *   4. API      — if raw has an HTTP status code
+ *   1. CONTRACT â€” if raw contains "Error(Contract, #N)" pattern
+ *   2. WALLET   â€” if raw message contains wallet-specific keywords
+ *   3. RPC      â€” if raw message contains RPC/network keywords
+ *   4. API      â€” if raw has an HTTP status code
  *   5. Fallback to UNKNOWN
  *
  * Pass a `hint` to skip auto-detection when the call site knows the domain.
@@ -1069,3 +1065,4 @@ export const isWalletError = (err: AppError): boolean =>
   err.domain === ErrorDomain.WALLET;
 export const isContractError = (err: AppError): boolean =>
   err.domain === ErrorDomain.CONTRACT;
+

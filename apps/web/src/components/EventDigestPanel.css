@@ -1,0 +1,108 @@
+.edp {
+  --edp-bg: var(--sc-bg-card, #0e1117);
+  --edp-surface: rgba(255, 255, 255, 0.03);
+  --edp-border: var(--sc-border-glass, rgba(255, 255, 255, 0.08));
+  --edp-text-primary: var(--sc-text-main, #e8eaf0);
+  --edp-text-muted: var(--sc-text-dim, #6b7280);
+  --edp-time-color: rgba(255, 255, 255, 0.4);
+  --edp-contract-color: rgba(0, 240, 255, 0.6);
+  --edp-summary-color: rgba(255, 255, 255, 0.75);
+  --edp-row-hover: rgba(0, 240, 255, 0.04);
+  --edp-radius: 10px;
+
+  display: flex;
+  flex-direction: column;
+  background: var(--edp-bg);
+  border: 1px solid var(--edp-border);
+  border-radius: var(--edp-radius);
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--edp-text-primary);
+}
+
+.edp__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--edp-surface);
+  border-bottom: 1px solid var(--edp-border);
+  flex-shrink: 0;
+}
+
+.edp__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--edp-text-muted);
+}
+
+.edp__clear {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--edp-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.edp__clear:hover {
+  color: var(--sc-accent, #00f0ff);
+}
+
+.edp__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.edp__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 100ms ease;
+  min-height: 36px;
+  overflow: hidden;
+}
+
+.edp__row:hover {
+  background: var(--edp-row-hover);
+}
+
+.edp__time {
+  flex: 0 0 auto;
+  font-size: 0.6875rem;
+  font-family: monospace;
+  color: var(--edp-time-color);
+}
+
+.edp__contract {
+  flex: 0 0 auto;
+  font-size: 0.6875rem;
+  font-family: monospace;
+  color: var(--edp-contract-color);
+}
+
+.edp__summary {
+  flex: 1 1 auto;
+  font-size: 0.75rem;
+  color: var(--edp-summary-color);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.edp__empty {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--edp-text-muted);
+  text-align: center;
+}

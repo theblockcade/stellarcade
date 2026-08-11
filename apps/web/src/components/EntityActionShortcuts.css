@@ -1,0 +1,12 @@
+.entity-action-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.entity-action-shortcuts__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}

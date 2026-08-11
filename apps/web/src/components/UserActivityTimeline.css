@@ -1,0 +1,36 @@
+.user-activity-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--sc-bg-card, #11161e);
+  border: 1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.user-activity-timeline__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-activity-timeline__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sc-text-main, #ffffff);
+}
+
+.user-activity-timeline__empty-text {
+  margin: 0;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--sc-text-dim, rgba(255, 255, 255, 0.6));
+  font-size: 0.875rem;
+}
+
+.user-activity-timeline__footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--sc-text-dim, rgba(255, 255, 255, 0.5));
+}

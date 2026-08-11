@@ -13,13 +13,12 @@ Always show the user exactly what will be changed and wait for a clear "yes, do 
 
 ## Project Overview
 
-**StellarCade** is a decentralized arcade gaming platform on the Stellar blockchain using Soroban smart contracts. The project has two main components:
+**StellarCade** is a decentralized arcade gaming platform on the Stellar blockchain using Soroban smart contracts. The project has three main components:
 - **Smart Contracts** (Rust/Soroban) — game logic and on-chain state
-- **Backend API** (Node.js/Express) — REST API connecting frontend to blockchain
+- **Backend API** (Node.js/Express) — REST API connecting the frontend to the blockchain
+- **Frontend** (`apps/web`, Next.js App Router) — the live web app: landing page, game lobby, portfolio, profile, fairness verifier (`/verify`), account hygiene (`/cleanup`), and project info (`/about`). Built on Tailwind v4 + shadcn/21st.dev component primitives. The original Vite frontend (`frontend/`) was migrated here and removed — see `apps/web/MIGRATION.md` for the migration record.
 
 Most game contracts (coin-flip, prize-pool, random-generator) are stubs with TODO placeholders. The `access-control` and `pattern-puzzle` contracts are the most complete implementations and should serve as reference.
-
-The frontend (React/Vite) directory exists but is not yet implemented.
 
 ## Smart Contract Commands
 

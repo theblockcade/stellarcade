@@ -1,0 +1,41 @@
+.filter-pill-strip-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.filter-pill-strip__scroll-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-pill-strip__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sc-text-main, #ffffff);
+  cursor: pointer;
+}
+
+.filter-pill-strip__pill--selected {
+  border-color: var(--sc-accent, #00f0ff);
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--sc-accent, #00f0ff);
+}
+
+.filter-pill-strip__clear-btn {
+  font-size: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--sc-text-dim, #94a3b8);
+  cursor: pointer;
+  text-decoration: underline;
+}

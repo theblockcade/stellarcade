@@ -15,6 +15,7 @@ export default defineConfig({
     // ambient globals rather than importing them from "vitest". Keeping
     // this in sync avoids editing every ported test file's imports.
     globals: true,
+    exclude: ["node_modules", "e2e/**"],
   },
   resolve: {
     alias: {

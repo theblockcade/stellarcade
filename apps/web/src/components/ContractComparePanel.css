@@ -1,0 +1,57 @@
+.compare-panel {
+  border: 1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1));
+  border-radius: 0.5rem;
+  background: var(--sc-bg-card, #11161e);
+  overflow: hidden;
+}
+
+.compare-panel--empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--sc-text-dim, rgba(255, 255, 255, 0.6));
+}
+
+.compare-panel__header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1));
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.compare-panel__row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  align-items: center;
+}
+
+.compare-panel__row:last-child {
+  border-bottom: none;
+}
+
+.compare-panel__cell--label {
+  font-weight: 600;
+  color: var(--sc-text-dim, rgba(255, 255, 255, 0.7));
+}
+
+.compare-panel__badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+}
+
+.compare-panel__badge--winner {
+  color: #22c55e;
+}
+
+.compare-panel__badge--loser {
+  color: #ef4444;
+}
+
+.compare-panel__placeholder {
+  color: var(--sc-text-dim, rgba(255, 255, 255, 0.3));
+}

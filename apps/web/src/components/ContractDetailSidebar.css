@@ -1,0 +1,30 @@
+.contract-detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--sc-bg-card, #11161e);
+  border: 1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.contract-detail-sidebar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.contract-detail-sidebar__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sc-text-main, #ffffff);
+}
+
+.contract-detail-sidebar__count {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}

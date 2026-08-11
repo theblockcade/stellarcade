@@ -1,0 +1,27 @@
+.preference-draft-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preference-draft-indicator__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.15);
+  color: #fde047;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.preference-draft-indicator__btn {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: var(--sc-text-main, #ffffff);
+  cursor: pointer;
+}

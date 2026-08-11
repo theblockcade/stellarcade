@@ -28,6 +28,15 @@ import "./AppShell.css";
 const MAIN_CONTENT_ID = "main-content";
 
 function getAppRoute(pathname: string): AppRoute {
+  if (pathname === "/about" || pathname.startsWith("/about/")) {
+    return "about";
+  }
+  if (pathname === "/verify" || pathname.startsWith("/verify/")) {
+    return "verify";
+  }
+  if (pathname === "/cleanup" || pathname.startsWith("/cleanup/")) {
+    return "cleanup";
+  }
   if (pathname === "/profile" || pathname.startsWith("/profile/")) {
     return "profile";
   }
@@ -42,6 +51,12 @@ function getAppRoute(pathname: string): AppRoute {
 
 function routeToPath(route: AppRoute): string {
   switch (route) {
+    case "about":
+      return "/about";
+    case "verify":
+      return "/verify";
+    case "cleanup":
+      return "/cleanup";
     case "profile":
       return "/profile";
     case "portfolio":
@@ -78,6 +93,24 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
       label: "Go to Games",
       description: "Open the games section",
       action: () => handleNavigate("games"),
+    },
+    {
+      id: "go-verify",
+      label: "Go to Fairness Verifier",
+      description: "Cryptographically verify game round proofs",
+      action: () => handleNavigate("verify"),
+    },
+    {
+      id: "go-cleanup",
+      label: "Go to Account Hygiene",
+      description: "Reclaim locked XLM reserves from inactive subentries",
+      action: () => handleNavigate("cleanup"),
+    },
+    {
+      id: "go-about",
+      label: "Go to About StellarCade",
+      description: "View project mission and 4-repo architecture",
+      action: () => handleNavigate("about"),
     },
     {
       id: "go-profile",

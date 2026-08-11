@@ -1,0 +1,25 @@
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-bubble {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  padding: 0.25rem 0.5rem;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 999;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-bubble--bottom {
+  bottom: auto;
+  top: 100%;
+  transform: translateX(-50%) translateY(6px);
+}

@@ -1,0 +1,44 @@
+.interrupted-flow-prompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--sc-bg-card, #11161e);
+  border: 1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1));
+}
+
+.interrupted-flow-prompt__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sc-text-main, #ffffff);
+}
+
+.interrupted-flow-prompt__description {
+  margin: 0.25rem 0 0.5rem 0;
+  font-size: 0.75rem;
+  color: var(--sc-text-dim, #94a3b8);
+}
+
+.interrupted-flow-prompt__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.interrupted-flow-prompt__action {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: var(--sc-text-main, #ffffff);
+}
+
+.interrupted-flow-prompt__action--resume {
+  background: var(--sc-accent, #00f0ff);
+  color: #000000;
+  border-color: transparent;
+}

@@ -1,0 +1,22 @@
+.text-divider {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.text-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--sc-border-glass, rgba(255, 255, 255, 0.1));
+}
+
+.text-divider__content {
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sc-text-dim, #94a3b8);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

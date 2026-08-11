@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+"use client";
+
+import React, { useCallback, useEffect, useRef } from "react";
 
 export interface DrawerProps {
   open: boolean;
   onClose: () => void;
   title?: string;
-  side?: 'left' | 'right';
+  side?: "left" | "right";
   children?: React.ReactNode;
   testId?: string;
 }
@@ -13,119 +15,86 @@ export const Drawer: React.FC<DrawerProps> = ({
   open,
   onClose,
   title,
-  side = 'right',
+  side = "right",
   children,
-  testId = 'drawer',
+  testId = "drawer",
 }) => {
   const drawerRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      previousFocusRef.current =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-      requestAnimationFrame(() => {
-        const close = drawerRef.current?.querySelector<HTMLElement>('[data-drawer-close]');
-        close?.focus();
-      });
-    } else if (previousFocusRef.current) {
-      previousFocusRef.current.focus();
-      previousFocusRef.current = null;
-    }
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.stopPropagation();
         onClose();
-        return;
-      }
-
-      if (event.key !== 'Tab') {
-        return;
-      }
-
-      const focusableElements = drawerRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-
-      if (!focusableElements || focusableElements.length === 0) {
-        event.preventDefault();
-        drawerRef.current?.focus();
-        return;
-      }
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
       }
     };
-
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [open, onClose]);
-
-  useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
 
   const handleBackdropClick = useCallback(() => {
     onClose();
   }, [onClose]);
 
-  const sideClass = side === 'left' ? ' drawer--left' : '';
+  if (!open) return null;
 
   return (
     <>
       <div
-        className={`drawer-backdrop${open ? ' drawer-backdrop--open' : ''}`}
+        className="drawer-backdrop"
         onClick={handleBackdropClick}
         data-testid={`${testId}-backdrop`}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.6)",
+          zIndex: 9000,
+        }}
         aria-hidden="true"
       />
       <div
         ref={drawerRef}
-        className={`drawer${sideClass}${open ? ' drawer--open' : ''}`}
         role="dialog"
-        aria-modal={open}
-        aria-label={title ?? 'Drawer'}
-        tabIndex={-1}
+        aria-modal="true"
+        aria-label={title ?? "Drawer"}
         data-testid={testId}
-        // React 19 supports `inert` as a real boolean prop — see the same
-        // fix in AppSidebar.tsx for why this differs from the original
-        // React 18 `inert: ""` string hack.
-        inert={!open || undefined}
+        style={{
+          position: "fixed",
+          top: 0,
+          bottom: 0,
+          [side]: 0,
+          width: "360px",
+          maxWidth: "90vw",
+          background: "var(--sc-bg-card, #11161e)",
+          borderLeft: side === "right" ? "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))" : "none",
+          borderRight: side === "left" ? "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))" : "none",
+          zIndex: 9001,
+          display: "flex",
+          flexDirection: "column",
+          padding: "1.5rem",
+        }}
       >
-        <div className="drawer__header">
-          {title && <h2 className="drawer__title">{title}</h2>}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          {title && <h2 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 700 }}>{title}</h2>}
           <button
             type="button"
-            className="drawer__close-btn"
             onClick={onClose}
             aria-label="Close drawer"
-            data-drawer-close=""
             data-testid={`${testId}-close`}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--sc-text-main, #ffffff)",
+              fontSize: "1.25rem",
+              cursor: "pointer",
+            }}
           >
-            x
+            ✕
           </button>
         </div>
 
-        <div className="drawer__body" data-testid={`${testId}-body`}>
+        <div style={{ flex: 1, overflowY: "auto" }} data-testid={`${testId}-body`}>
           {children}
         </div>
       </div>
@@ -133,6 +102,5 @@ export const Drawer: React.FC<DrawerProps> = ({
   );
 };
 
-Drawer.displayName = 'Drawer';
-
+Drawer.displayName = "Drawer";
 export default Drawer;

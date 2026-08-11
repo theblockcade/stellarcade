@@ -11,7 +11,7 @@ import "./AppSidebar.css";
  * slice, once routes exist for it to navigate to).
  */
 
-export type AppRoute = "lobby" | "games" | "portfolio" | "profile";
+export type AppRoute = "lobby" | "games" | "portfolio" | "profile" | "verify" | "cleanup" | "about";
 
 interface SidebarItem {
   route: AppRoute;
@@ -36,6 +36,7 @@ const sections: SidebarSection[] = [
     items: [
       { route: "lobby", label: "Lobby" },
       { route: "games", label: "Games" },
+      { route: "verify", label: "Fairness Verifier" },
     ],
   },
   {
@@ -43,8 +44,14 @@ const sections: SidebarSection[] = [
     title: "Account",
     items: [
       { route: "portfolio", label: "Portfolio" },
+      { route: "cleanup", label: "Account Hygiene" },
       { route: "profile", label: "Profile" },
     ],
+  },
+  {
+    id: "about",
+    title: "About",
+    items: [{ route: "about", label: "Architecture & Mission" }],
   },
 ];
 

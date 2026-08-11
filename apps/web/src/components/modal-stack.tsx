@@ -1,17 +1,22 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-
-/**
- * Ported verbatim from frontend/src/components/v1/modal-stack.tsx — no
- * Vite-specific code here, so no adaptation was needed beyond the "use
- * client" directive Next requires for hook/DOM-using components.
- */
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const INTERACTIVE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function useFocusTrap(containerRef: React.RefObject<HTMLElement | null>, active: boolean): void {
+export function useFocusTrap(
+  containerRef: React.RefObject<HTMLElement | null>,
+  active: boolean
+): void {
   useEffect(() => {
     if (!active) {
       return;
@@ -27,9 +32,9 @@ export function useFocusTrap(containerRef: React.RefObject<HTMLElement | null>, 
         return;
       }
 
-      const interactives = Array.from(container.querySelectorAll<HTMLElement>(INTERACTIVE_SELECTOR)).filter(
-        (el) => el.offsetParent !== null || el.tagName === "BODY",
-      );
+      const interactives = Array.from(
+        container.querySelectorAll<HTMLElement>(INTERACTIVE_SELECTOR)
+      ).filter((el) => el.offsetParent !== null || el.tagName === "BODY");
 
       if (interactives.length === 0) {
         event.preventDefault();
@@ -43,12 +48,12 @@ export function useFocusTrap(containerRef: React.RefObject<HTMLElement | null>, 
       if (event.shiftKey) {
         if (focused === first || !container.contains(focused)) {
           event.preventDefault();
-          last?.focus();
+          last.focus();
         }
       } else {
         if (focused === last || !container.contains(focused)) {
           event.preventDefault();
-          first?.focus();
+          first.focus();
         }
       }
     };
@@ -82,38 +87,44 @@ function focusFirstInteractive(container: HTMLElement | null): boolean {
   return true;
 }
 
-export const ModalStackProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ModalStackProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [stack, setStack] = useState<ModalStackEntry[]>([]);
 
-  const registerModal = useCallback((entry: Omit<ModalStackEntry, "returnFocusTarget">) => {
-    const returnFocusTarget = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const registerModal = useCallback(
+    (entry: Omit<ModalStackEntry, "returnFocusTarget">) => {
+      const returnFocusTarget =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    setStack((current) => {
-      const withoutExisting = current.filter((item) => item.id !== entry.id);
-      return [...withoutExisting, { ...entry, returnFocusTarget }];
-    });
-
-    return () => {
       setStack((current) => {
-        const target = current.find((item) => item.id === entry.id) ?? null;
-        const next = current.filter((item) => item.id !== entry.id);
-
-        queueMicrotask(() => {
-          if (next.length > 0) {
-            const nextTopContainer = document.querySelector<HTMLElement>(
-              `[data-modal-stack-id="${next[next.length - 1]!.id}"]`,
-            );
-            if (focusFirstInteractive(nextTopContainer)) {
-              return;
-            }
-          }
-          target?.returnFocusTarget?.focus?.();
-        });
-
-        return next;
+        const withoutExisting = current.filter((item) => item.id !== entry.id);
+        return [...withoutExisting, { ...entry, returnFocusTarget }];
       });
-    };
-  }, []);
+
+      return () => {
+        setStack((current) => {
+          const target = current.find((item) => item.id === entry.id) ?? null;
+          const next = current.filter((item) => item.id !== entry.id);
+
+          queueMicrotask(() => {
+            if (next.length > 0) {
+              const nextTopContainer = document.querySelector<HTMLElement>(
+                `[data-modal-stack-id="${next[next.length - 1].id}"]`
+              );
+              if (focusFirstInteractive(nextTopContainer)) {
+                return;
+              }
+            }
+            target?.returnFocusTarget?.focus?.();
+          });
+
+          return next;
+        });
+      };
+    },
+    []
+  );
 
   useEffect(() => {
     if (stack.length === 0) {
@@ -145,19 +156,27 @@ export const ModalStackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       isTopModal: (id: string) => stack[stack.length - 1]?.id === id,
       getStackIndex: (id: string) => stack.findIndex((entry) => entry.id === id),
     }),
-    [registerModal, stack],
+    [registerModal, stack]
   );
 
-  return <ModalStackContext.Provider value={value}>{children}</ModalStackContext.Provider>;
+  return (
+    <ModalStackContext.Provider value={value}>
+      {children}
+    </ModalStackContext.Provider>
+  );
 };
 
-interface UseModalStackRegistrationOptions {
+export interface UseModalStackRegistrationOptions {
   active: boolean;
   modalId: string;
   onRequestClose?: () => void;
 }
 
-export function useModalStackRegistration({ active, modalId, onRequestClose }: UseModalStackRegistrationOptions) {
+export function useModalStackRegistration({
+  active,
+  modalId,
+  onRequestClose,
+}: UseModalStackRegistrationOptions) {
   const context = useContext(ModalStackContext);
   const registerModal = context?.registerModal;
   const unregisterRef = useRef<(() => void) | null>(null);
@@ -194,7 +213,7 @@ export function useModalStackRegistration({ active, modalId, onRequestClose }: U
   };
 }
 
-interface ModalOverlayProps {
+export interface ModalOverlayProps {
   active: boolean;
   modalId: string;
   onRequestClose?: () => void;
@@ -202,7 +221,13 @@ interface ModalOverlayProps {
   className?: string;
 }
 
-export const ModalOverlay: React.FC<ModalOverlayProps> = ({ active, modalId, onRequestClose, children, className }) => {
+export const ModalOverlay: React.FC<ModalOverlayProps> = ({
+  active,
+  modalId,
+  onRequestClose,
+  children,
+  className,
+}) => {
   useModalStackRegistration({ active, modalId, onRequestClose });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -213,8 +238,16 @@ export const ModalOverlay: React.FC<ModalOverlayProps> = ({ active, modalId, onR
   }
 
   return (
-    <div ref={containerRef} role="dialog" aria-modal="true" data-modal-stack-id={modalId} className={className}>
+    <div
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      data-modal-stack-id={modalId}
+      className={className}
+    >
       {children}
     </div>
   );
 };
+
+export default ModalOverlay;
