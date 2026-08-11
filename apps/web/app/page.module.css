@@ -5,9 +5,27 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 140px 24px 96px;
+  /* No bottom padding: .stage owns the space below the CTA and fades itself
+     out (see its mask), the way the reference site's hero does. The previous
+     140px/96px pair plus a full-height stage pushed the mockups past the
+     fold, so the hero visibly ran off the bottom of the viewport. */
+  padding: 120px 24px 0;
   position: relative;
   overflow: hidden;
+}
+
+/* Fades the very bottom of the hero into the page background so the masked
+   mockups resolve into the next section instead of stopping at a hard edge. */
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 200px;
+  background: linear-gradient(to bottom, transparent, var(--bg-dark) 92%);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .hero::before {
@@ -44,13 +62,18 @@
 
 .title {
   position: relative;
-  margin: 28px 0 0;
-  font-size: clamp(2.4rem, 6vw, 4.4rem);
+  margin: 24px 0 0;
+  /* Was clamp(2.4rem, 6vw, 4.4rem) with 18ch/1.05 — visibly smaller than a
+     hero headline should be, and the wide measure spread it over too few,
+     too-long lines. Bigger ceiling, tighter leading, and a narrower measure
+     so it stacks into a denser, more deliberate block. */
+  font-size: clamp(2.75rem, 7.5vw, 5.75rem);
   font-weight: 900;
-  line-height: 1.05;
-  max-width: 18ch;
-  letter-spacing: -0.02em;
+  line-height: 0.96;
+  max-width: 15ch;
+  letter-spacing: -0.03em;
   font-family: var(--font-outfit), sans-serif;
+  text-wrap: balance;
 }
 
 .gradientText {
@@ -87,7 +110,39 @@
   justify-content: center;
   gap: 20px;
   flex-wrap: wrap;
-  margin-top: 72px;
+  margin-top: 52px;
+  /* Fixed height + a bottom mask, mirroring the reference site's stage: the
+     mockups are deliberately cut off and faded rather than pushing the hero
+     past the fold. Without this the cards' full height was added to an
+     already-100vh hero, which is what ran off the bottom of the screen. */
+  height: 300px;
+  width: 100%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 58%, transparent 98%);
+  mask-image: linear-gradient(#000 58%, transparent 98%);
+}
+
+/* Short viewports (laptops, landscape tablets) can't afford 300px of stage
+   on top of the copy — shrink the stage *and* the hero's top padding
+   together, otherwise the two still add up past the fold. Measured: at a
+   720px viewport the untuned hero came out 749px tall. */
+@media (max-height: 860px) {
+  .hero {
+    padding-top: 96px;
+  }
+
+  .stage {
+    height: 156px;
+    margin-top: 28px;
+  }
+}
+
+/* Below this there simply isn't room for decorative mockups alongside the
+   headline, CTA and nav — drop them rather than crush the actual content. */
+@media (max-height: 700px) {
+  .stage {
+    display: none;
+  }
 }
 
 .stageCardWrap {
@@ -125,17 +180,22 @@
 
 .secTitle {
   margin: 14px 0 0;
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  /* Scaled up with the hero (was 1.6→2.2rem, weight 700). Section headings
+     were reading closer to body copy than to titles, which flattened the
+     page's hierarchy — everything looked like the same size of thing. */
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   font-family: var(--font-outfit), sans-serif;
+  text-wrap: balance;
 }
 
 .secBody {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   color: var(--text-dim);
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 16.5px;
+  line-height: 1.65;
 }
 
 /* ── 3-step explainer (fairness / bot) ────────────────────────────────── */
@@ -160,9 +220,10 @@
 }
 
 .step h4 {
-  margin: 10px 0 8px;
-  font-size: 16px;
+  margin: 12px 0 10px;
+  font-size: 19px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   font-family: var(--font-outfit), sans-serif;
 }
 
@@ -209,9 +270,10 @@
 }
 
 .platCard h3 {
-  margin: 0 0 8px;
-  font-size: 19px;
+  margin: 0 0 10px;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   font-family: var(--font-outfit), sans-serif;
 }
 
@@ -282,8 +344,9 @@
 
 .featureCard h3 {
   margin: 0 0 10px;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
+  letter-spacing: -0.015em;
   font-family: var(--font-outfit), sans-serif;
 }
 
@@ -296,11 +359,18 @@
 
 /* ── Stats Strip ───────────────────────────────────────────────────────── */
 
+/* Wrapper for the metrics band now that it sits between the hero and the
+   first content section rather than inside the hero. */
+.statsSection {
+  position: relative;
+  padding: 0 24px 8px;
+}
+
 .statsStrip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
-  margin-top: 48px;
+  margin-top: 0;
   padding: 24px;
   border-radius: 20px;
   border: 1px solid var(--glass-border);
