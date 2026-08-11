@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "../../../src/components/ui/button";
 import { useWalletStatus } from "../../../src/hooks/useWalletStatus";
+import { motion } from "framer-motion";
 import GlobalStateStore, {
   getTableDensityPreference,
   persistTableDensityPreference,
@@ -55,7 +56,19 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1.75rem",
+        width: "100%",
+      }}
+    >
       {/* Header */}
       <div
         style={{
@@ -270,6 +283,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -200,7 +200,19 @@ export function GameLobby() {
   ];
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1.75rem",
+        width: "100%",
+      }}
+    >
       {/* 1. HERO ARENA BANNER */}
       <div
         style={{
@@ -635,8 +647,8 @@ export function GameLobby() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
-}
+};
 
 export default GameLobby;

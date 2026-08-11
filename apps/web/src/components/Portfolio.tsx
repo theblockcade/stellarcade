@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useWalletStatus } from "../hooks/useWalletStatus";
+import { motion } from "framer-motion";
 import GlobalStateStore from "../services/global-state-store";
 
 export interface WalletPortfolioData {
@@ -70,7 +71,20 @@ export const Portfolio: React.FC<PortfolioProps> = ({
     : "No wallet connected";
 
   return (
-    <div style={{ maxWidth: "1100px", margin: "0 auto" }} data-testid="portfolio-view">
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1.75rem",
+        width: "100%",
+      }}
+      data-testid="portfolio-view"
+    >
       {/* Header */}
       <div
         style={{
@@ -297,7 +311,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
