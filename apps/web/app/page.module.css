@@ -50,7 +50,7 @@
   line-height: 1.05;
   max-width: 18ch;
   letter-spacing: -0.02em;
-  font-family: var(--font-orbitron), var(--font-outfit), sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 
 .gradientText {
@@ -128,7 +128,7 @@
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  font-family: var(--font-orbitron), var(--font-outfit), sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 
 .secBody {
@@ -163,7 +163,7 @@
   margin: 10px 0 8px;
   font-size: 16px;
   font-weight: 700;
-  font-family: var(--font-orbitron), var(--font-outfit), sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 
 .step p {
@@ -212,7 +212,7 @@
   margin: 0 0 8px;
   font-size: 19px;
   font-weight: 700;
-  font-family: var(--font-orbitron), var(--font-outfit), sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 
 .platCard p {
@@ -284,7 +284,7 @@
   margin: 0 0 10px;
   font-size: 17px;
   font-weight: 700;
-  font-family: var(--font-orbitron), var(--font-outfit), sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 
 .featureCard p {
