@@ -111,11 +111,6 @@ const FEATURES = [
     body: "Daily and weekly quests earn XP and collectible badges tracked on your profile.",
   },
   {
-    icon: <Code2 />,
-    title: "Developer SDK",
-    body: "@stellarcade/sdk ships the same fairness-verification and connector code the app runs on.",
-  },
-  {
     icon: <Bot />,
     title: "Telegram & Discord bot",
     body: "Link your wallet once, then check stats and claim rewards straight from chat — no custody there either.",
@@ -228,8 +223,15 @@ export default function LandingPage() {
             </MotionFloating>
           </div>
 
-          {/* PROTOCOL METRICS STRIP */}
-          <div className={`${styles.wrap} w-full`}>
+        </section>
+
+        {/* PROTOCOL METRICS STRIP — its own band, not part of the hero.
+            Inside the hero it added ~200px on top of an already-100vh
+            section, which is what pushed the mockups and CTA below the
+            fold. As a separate strip it also reads correctly: a summary
+            band between the pitch and the explainer, not hero content. */}
+        <section className={styles.statsSection}>
+          <div className={styles.wrap}>
             <MotionStaggerContainer staggerChildren={0.08} className={styles.statsStrip}>
               {PROTOCOL_METRICS.map((m) => (
                 <MotionStaggerItem key={m.label} className={styles.statItem}>
@@ -278,7 +280,7 @@ export default function LandingPage() {
                   <span className={styles.eyebrow} style={{ alignSelf: "flex-start", color: "var(--accent)", borderColor: "rgba(0, 255, 204, 0.3)", background: "rgba(0, 255, 204, 0.08)" }}>
                     Act II: The Cryptographic Truth
                   </span>
-                  <h2 className={styles.secTitle} style={{ color: "#fff", textAlign: "left", margin: 0, fontSize: "1.5rem" }}>
+                  <h2 className={styles.secTitle} style={{ color: "#fff", textAlign: "left", margin: 0, fontSize: "1.9rem" }}>
                     Decoupled On-Chain Entropy.
                   </h2>
                   <p className={styles.secBody} style={{ textAlign: "left", margin: 0, fontSize: "14px", lineHeight: 1.6 }}>
@@ -336,7 +338,7 @@ export default function LandingPage() {
                         </span>
                       </div>
 
-                      <h3 style={{ fontSize: "1.3rem", fontWeight: 700, margin: "0 0 8px 0" }}>
+                      <h3 style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 10px 0" }}>
                         {game.title}
                       </h3>
                       <p
@@ -470,7 +472,7 @@ export default function LandingPage() {
                     }}
                   >
                     <TrendingUp size={24} style={{ color: "var(--accent)" }} />
-                    <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>
+                    <h3 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
                       98% Direct Winner Return
                     </h3>
                   </div>
@@ -499,7 +501,7 @@ export default function LandingPage() {
                     }}
                   >
                     <Trophy size={24} style={{ color: "var(--accent)" }} />
-                    <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>
+                    <h3 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
                       70% of Fee → Weekly Jackpot
                     </h3>
                   </div>
@@ -528,7 +530,7 @@ export default function LandingPage() {
                     }}
                   >
                     <Award size={24} style={{ color: "var(--accent)" }} />
-                    <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>
+                    <h3 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
                       30% of Fee → Quest Treasury
                     </h3>
                   </div>
