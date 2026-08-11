@@ -1,0 +1,17 @@
+.status-ribbon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.status-ribbon__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ribbon-color, #22c55e);
+}
