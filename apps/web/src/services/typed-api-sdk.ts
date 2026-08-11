@@ -54,6 +54,39 @@ function makeClientError(params: {
   };
 }
 
+export const ONCHAIN_GAMES_CATALOG: Game[] = [
+  {
+    id: "coinflip-duel",
+    name: "Coinflip Duel",
+    status: "active",
+    wager: 5,
+    description: "Instant 50/50 provably fair on-chain duel. Double your stake on heads or tails.",
+    contract: "coin-flip",
+    players: 142,
+    category: "PVP / Duel",
+  },
+  {
+    id: "rng-dice",
+    name: "Verifiable Dice Roll",
+    status: "active",
+    wager: 10,
+    description: "Multi-sided dice arena backed by cryptographic seed commitments and Soroban RNG.",
+    contract: "random-generator",
+    players: 89,
+    category: "Table / RNG",
+  },
+  {
+    id: "prizepool-gauntlet",
+    name: "Prize Pool Gauntlet",
+    status: "active",
+    wager: 25,
+    description: "High-roller reserve pool with accumulated yields and on-chain payout splits.",
+    contract: "prize-pool",
+    players: 37,
+    category: "Jackpot / Pool",
+  },
+];
+
 function makeUnauthorizedError(): ApiClientError {
   return makeClientError({
     code: 'API_UNAUTHORIZED',

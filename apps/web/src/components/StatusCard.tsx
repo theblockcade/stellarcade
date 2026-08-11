@@ -14,6 +14,7 @@ interface StatusCardProps {
   hideDefaultAction?: boolean;
   actionLabel?: string;
   isStale?: boolean;
+  onAction?: () => void;
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({
@@ -29,6 +30,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   hideDefaultAction = false,
   actionLabel = 'Join Game',
   isStale = false,
+  onAction,
 }: StatusCardProps) => {
   return (
     <div className={`status-card tone-${tone} ${isStale ? 'is-stale opacity-75' : ''}`} data-testid="status-card">
@@ -59,7 +61,16 @@ const StatusCard: React.FC<StatusCardProps> = ({
         )}
       </div>
       <div className="card-footer flex justify-between items-center">
-        {!hideDefaultAction && <button className="btn-play">{actionLabel}</button>}
+        {!hideDefaultAction && (
+          <button
+            type="button"
+            className="btn-play"
+            onClick={onAction}
+            data-testid={`btn-play-${id}`}
+          >
+            {actionLabel}
+          </button>
+        )}
         {footerSlot ?? afterSlot}
       </div>
     </div>

@@ -18,8 +18,7 @@ import type { WalletProviderInfo } from "../types/wallet-session";
 export const FREIGHTER_PROVIDER_INFO: WalletProviderInfo = {
   id: "freighter",
   name: "Freighter",
-  iconUrl: "https://stellarcade.fun/icons/freighter.svg",
-  supportedNetworks: ["PUBLIC", "TESTNET", "FUTURENET", "STANDALONE"],
+  version: "v1",
 };
 
 export class FreighterAdapter implements WalletProviderAdapter {
@@ -50,7 +49,7 @@ export class FreighterAdapter implements WalletProviderAdapter {
   }> {
     const installed = await this.checkInstalled();
     if (!installed) {
-      throw new ProviderNotFoundError("Freighter wallet extension not found");
+      throw new ProviderNotFoundError();
     }
 
     try {
@@ -72,7 +71,7 @@ export class FreighterAdapter implements WalletProviderAdapter {
       }
 
       if (!address) {
-        throw new RejectedSignatureError("Freighter access rejected or address unavailable");
+        throw new RejectedSignatureError();
       }
 
       let networkName = "TESTNET";
@@ -96,7 +95,7 @@ export class FreighterAdapter implements WalletProviderAdapter {
       if (err instanceof WalletSessionError) throw err;
       const msg = err?.message || String(err);
       if (msg.includes("User declined") || msg.includes("rejected") || msg.includes("User rejected")) {
-        throw new RejectedSignatureError("User declined wallet connection");
+        throw new RejectedSignatureError();
       }
       throw new WalletSessionError("freighter_connect_error", msg);
     }
@@ -105,7 +104,7 @@ export class FreighterAdapter implements WalletProviderAdapter {
   async signMessage(message: string): Promise<string> {
     const installed = await this.checkInstalled();
     if (!installed) {
-      throw new ProviderNotFoundError("Freighter wallet extension not found");
+      throw new ProviderNotFoundError();
     }
 
     try {
@@ -118,7 +117,7 @@ export class FreighterAdapter implements WalletProviderAdapter {
     } catch (err: any) {
       const msg = err?.message || String(err);
       if (msg.includes("User declined") || msg.includes("rejected") || msg.includes("User rejected")) {
-        throw new RejectedSignatureError("User declined signing message");
+        throw new RejectedSignatureError();
       }
       throw new WalletSessionError("freighter_sign_message_error", msg);
     }
@@ -127,7 +126,7 @@ export class FreighterAdapter implements WalletProviderAdapter {
   async signTransaction(xdr: string, opts?: { network?: string; networkPassphrase?: string }): Promise<string> {
     const installed = await this.checkInstalled();
     if (!installed) {
-      throw new ProviderNotFoundError("Freighter wallet extension not found");
+      throw new ProviderNotFoundError();
     }
 
     try {
@@ -140,7 +139,7 @@ export class FreighterAdapter implements WalletProviderAdapter {
     } catch (err: any) {
       const msg = err?.message || String(err);
       if (msg.includes("User declined") || msg.includes("rejected") || msg.includes("User rejected")) {
-        throw new RejectedSignatureError("User declined signing transaction");
+        throw new RejectedSignatureError();
       }
       throw new WalletSessionError("freighter_sign_tx_error", msg);
     }

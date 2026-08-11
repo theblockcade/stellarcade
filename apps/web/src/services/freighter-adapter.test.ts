@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { FreighterAdapter, defaultFreighterAdapter } from "./freighter-adapter";
+import { FreighterAdapter } from "./freighter-adapter";
 import * as freighterApi from "@stellar/freighter-api";
 import { ProviderNotFoundError, RejectedSignatureError } from "../types/wallet-session";
 
@@ -22,14 +22,14 @@ describe("FreighterAdapter", () => {
   });
 
   it("throws ProviderNotFoundError when freighter extension is not installed", async () => {
-    vi.mocked(freighterApi.isConnected).mockResolvedValue(false);
+    vi.mocked(freighterApi.isConnected).mockResolvedValue({ isConnected: false });
     await expect(adapter.connect()).rejects.toThrow(ProviderNotFoundError);
   });
 
   it("successfully connects when Freighter is installed and returns address", async () => {
-    vi.mocked(freighterApi.isConnected).mockResolvedValue(true);
-    vi.mocked(freighterApi.requestAccess).mockResolvedValue("GBZXN7PIRZGNMHGA72STUFIO");
-    vi.mocked(freighterApi.getNetwork).mockResolvedValue("TESTNET");
+    vi.mocked(freighterApi.isConnected).mockResolvedValue({ isConnected: true });
+    vi.mocked(freighterApi.requestAccess).mockResolvedValue({ address: "GBZXN7PIRZGNMHGA72STUFIO" });
+    vi.mocked(freighterApi.getNetwork).mockResolvedValue({ network: "TESTNET", networkPassphrase: "Test SDF Network ; September 2015" });
 
     const result = await adapter.connect();
     expect(result.address).toBe("GBZXN7PIRZGNMHGA72STUFIO");
@@ -38,7 +38,7 @@ describe("FreighterAdapter", () => {
   });
 
   it("handles user rejection gracefully", async () => {
-    vi.mocked(freighterApi.isConnected).mockResolvedValue(true);
+    vi.mocked(freighterApi.isConnected).mockResolvedValue({ isConnected: true });
     vi.mocked(freighterApi.requestAccess).mockRejectedValue(new Error("User rejected"));
 
     await expect(adapter.connect()).rejects.toThrow(RejectedSignatureError);
