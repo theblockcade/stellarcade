@@ -11,31 +11,37 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./ui/breadcrumb";
+import { useI18n } from "../i18n/provider";
 
-const ROUTE_LABELS: Record<string, string> = {
-  app: "Arcade Lobby",
-  games: "Games Arena",
-  tournaments: "Tournaments",
-  quests: "Quests & Badges",
-  leaderboard: "Leaderboard",
-  history: "Match History",
-  rewards: "Claim Rewards",
-  portfolio: "Portfolio Vault",
-  cleanup: "Account Hygiene",
-  profile: "Player Profile",
-  settings: "Settings",
-  verify: "Fairness Verifier",
-  about: "Architecture & About",
-  terms: "Terms of Protocol",
-  privacy: "Privacy Architecture",
+const ROUTE_KEYS: Record<string, { key: string; fallback: string }> = {
+  app: { key: "nav.lobby", fallback: "Arcade Lobby" },
+  games: { key: "nav.games", fallback: "Games Arena" },
+  tournaments: { key: "nav.tournaments", fallback: "Tournaments" },
+  quests: { key: "nav.quests", fallback: "Quests & Badges" },
+  leaderboard: { key: "nav.leaderboard", fallback: "Leaderboard" },
+  history: { key: "nav.history", fallback: "Match History" },
+  rewards: { key: "nav.rewards", fallback: "Claim Rewards" },
+  portfolio: { key: "nav.portfolio", fallback: "Portfolio Vault" },
+  cleanup: { key: "nav.cleanup", fallback: "Account Hygiene" },
+  profile: { key: "nav.profile", fallback: "Player Profile" },
+  settings: { key: "nav.settings", fallback: "Settings" },
+  verify: { key: "nav.verify", fallback: "Fairness Verifier" },
+  about: { key: "nav.about", fallback: "Architecture & About" },
+  terms: { key: "nav.terms", fallback: "Terms of Protocol" },
+  privacy: { key: "nav.privacy", fallback: "Privacy Architecture" },
 };
 
 export default function Breadcrumbs() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const pathnames = pathname.split("/").filter((x) => x);
 
   const formatLabel = (segment: string) => {
-    return ROUTE_LABELS[segment] || segment.replace(/-/g, " ");
+    const config = ROUTE_KEYS[segment];
+    if (config) {
+      return t(config.key, config.fallback);
+    }
+    return segment.replace(/-/g, " ");
   };
 
   return (

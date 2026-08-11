@@ -1,8 +1,26 @@
 "use client";
 
 import React from "react";
-import { User, Shield, Trophy, Gamepad2, Coins, Settings, HelpCircle, Layers, FileText, ChevronRight } from "lucide-react";
+import {
+  User,
+  ShieldCheck,
+  Trophy,
+  Gamepad2,
+  Coins,
+  Settings,
+  Layers,
+  FileText,
+  Lock,
+  Dices,
+  Flame,
+  Award,
+  History,
+  Wallet,
+  Sparkles,
+  ChevronRight,
+} from "lucide-react";
 import { useWalletStatus } from "../hooks/useWalletStatus";
+import { useI18n } from "../i18n/provider";
 import "./AppSidebar.css";
 
 export type AppRoute =
@@ -22,15 +40,18 @@ export type AppRoute =
   | "terms"
   | "privacy";
 
-interface SidebarItem {
+interface SidebarItemConfig {
   route: AppRoute;
-  label: string;
+  labelKey: string;
+  defaultLabel: string;
+  icon: React.ReactNode;
 }
 
-interface SidebarSection {
+interface SidebarSectionConfig {
   id: string;
-  title: string;
-  items: SidebarItem[];
+  titleKey: string;
+  defaultTitle: string;
+  items: SidebarItemConfig[];
 }
 
 export interface AppSidebarProps {
@@ -38,37 +59,40 @@ export interface AppSidebarProps {
   onNavigate: (route: AppRoute) => void;
 }
 
-const sections: SidebarSection[] = [
+const SECTION_CONFIGS: SidebarSectionConfig[] = [
   {
     id: "play",
-    title: "Play & Compete",
+    titleKey: "section.play",
+    defaultTitle: "Play & Compete",
     items: [
-      { route: "lobby", label: "Arcade Lobby" },
-      { route: "games", label: "Games Arena" },
-      { route: "tournaments", label: "Tournaments" },
-      { route: "quests", label: "Quests & Badges" },
-      { route: "leaderboard", label: "Leaderboard" },
-      { route: "history", label: "Match History" },
-      { route: "verify", label: "Fairness Verifier" },
+      { route: "lobby", labelKey: "nav.lobby", defaultLabel: "Arcade Lobby", icon: <Gamepad2 size={16} /> },
+      { route: "games", labelKey: "nav.games", defaultLabel: "Games Arena", icon: <Dices size={16} /> },
+      { route: "tournaments", labelKey: "nav.tournaments", defaultLabel: "Tournaments", icon: <Trophy size={16} /> },
+      { route: "quests", labelKey: "nav.quests", defaultLabel: "Quests & Badges", icon: <Award size={16} /> },
+      { route: "leaderboard", labelKey: "nav.leaderboard", defaultLabel: "Leaderboard", icon: <Flame size={16} /> },
+      { route: "history", labelKey: "nav.history", defaultLabel: "Match History", icon: <History size={16} /> },
+      { route: "verify", labelKey: "nav.verify", defaultLabel: "Fairness Verifier", icon: <ShieldCheck size={16} /> },
     ],
   },
   {
     id: "account",
-    title: "Vault & Assets",
+    titleKey: "section.vault",
+    defaultTitle: "Vault & Assets",
     items: [
-      { route: "portfolio", label: "Portfolio Vault" },
-      { route: "rewards", label: "Claim Rewards" },
-      { route: "cleanup", label: "Account Hygiene" },
+      { route: "portfolio", labelKey: "nav.portfolio", defaultLabel: "Portfolio Vault", icon: <Wallet size={16} /> },
+      { route: "rewards", labelKey: "nav.rewards", defaultLabel: "Claim Rewards", icon: <Coins size={16} /> },
+      { route: "cleanup", labelKey: "nav.cleanup", defaultLabel: "Account Hygiene", icon: <Sparkles size={16} /> },
     ],
   },
   {
     id: "system",
-    title: "System & Info",
+    titleKey: "section.system",
+    defaultTitle: "System & Info",
     items: [
-      { route: "settings", label: "Settings" },
-      { route: "about", label: "Architecture & About" },
-      { route: "terms", label: "Terms of Protocol" },
-      { route: "privacy", label: "Privacy Architecture" },
+      { route: "settings", labelKey: "nav.settings", defaultLabel: "Settings", icon: <Settings size={16} /> },
+      { route: "about", labelKey: "nav.about", defaultLabel: "Architecture & About", icon: <Layers size={16} /> },
+      { route: "terms", labelKey: "nav.terms", defaultLabel: "Terms of Protocol", icon: <FileText size={16} /> },
+      { route: "privacy", labelKey: "nav.privacy", defaultLabel: "Privacy Architecture", icon: <Lock size={16} /> },
     ],
   },
 ];
@@ -82,6 +106,7 @@ function getMobileNavigationMediaQuery(): MediaQueryList | null {
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate }) => {
+  const { t } = useI18n();
   const wallet = useWalletStatus();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
@@ -113,7 +138,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
 
   const compactAddress = wallet.address
     ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
-    : "Guest Player";
+    : t("common.guest_player", "Guest Player");
 
   return (
     <>
@@ -205,7 +230,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                     {compactAddress}
                   </strong>
                   <span style={{ fontSize: "11px", color: "var(--sc-accent, #00ffcc)", fontWeight: 600 }}>
-                    {wallet.capabilities.isConnected ? "✓ Connected" : "View Profile"}
+                    {wallet.capabilities.isConnected
+                      ? t("common.connected", "Connected")
+                      : t("common.view_profile", "View Profile")}
                   </span>
                 </div>
               </div>
@@ -215,12 +242,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
         )}
 
         <div className="app-sidebar__nav-groups">
-          {sections.map((section) => (
+          {SECTION_CONFIGS.map((section) => (
             <div key={section.id} className="app-sidebar__section">
-              <h3 className="app-sidebar__section-title">{section.title}</h3>
+              <h3 className="app-sidebar__section-title">
+                {t(section.titleKey, section.defaultTitle)}
+              </h3>
               <ul className="app-sidebar__list">
                 {section.items.map((item) => {
                   const isActive = item.route === currentRoute;
+                  const label = t(item.labelKey, item.defaultLabel);
                   return (
                     <li key={item.route}>
                       <button
@@ -229,8 +259,22 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                         onClick={() => handleNavigate(item.route)}
                         aria-current={isActive ? "page" : undefined}
                         data-testid={`app-sidebar-link-${item.route}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                        }}
                       >
-                        {item.label}
+                        <span
+                          style={{
+                            color: isActive ? "var(--sc-accent, #00ffcc)" : "var(--sc-text-dim, #94a3b8)",
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          {item.icon}
+                        </span>
+                        <span>{label}</span>
                       </button>
                     </li>
                   );
