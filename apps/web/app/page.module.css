@@ -320,15 +320,14 @@
 .featureGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1px;
-  background: var(--glass-border);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  overflow: hidden;
+  gap: 20px;
 }
 
 .featureCard {
-  background: var(--bg-dark);
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
   padding: 32px 28px;
 }
 
