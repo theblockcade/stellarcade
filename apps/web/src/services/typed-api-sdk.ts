@@ -199,13 +199,18 @@ export class ApiClient {
   constructor(baseUrl: string, sessionStore?: SessionStore);
   constructor(config: ApiClientConfig);
   constructor(arg1?: string | ApiClientConfig, arg2?: SessionStore) {
+    const envBaseUrl =
+      (typeof process !== 'undefined' &&
+        (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.VITE_API_BASE_URL)) ||
+      '';
+
     if (typeof arg1 === 'string') {
-      this._baseUrl = arg1;
+      this._baseUrl = arg1 || envBaseUrl;
       this._sessionStore = arg2;
       return;
     }
 
-    this._baseUrl = arg1?.baseUrl ?? '';
+    this._baseUrl = arg1?.baseUrl || envBaseUrl;
     this._sessionStore = arg1?.sessionStore;
   }
 

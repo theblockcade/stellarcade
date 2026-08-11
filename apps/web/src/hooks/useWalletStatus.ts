@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WalletSessionService, {
   WalletProviderAdapter,
 } from "../services/wallet-session-service";
+import { defaultFreighterAdapter } from "../services/freighter-adapter";
 import {
   ProviderNotFoundError,
   RejectedSignatureError,
@@ -192,9 +193,8 @@ export function useWalletStatus(
       adapter?: WalletProviderAdapter,
       opts?: { network?: string },
     ): Promise<void> => {
-      if (adapter) {
-        svcRef.current!.setProviderAdapter(adapter);
-      }
+      const activeAdapter = adapter ?? defaultFreighterAdapter;
+      svcRef.current!.setProviderAdapter(activeAdapter);
       await svcRef.current!.connect(opts);
     },
     [],
