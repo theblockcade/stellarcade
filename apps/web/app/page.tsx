@@ -241,6 +241,57 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* STORYTELLING NARRATIVE: THE TRUST CRISIS & DECOUPLED ENTROPY */}
+        <section className={styles.sec} style={{ background: "rgba(0, 0, 0, 0.4)", borderTop: "1px solid var(--glass-border)" }}>
+          <div className={styles.wrap} style={{ display: "flex", flexDirection: "column", gap: "3.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "3rem", alignItems: "center" }}>
+              <MotionReveal direction="left">
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <span className={styles.eyebrow} style={{ alignSelf: "flex-start", color: "#f87171", borderColor: "rgba(239, 68, 68, 0.3)", background: "rgba(239, 68, 68, 0.08)" }}>
+                    Act I: The Trust Crisis
+                  </span>
+                  <h2 className={styles.secTitle} style={{ color: "#fff", textAlign: "left", margin: 0 }}>
+                    Traditional Gaming is Rigged behind Closed Doors.
+                  </h2>
+                  <p className={styles.secBody} style={{ textAlign: "left", margin: 0, fontSize: "15px", lineHeight: 1.6 }}>
+                    Conventional online platforms execute game wagers inside hidden databases. 
+                    They promise random outcomes, but control the seed parameters, manipulate multipliers 
+                    dynamically, and lock your deposits in centralized custodial accounts. You cannot inspect the math, 
+                    and you cannot audit the server.
+                  </p>
+                </div>
+              </MotionReveal>
+
+              <MotionReveal direction="right">
+                <div
+                  style={{
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    padding: "2rem",
+                    borderRadius: "20px",
+                    backdropFilter: "blur(12px)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1rem",
+                  }}
+                >
+                  <span className={styles.eyebrow} style={{ alignSelf: "flex-start", color: "var(--accent)", borderColor: "rgba(0, 255, 204, 0.3)", background: "rgba(0, 255, 204, 0.08)" }}>
+                    Act II: The Cryptographic Truth
+                  </span>
+                  <h2 className={styles.secTitle} style={{ color: "#fff", textAlign: "left", margin: 0, fontSize: "1.5rem" }}>
+                    Decoupled On-Chain Entropy.
+                  </h2>
+                  <p className={styles.secBody} style={{ textAlign: "left", margin: 0, fontSize: "14px", lineHeight: 1.6 }}>
+                    StellarCade forces complete transparency. The server publishes a SHA-256 hash of its secret seed 
+                    before you commit your bet. Your browser mixes client-side seed parameters with the live, immutable 
+                    hash of the Stellar ledger, executing the final outcome deterministically via audited Soroban smart contracts.
+                  </p>
+                </div>
+              </MotionReveal>
+            </div>
+          </div>
+        </section>
+
         {/* GAMES ARENA SHOWCASE */}
         <section className={styles.sec} id="games">
           <div className={styles.wrap}>
