@@ -85,7 +85,7 @@ export default function TournamentsPage() {
   };
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "1.5rem" }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       {/* Header */}
       <div
         style={{

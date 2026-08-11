@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home } from "lucide-react";
+import { Home, ChevronRight } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -46,87 +46,50 @@ export default function Breadcrumbs() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        width: "100%",
-        padding: "1rem 2rem 0 2rem",
-      }}
-    >
-      <Breadcrumb
-        style={{
-          display: "inline-flex",
-          padding: "6px 14px",
-          borderRadius: "999px",
-          background: "rgba(255, 255, 255, 0.03)",
-          border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.08))",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <BreadcrumbList style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link
-                href="/"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  color: "var(--sc-text-dim, #94a3b8)",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  textDecoration: "none",
-                  transition: "color 0.15s ease",
-                }}
-              >
-                <Home size={13} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-                <span>{t("nav.home", "Home")}</span>
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
+    <Breadcrumb className="inline-flex items-center">
+      <BreadcrumbList style={{ display: "flex", alignItems: "center", gap: "6px", margin: 0, padding: 0 }}>
+        {pathnames.map((segment, index) => {
+          const isLast = index === pathnames.length - 1;
+          const href = `/${pathnames.slice(0, index + 1).join("/")}`;
+          const label = formatLabel(segment);
 
-          {pathnames.map((segment, index) => {
-            const isLast = index === pathnames.length - 1;
-            const href = `/${pathnames.slice(0, index + 1).join("/")}`;
-            const label = formatLabel(segment);
-
-            return (
-              <React.Fragment key={href}>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {isLast ? (
-                    <BreadcrumbPage
+          return (
+            <React.Fragment key={href}>
+              <BreadcrumbSeparator className="text-zinc-600">
+                <ChevronRight size={13} />
+              </BreadcrumbSeparator>
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage
+                    style={{
+                      color: "var(--sc-accent, #00ffcc)",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {label}
+                  </BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link
+                      href={href}
                       style={{
-                        color: "var(--sc-accent, #00ffcc)",
-                        fontSize: "12px",
-                        fontWeight: 700,
+                        color: "var(--sc-text-dim, #94a3b8)",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        textDecoration: "none",
+                        transition: "color 0.15s ease",
                       }}
                     >
                       {label}
-                    </BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link
-                        href={href}
-                        style={{
-                          color: "var(--sc-text-dim, #94a3b8)",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          textDecoration: "none",
-                          transition: "color 0.15s ease",
-                        }}
-                      >
-                        {label}
-                      </Link>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-              </React.Fragment>
-            );
-          })}
-        </BreadcrumbList>
-      </Breadcrumb>
-    </div>
+                    </Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </React.Fragment>
+          );
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 }

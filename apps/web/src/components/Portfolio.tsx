@@ -70,7 +70,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({
     : "No wallet connected";
 
   return (
-    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "1.5rem" }} data-testid="portfolio-view">
+    <div style={{ maxWidth: "1100px", margin: "0 auto" }} data-testid="portfolio-view">
       {/* Header */}
       <div
         style={{

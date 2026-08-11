@@ -240,14 +240,15 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       <div className="app-main-layout">
         <header className="app-header" role="banner">
-          <div className="logo">{t("app.title")}</div>
+          <div className="app-header__left">
+            <div className="logo">{t("app.title")}</div>
+            <Breadcrumbs />
+          </div>
           <div className="app-header__actions">
             <LocaleSwitcher />
             <HeaderWalletControl />
           </div>
         </header>
-
-        <Breadcrumbs />
 
         <main className="app-content" id={MAIN_CONTENT_ID} tabIndex={-1}>
           <RouteErrorBoundary>{children}</RouteErrorBoundary>

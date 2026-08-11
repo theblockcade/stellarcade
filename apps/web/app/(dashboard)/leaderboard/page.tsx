@@ -80,7 +80,7 @@ export default function LeaderboardPage() {
   const [timeframe, setTimeframe] = useState<"weekly" | "all_time">("weekly");
 
   return (
-    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "1.5rem" }}>
+    <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
       {/* Header */}
       <div
         style={{

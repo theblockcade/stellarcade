@@ -79,7 +79,7 @@ export default function HistoryPage() {
   const wallet = useWalletStatus();
 
   return (
-    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "1.5rem" }}>
+    <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
       {/* Header */}
       <div
         style={{

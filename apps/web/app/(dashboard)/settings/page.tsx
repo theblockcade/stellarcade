@@ -55,7 +55,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "1.5rem" }}>
+    <div style={{ maxWidth: "900px", margin: "0 auto" }}>
       {/* Header */}
       <div
         style={{

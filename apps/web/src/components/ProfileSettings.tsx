@@ -66,7 +66,7 @@ export const ProfileSettings: React.FC = () => {
     : "No wallet connected";
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "1.5rem" }}>
+    <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
       {/* Header */}
       <div
         style={{
