@@ -19,6 +19,7 @@ export interface QueueHealthWidgetProps {
   size?: "compact" | "default" | "detailed";
   showDetails?: boolean;
   onRefresh?: () => void;
+  refreshInterval?: number;
   loading?: boolean;
   error?: string;
   className?: string;
