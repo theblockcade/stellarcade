@@ -1,0 +1,58 @@
+.session-timeout-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.session-timeout-modal__dialog {
+  background: #11161e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  max-width: 440px;
+  width: 100%;
+}
+
+.session-timeout-modal__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.session-timeout-modal__body {
+  font-size: 0.875rem;
+  color: var(--sc-text-dim, #94a3b8);
+  margin: 0 0 1.25rem 0;
+}
+
+.session-timeout-modal__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.session-timeout-modal__primary {
+  background: var(--sc-accent, #00f0ff);
+  color: #000000;
+  border: none;
+  padding: 0.45rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.session-timeout-modal__secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 0.45rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}

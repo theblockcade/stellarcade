@@ -1,0 +1,99 @@
+.sct-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.sct {
+  width: 100%;
+  max-width: 540px;
+  background: #11161e;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1.5rem;
+}
+
+.sct__progress {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.sct__step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--sc-text-dim, #94a3b8);
+}
+
+.sct__step--active {
+  color: var(--sc-accent, #00f0ff);
+  font-weight: 700;
+}
+
+.sct__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sct__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.sct__risk {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #eab308;
+}
+
+.sct__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.sct__field {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.sct__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.sct__btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sct__btn--secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.sct__btn--primary {
+  background: var(--sc-accent, #00f0ff);
+  color: #000000;
+  border: none;
+}
