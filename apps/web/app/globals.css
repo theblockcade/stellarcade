@@ -11,6 +11,12 @@
      self-hosted build actually apply instead of silently falling back to
      the sans-serif system font. */
   --font-family: var(--font-outfit), var(--sc-font-base);
+  /* Same fix for the mono stack: the token names "JetBrains Mono" first but
+     can't load it on its own, so every var(--sc-font-mono) consumer (hex
+     digests on /verify, contract addresses, code snippets) fell back to
+     generic monospace. Re-pointed at the next/font-loaded face here, with
+     the token's own stack kept as the fallback chain. */
+  --sc-font-mono: var(--font-jetbrains-mono), "Fira Code", "Cascadia Code", monospace;
   --bg-dark: var(--sc-bg-dark);
   --bg-card: var(--sc-bg-card);
   --accent: var(--sc-accent);
@@ -84,6 +90,10 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --font-sans: var(--font-family);
+  /* Without this, Tailwind's `font-mono` utility resolves to its own default
+     mono stack rather than the app's — so components styled with the utility
+     class (rather than var(--sc-font-mono) directly) missed the loaded face. */
+  --font-mono: var(--sc-font-mono);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
