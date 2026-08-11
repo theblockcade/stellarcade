@@ -42,5 +42,8 @@
   "lobby.title": "Salón Arcade",
   "lobby.welcome": "Bienvenido a StellarCade",
   "lobby.description": "Juegos descentralizados y demostrablemente justos en Stellar y Soroban",
+  "footer.copyright": "© 2026 StellarCade. Todos los derechos reservados.",
+  "footer.terms": "Términos del Protocolo",
+  "footer.privacy": "Arquitectura de Privacidad",
   "locale.reset": "Restablecer por defecto"
 }

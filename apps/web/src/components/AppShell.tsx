@@ -256,11 +256,11 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         <footer className="app-footer" role="contentinfo">
           <div className="footer-content">
-            <p>{t("footer.copyright")}</p>
+            <p>{t("footer.copyright", "© 2026 StellarCade. All rights reserved.")}</p>
 
             <div className="footer-links">
-              <a href="/terms">{t("footer.terms")}</a>
-              <a href="/privacy">{t("footer.privacy")}</a>
+              <a href="/terms">{t("footer.terms", "Terms of Protocol")}</a>
+              <a href="/privacy">{t("footer.privacy", "Privacy Architecture")}</a>
             </div>
           </div>
         </footer>

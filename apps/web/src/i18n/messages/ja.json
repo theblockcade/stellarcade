@@ -42,5 +42,8 @@
   "lobby.title": "アーケードロビー",
   "lobby.welcome": "StellarCadeへようこそ",
   "lobby.description": "StellarとSoroban上の分散型・検証可能な公平ゲーミング",
+  "footer.copyright": "© 2026 StellarCade. 無断転載を禁じます。",
+  "footer.terms": "プロトコル利用規約",
+  "footer.privacy": "プライバシー仕様",
   "locale.reset": "デフォルトに戻す"
 }
