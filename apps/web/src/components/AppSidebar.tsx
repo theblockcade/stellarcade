@@ -11,7 +11,22 @@ import "./AppSidebar.css";
  * slice, once routes exist for it to navigate to).
  */
 
-export type AppRoute = "lobby" | "games" | "portfolio" | "profile" | "verify" | "cleanup" | "about";
+export type AppRoute =
+  | "lobby"
+  | "games"
+  | "tournaments"
+  | "quests"
+  | "leaderboard"
+  | "history"
+  | "rewards"
+  | "verify"
+  | "portfolio"
+  | "cleanup"
+  | "profile"
+  | "settings"
+  | "about"
+  | "terms"
+  | "privacy";
 
 interface SidebarItem {
   route: AppRoute;
@@ -32,28 +47,39 @@ export interface AppSidebarProps {
 const sections: SidebarSection[] = [
   {
     id: "play",
-    title: "Play",
+    title: "Play & Compete",
     items: [
-      { route: "lobby", label: "Lobby" },
-      { route: "games", label: "Games" },
+      { route: "lobby", label: "Arcade Lobby" },
+      { route: "games", label: "Games Arena" },
+      { route: "tournaments", label: "Tournaments" },
+      { route: "quests", label: "Quests & Badges" },
+      { route: "leaderboard", label: "Leaderboard" },
+      { route: "history", label: "Match History" },
       { route: "verify", label: "Fairness Verifier" },
     ],
   },
   {
     id: "account",
-    title: "Account",
+    title: "Vault & Account",
     items: [
-      { route: "portfolio", label: "Portfolio" },
+      { route: "portfolio", label: "Portfolio Vault" },
+      { route: "rewards", label: "Claim Rewards" },
       { route: "cleanup", label: "Account Hygiene" },
-      { route: "profile", label: "Profile" },
+      { route: "profile", label: "Player Profile" },
+      { route: "settings", label: "Settings" },
     ],
   },
   {
-    id: "about",
-    title: "About",
-    items: [{ route: "about", label: "Architecture & Mission" }],
+    id: "protocol",
+    title: "Protocol",
+    items: [
+      { route: "about", label: "Architecture & About" },
+      { route: "terms", label: "Terms of Protocol" },
+      { route: "privacy", label: "Privacy Architecture" },
+    ],
   },
 ];
+
 
 function getMobileNavigationMediaQuery(): MediaQueryList | null {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {

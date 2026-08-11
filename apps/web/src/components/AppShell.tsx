@@ -4,6 +4,7 @@ import React, { Suspense, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { I18nProvider, useI18n } from "../i18n/provider";
 import LocaleSwitcher from "./LocaleSwitcher";
+import HeaderWalletControl from "./HeaderWalletControl";
 import Breadcrumbs from "./BreadCrumbs";
 import { AppSidebar, type AppRoute } from "./AppSidebar";
 import NotificationCenter from "./NotificationCenter";
@@ -31,6 +32,12 @@ function getAppRoute(pathname: string): AppRoute {
   if (pathname === "/about" || pathname.startsWith("/about/")) {
     return "about";
   }
+  if (pathname === "/terms" || pathname.startsWith("/terms/")) {
+    return "terms";
+  }
+  if (pathname === "/privacy" || pathname.startsWith("/privacy/")) {
+    return "privacy";
+  }
   if (pathname === "/verify" || pathname.startsWith("/verify/")) {
     return "verify";
   }
@@ -40,8 +47,26 @@ function getAppRoute(pathname: string): AppRoute {
   if (pathname === "/profile" || pathname.startsWith("/profile/")) {
     return "profile";
   }
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) {
+    return "settings";
+  }
   if (pathname === "/portfolio" || pathname.startsWith("/portfolio/")) {
     return "portfolio";
+  }
+  if (pathname === "/rewards" || pathname.startsWith("/rewards/")) {
+    return "rewards";
+  }
+  if (pathname === "/tournaments" || pathname.startsWith("/tournaments/")) {
+    return "tournaments";
+  }
+  if (pathname === "/quests" || pathname.startsWith("/quests/")) {
+    return "quests";
+  }
+  if (pathname === "/leaderboard" || pathname.startsWith("/leaderboard/")) {
+    return "leaderboard";
+  }
+  if (pathname === "/history" || pathname.startsWith("/history/")) {
+    return "history";
   }
   if (pathname === "/games" || pathname.startsWith("/games/")) {
     return "games";
@@ -53,14 +78,30 @@ function routeToPath(route: AppRoute): string {
   switch (route) {
     case "about":
       return "/about";
+    case "terms":
+      return "/terms";
+    case "privacy":
+      return "/privacy";
     case "verify":
       return "/verify";
     case "cleanup":
       return "/cleanup";
     case "profile":
       return "/profile";
+    case "settings":
+      return "/settings";
     case "portfolio":
       return "/portfolio";
+    case "rewards":
+      return "/rewards";
+    case "tournaments":
+      return "/tournaments";
+    case "quests":
+      return "/quests";
+    case "leaderboard":
+      return "/leaderboard";
+    case "history":
+      return "/history";
     case "games":
       return "/games";
     case "lobby":
@@ -94,6 +135,54 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
       label: "Go to Games",
       description: "Open the games section",
       action: () => handleNavigate("games"),
+    },
+    {
+      id: "go-tournaments",
+      label: "Go to Tournaments",
+      description: "View competitive on-chain brackets and prize pools",
+      action: () => handleNavigate("tournaments"),
+    },
+    {
+      id: "go-quests",
+      label: "Go to Quests & Badges",
+      description: "Track XP milestones and Soulbound Badges",
+      action: () => handleNavigate("quests"),
+    },
+    {
+      id: "go-leaderboard",
+      label: "Go to Leaderboard",
+      description: "View top-ranked players and weekly winners",
+      action: () => handleNavigate("leaderboard"),
+    },
+    {
+      id: "go-history",
+      label: "Go to Match History",
+      description: "Review past games and audit proofs",
+      action: () => handleNavigate("history"),
+    },
+    {
+      id: "go-rewards",
+      label: "Go to Claim Rewards",
+      description: "Claim tournament and jackpot prize payouts",
+      action: () => handleNavigate("rewards"),
+    },
+    {
+      id: "go-settings",
+      label: "Go to Settings",
+      description: "System preferences, audio, and auto-verify",
+      action: () => handleNavigate("settings"),
+    },
+    {
+      id: "go-terms",
+      label: "Go to Terms of Protocol",
+      description: "Terms and conditions of smart contract interaction",
+      action: () => handleNavigate("terms"),
+    },
+    {
+      id: "go-privacy",
+      label: "Go to Privacy Architecture",
+      description: "Zero-custody data and privacy policy",
+      action: () => handleNavigate("privacy"),
     },
     {
       id: "go-verify",
@@ -152,7 +241,10 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <div className="app-main-layout">
         <header className="app-header" role="banner">
           <div className="logo">{t("app.title")}</div>
-          <LocaleSwitcher />
+          <div className="app-header__actions">
+            <LocaleSwitcher />
+            <HeaderWalletControl />
+          </div>
         </header>
 
         <Breadcrumbs />
