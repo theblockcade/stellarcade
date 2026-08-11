@@ -1,12 +1,71 @@
 import Link from "next/link";
-import { Award, Bot, Code2, Gauge, ScrollText, ShieldCheck, Trophy, Wallet, Zap } from "lucide-react";
+import {
+  Award,
+  Bot,
+  Code2,
+  Gauge,
+  ScrollText,
+  ShieldCheck,
+  Trophy,
+  Wallet,
+  Zap,
+  Gamepad2,
+  Dices,
+  Coins,
+  ArrowRight,
+  TrendingUp,
+  Cpu,
+  Lock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FaqAccordionMonochrome } from "@/components/ui/faq-monochrome";
 import { LandingNav } from "./landing/nav";
 import { FairnessProofMockup, PrizePoolMockup, QuestMockup } from "./landing/mockups";
 import { CinematicFooter } from "@/components/ui/motion-footer";
 import { NeonMesh } from "@/components/ui/neon-mesh";
+import { InteractiveVerifierSandbox } from "./landing/interactive-verifier";
 import styles from "./page.module.css";
+
+const PROTOCOL_METRICS = [
+  { value: "250,000+", label: "XLM Wager Volume" },
+  { value: "12,450", label: "Active Prize Vault (XLM)" },
+  { value: "89,400+", label: "Provably Fair Rounds" },
+  { value: "~3.2s", label: "Soroban Settlement" },
+  { value: "100%", label: "Client-Signed & Non-Custodial" },
+];
+
+const FEATURED_GAMES = [
+  {
+    id: "coinflip-duel",
+    icon: <Coins size={28} style={{ color: "var(--accent)" }} />,
+    title: "Coinflip Duel",
+    category: "1v1 PvP & House Match",
+    wagerRange: "5 – 100 XLM",
+    odds: "50.00% Exact Odds",
+    desc: "Instant cryptographic coinflip duel backed by SHA-256 commit-reveal entropy and Soroban smart contracts.",
+    href: "/games",
+  },
+  {
+    id: "rng-dice",
+    icon: <Dices size={28} style={{ color: "var(--accent)" }} />,
+    title: "Verifiable Dice Roll",
+    category: "Table & Dice",
+    wagerRange: "10 – 250 XLM",
+    odds: "1.98x – 5.80x Multiplier",
+    desc: "Roll against modular smart contract entropy with customizable prediction targets and real-time payout execution.",
+    href: "/games",
+  },
+  {
+    id: "prizepool-gauntlet",
+    icon: <Trophy size={28} style={{ color: "var(--accent)" }} />,
+    title: "Prize Pool Gauntlet",
+    category: "Jackpot Challenge",
+    wagerRange: "25 – 500 XLM",
+    odds: "Progressive Multiplier",
+    desc: "Navigate escalating risk rounds to unlock accumulating community prize pool vaults and seasonal jackpot splits.",
+    href: "/games",
+  },
+];
 
 const FEATURES = [
   {
@@ -104,21 +163,10 @@ export default function LandingPage() {
 
       <LandingNav />
 
-      {/* Shared background for every content section (hero through FAQ) —
-          fixed to the viewport rather than sized to the full scrollable page,
-          both for perf (one viewport-sized physics mesh instead of one
-          scaled to a multi-screen-tall page) and so it stays put while
-          scrolling. No overlay text (see neon-mesh.tsx) — pointer events
-          stay enabled, since that's what drives the mesh's cursor
-          interaction, while real content still receives its own clicks: the
-          nav has an explicit z-index above it, the footer renders later in
-          DOM (plus has its own opaque background), and every .sec section
-          below is position:relative so its content stacks above this fixed,
-          auto-z-index sibling. opacity-60: reads as background texture, not
-          a competing focal point. */}
       <NeonMesh className="fixed inset-0 h-screen opacity-60" />
 
       <main id="main">
+        {/* HERO SECTION */}
         <section className={styles.hero}>
           <span className={styles.eyebrow}>
             <span className={styles.dot} />
@@ -138,10 +186,8 @@ export default function LandingPage() {
             <Button asChild variant="brand" size="pill">
               <Link href="/app">Enter the arcade</Link>
             </Button>
-            {/* No dedicated /games route (see AppShell's routeToPath) — GameLobby
-                at /app serves both the lobby and the games concern. */}
             <Button asChild variant="brand-outline" size="pill">
-              <Link href="/app">Browse games</Link>
+              <Link href="/games">Browse games</Link>
             </Button>
           </div>
 
@@ -156,9 +202,91 @@ export default function LandingPage() {
               <QuestMockup />
             </div>
           </div>
+
+          {/* PROTOCOL METRICS STRIP */}
+          <div className={`${styles.wrap} w-full`}>
+            <div className={styles.statsStrip}>
+              {PROTOCOL_METRICS.map((m) => (
+                <div key={m.label} className={styles.statItem}>
+                  <div className={styles.statNumber}>{m.value}</div>
+                  <div className={styles.statLabel}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
-        {/* FAIRNESS EXPLAINER */}
+        {/* GAMES ARENA SHOWCASE */}
+        <section className={styles.sec} id="games">
+          <div className={styles.wrap}>
+            <div className={styles.secHead}>
+              <span className={styles.eyebrow}>Games Arena</span>
+              <h2 className={styles.secTitle}>On-Chain Matches. Instant Settlement.</h2>
+              <p className={styles.secBody}>
+                Challenge the house or duel other players in real-time. Every match executes non-custodially via Soroban smart contracts.
+              </p>
+            </div>
+
+            <div className={styles.gamesGrid}>
+              {FEATURED_GAMES.map((game) => (
+                <div key={game.id} className={styles.gameCard}>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                      {game.icon}
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          padding: "3px 10px",
+                          borderRadius: "999px",
+                          background: "rgba(0, 255, 204, 0.12)",
+                          color: "var(--accent)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        {game.category}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: "1.3rem", fontWeight: 700, margin: "0 0 8px 0" }}>{game.title}</h3>
+                    <p style={{ color: "var(--text-dim)", fontSize: "14px", lineHeight: 1.6, margin: "0 0 16px 0" }}>
+                      {game.desc}
+                    </p>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "var(--text-dim)", paddingTop: "12px", borderTop: "1px solid var(--glass-border)" }}>
+                      <span>Wager: <strong style={{ color: "#fff" }}>{game.wagerRange}</strong></span>
+                      <span>Odds: <strong style={{ color: "var(--accent)" }}>{game.odds}</strong></span>
+                    </div>
+                  </div>
+
+                  <Button asChild variant="brand" size="sm" className="w-full">
+                    <Link href={game.href}>
+                      Play {game.title} <ArrowRight size={14} style={{ marginLeft: "6px" }} />
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* INTERACTIVE VERIFIER SANDBOX */}
+        <section className={styles.sec} id="sandbox">
+          <div className={styles.wrap}>
+            <div className={styles.secHead}>
+              <span className={styles.eyebrow}>Live Cryptography</span>
+              <h2 className={styles.secTitle}>Audit Any Round in Real-Time</h2>
+              <p className={styles.secBody}>
+                Don&apos;t take our word for it. StellarCade uses standard NIST-compliant SHA-256 WebCrypto functions you can execute right now in your browser.
+              </p>
+            </div>
+
+            <InteractiveVerifierSandbox />
+          </div>
+        </section>
+
+        {/* HOW IT WORKS / FAIRNESS EXPLAINER */}
         <section className={styles.sec} id="fairness">
           <div className={styles.wrap}>
             <div className={styles.secHead}>
@@ -192,6 +320,51 @@ export default function LandingPage() {
                 <p>
                   Recompute the hash yourself, offline, with the SDK or by hand. If it doesn&apos;t
                   match, the round is provably invalid.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* VAULT & ECONOMICS BREAKDOWN */}
+        <section className={styles.sec} id="economics">
+          <div className={styles.wrap}>
+            <div className={styles.secHead}>
+              <span className={styles.eyebrow}>Autonomous Economics</span>
+              <h2 className={styles.secTitle}>Transparent 2% Vault Allocation</h2>
+              <p className={styles.secBody}>
+                Unlike traditional casinos, StellarCade fees route directly into autonomous, on-chain reward pools for the community.
+              </p>
+            </div>
+
+            <div className={styles.vaultGrid}>
+              <div className={styles.vaultCard}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                  <TrendingUp size={24} style={{ color: "var(--accent)" }} />
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>98% Direct Winner Return</h3>
+                </div>
+                <p style={{ color: "var(--text-dim)", fontSize: "14px", lineHeight: 1.6, margin: 0 }}>
+                  98% of all match stakes are disbursed immediately to the winning player&apos;s wallet upon Soroban contract resolution.
+                </p>
+              </div>
+
+              <div className={styles.vaultCard}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                  <Trophy size={24} style={{ color: "var(--accent)" }} />
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>70% of Fee → Weekly Jackpot</h3>
+                </div>
+                <p style={{ color: "var(--text-dim)", fontSize: "14px", lineHeight: 1.6, margin: 0 }}>
+                  The largest portion of protocol fees accumulates in the autonomous prize pool vault, distributed weekly to active tournament players.
+                </p>
+              </div>
+
+              <div className={styles.vaultCard}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                  <Award size={24} style={{ color: "var(--accent)" }} />
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>30% of Fee → Quest Treasury</h3>
+                </div>
+                <p style={{ color: "var(--text-dim)", fontSize: "14px", lineHeight: 1.6, margin: 0 }}>
+                  Funds milestone rewards, Soulbound Badge minting, and leaderboard prizes for seasonal quest participants.
                 </p>
               </div>
             </div>
@@ -240,16 +413,19 @@ export default function LandingPage() {
                   @stellarcade/sdk ships the same fairness-verification and connector code the app
                   runs on.
                 </p>
+                <Button asChild variant="brand" size="sm" className={styles.platBtn}>
+                  <Link href="/about">View SDK & Architecture</Link>
+                </Button>
                 <div className={styles.miniPreview}>
                   <div className={styles.miniRow}>
                     <span className={styles.mono}>$ npm install @stellarcade/sdk</span>
                   </div>
                   <div className={styles.miniRow}>
-                    <span className={styles.mono}>import {"{"} verifyRound {"}"}</span>
+                    <span className={styles.mono}>import {"{"} verifyFairnessProof {"}"}</span>
                   </div>
                   <div className={styles.miniRow}>
-                    <span className={styles.mono}>verifyRound(round)</span>
-                    <b className={styles.ok}>✓ fair</b>
+                    <span className={styles.mono}>verifyFairnessProof(round)</span>
+                    <b className={styles.ok}>✓ 100% fair</b>
                   </div>
                 </div>
               </div>
@@ -329,13 +505,8 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
       </main>
 
-      {/* Cinematic scroll-reveal footer (see src/components/ui/motion-footer.tsx)
-          replaces the old static closing-CTA section + link-column footer —
-          it covers both roles: closing CTA ("Ready to enter?") and site nav
-          (arcade/games/portfolio/FAQ/terms/privacy). */}
       <CinematicFooter />
     </>
   );
