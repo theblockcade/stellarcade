@@ -1,27 +1,57 @@
 "use client";
 
 import React from "react";
+import {
+  User,
+  ShieldCheck,
+  Trophy,
+  Gamepad2,
+  Coins,
+  Settings,
+  Layers,
+  FileText,
+  Lock,
+  Dices,
+  Flame,
+  Award,
+  History,
+  Wallet,
+  Sparkles,
+  ChevronRight,
+} from "lucide-react";
+import { useWalletStatus } from "../hooks/useWalletStatus";
+import { useI18n } from "../i18n/provider";
 import "./AppSidebar.css";
 
-/**
- * Ported verbatim from frontend/src/components/v1/AppSidebar.tsx. Takes
- * `currentRoute`/`onNavigate` as props rather than reading a router
- * directly, so no react-router -> Next adaptation was needed here — the
- * adaptation lives in whatever wires this up to next/navigation (a later
- * slice, once routes exist for it to navigate to).
- */
+export type AppRoute =
+  | "lobby"
+  | "games"
+  | "tournaments"
+  | "quests"
+  | "leaderboard"
+  | "history"
+  | "rewards"
+  | "verify"
+  | "portfolio"
+  | "cleanup"
+  | "profile"
+  | "settings"
+  | "about"
+  | "terms"
+  | "privacy";
 
-export type AppRoute = "lobby" | "games" | "portfolio" | "profile" | "verify" | "cleanup" | "about";
-
-interface SidebarItem {
+interface SidebarItemConfig {
   route: AppRoute;
-  label: string;
+  labelKey: string;
+  defaultLabel: string;
+  icon: React.ReactNode;
 }
 
-interface SidebarSection {
+interface SidebarSectionConfig {
   id: string;
-  title: string;
-  items: SidebarItem[];
+  titleKey: string;
+  defaultTitle: string;
+  items: SidebarItemConfig[];
 }
 
 export interface AppSidebarProps {
@@ -29,29 +59,41 @@ export interface AppSidebarProps {
   onNavigate: (route: AppRoute) => void;
 }
 
-const sections: SidebarSection[] = [
+const SECTION_CONFIGS: SidebarSectionConfig[] = [
   {
     id: "play",
-    title: "Play",
+    titleKey: "section.play",
+    defaultTitle: "Play & Compete",
     items: [
-      { route: "lobby", label: "Lobby" },
-      { route: "games", label: "Games" },
-      { route: "verify", label: "Fairness Verifier" },
+      { route: "lobby", labelKey: "nav.lobby", defaultLabel: "Arcade Lobby", icon: <Gamepad2 size={16} /> },
+      { route: "games", labelKey: "nav.games", defaultLabel: "Games Arena", icon: <Dices size={16} /> },
+      { route: "tournaments", labelKey: "nav.tournaments", defaultLabel: "Tournaments", icon: <Trophy size={16} /> },
+      { route: "quests", labelKey: "nav.quests", defaultLabel: "Quests & Badges", icon: <Award size={16} /> },
+      { route: "leaderboard", labelKey: "nav.leaderboard", defaultLabel: "Leaderboard", icon: <Flame size={16} /> },
+      { route: "history", labelKey: "nav.history", defaultLabel: "Match History", icon: <History size={16} /> },
+      { route: "verify", labelKey: "nav.verify", defaultLabel: "Fairness Verifier", icon: <ShieldCheck size={16} /> },
     ],
   },
   {
     id: "account",
-    title: "Account",
+    titleKey: "section.vault",
+    defaultTitle: "Vault & Assets",
     items: [
-      { route: "portfolio", label: "Portfolio" },
-      { route: "cleanup", label: "Account Hygiene" },
-      { route: "profile", label: "Profile" },
+      { route: "portfolio", labelKey: "nav.portfolio", defaultLabel: "Portfolio Vault", icon: <Wallet size={16} /> },
+      { route: "rewards", labelKey: "nav.rewards", defaultLabel: "Claim Rewards", icon: <Coins size={16} /> },
+      { route: "cleanup", labelKey: "nav.cleanup", defaultLabel: "Account Hygiene", icon: <Sparkles size={16} /> },
     ],
   },
   {
-    id: "about",
-    title: "About",
-    items: [{ route: "about", label: "Architecture & Mission" }],
+    id: "system",
+    titleKey: "section.system",
+    defaultTitle: "System & Info",
+    items: [
+      { route: "settings", labelKey: "nav.settings", defaultLabel: "Settings", icon: <Settings size={16} /> },
+      { route: "about", labelKey: "nav.about", defaultLabel: "Architecture & About", icon: <Layers size={16} /> },
+      { route: "terms", labelKey: "nav.terms", defaultLabel: "Terms of Protocol", icon: <FileText size={16} /> },
+      { route: "privacy", labelKey: "nav.privacy", defaultLabel: "Privacy Architecture", icon: <Lock size={16} /> },
+    ],
   },
 ];
 
@@ -64,6 +106,8 @@ function getMobileNavigationMediaQuery(): MediaQueryList | null {
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate }) => {
+  const { t } = useI18n();
+  const wallet = useWalletStatus();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
   const [isMobileViewport, setIsMobileViewport] = React.useState(() => {
@@ -92,6 +136,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
 
   const isClosedMobileNavigation = isMobileViewport && !isMobileOpen;
 
+  const compactAddress = wallet.address
+    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
+    : t("common.guest_player", "Guest Player");
+
   return (
     <>
       <button
@@ -113,13 +161,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
         aria-label="Primary dashboard"
         aria-hidden={isClosedMobileNavigation ? true : undefined}
         data-testid="app-sidebar"
-        // React 19 supports `inert` as a real boolean prop (frontend/'s React
-        // 18 needed the `inert: ""` string hack to render the attribute at
-        // all) — pass the boolean directly rather than porting that hack.
         inert={isClosedMobileNavigation || undefined}
       >
         <div className="app-sidebar__header">
-          <h2 className="app-sidebar__title">Navigation</h2>
+          <h2 className="app-sidebar__title">StellarCade</h2>
           <div className="app-sidebar__controls">
             <button
               type="button"
@@ -128,7 +173,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               data-testid="app-sidebar-collapse-toggle"
             >
-              {isCollapsed ? "->" : "<-"}
+              {isCollapsed ? "→" : "←"}
             </button>
             <button
               type="button"
@@ -137,18 +182,75 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
               aria-label="Close navigation menu"
               data-testid="app-sidebar-mobile-close"
             >
-              x
+              ✕
             </button>
           </div>
         </div>
 
+        {/* PROMINENT TOP PLAYER PROFILE CARD */}
+        {!isCollapsed && (
+          <div style={{ padding: "0 1rem 1rem 1rem" }}>
+            <button
+              type="button"
+              onClick={() => handleNavigate("profile")}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 12px",
+                borderRadius: "12px",
+                background: currentRoute === "profile" ? "rgba(0, 255, 204, 0.15)" : "rgba(255, 255, 255, 0.04)",
+                border: currentRoute === "profile" ? "1px solid var(--sc-accent, #00ffcc)" : "1px solid rgba(255, 255, 255, 0.08)",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.15s ease",
+              }}
+              data-testid="sidebar-profile-card"
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #00ffcc, #3b82f6)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#000",
+                    fontWeight: 800,
+                    fontSize: "14px",
+                  }}
+                >
+                  <User size={18} />
+                </div>
+                <div>
+                  <strong style={{ display: "block", fontSize: "13px", color: "#fff", lineHeight: 1.2 }}>
+                    {compactAddress}
+                  </strong>
+                  <span style={{ fontSize: "11px", color: "var(--sc-accent, #00ffcc)", fontWeight: 600 }}>
+                    {wallet.capabilities.isConnected
+                      ? t("common.connected", "Connected")
+                      : t("common.view_profile", "View Profile")}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={14} style={{ color: "var(--sc-text-dim, #94a3b8)" }} />
+            </button>
+          </div>
+        )}
+
         <div className="app-sidebar__nav-groups">
-          {sections.map((section) => (
+          {SECTION_CONFIGS.map((section) => (
             <div key={section.id} className="app-sidebar__section">
-              <h3 className="app-sidebar__section-title">{section.title}</h3>
+              <h3 className="app-sidebar__section-title">
+                {t(section.titleKey, section.defaultTitle)}
+              </h3>
               <ul className="app-sidebar__list">
                 {section.items.map((item) => {
                   const isActive = item.route === currentRoute;
+                  const label = t(item.labelKey, item.defaultLabel);
                   return (
                     <li key={item.route}>
                       <button
@@ -157,8 +259,22 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                         onClick={() => handleNavigate(item.route)}
                         aria-current={isActive ? "page" : undefined}
                         data-testid={`app-sidebar-link-${item.route}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                        }}
                       >
-                        {item.label}
+                        <span
+                          style={{
+                            color: isActive ? "var(--sc-accent, #00ffcc)" : "var(--sc-text-dim, #94a3b8)",
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          {item.icon}
+                        </span>
+                        <span>{label}</span>
                       </button>
                     </li>
                   );

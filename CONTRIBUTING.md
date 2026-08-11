@@ -57,6 +57,39 @@ Thanks for contributing to Stellarcade.
 - Run the repo hooks before pushing so CI failures are caught locally.
 - Ensure CI checks pass before requesting review.
 
+### Pull Request Template
+
+Please use the following format for pull requests:
+
+```markdown
+## Description
+<High-level summary of what was implemented and why>
+
+Closes #<Issue Number>
+Closes #<Issue Number>
+
+## Changes proposed
+
+### What were you told to do?
+<Summarize the task requirements from the issues>
+
+### What did I do?
+#### <Logical Grouping Header 1>
+- <Bullet points of specific changes>
+
+## Check List (Check all the applicable boxes)
+- [x] My code follows the code style of this project.
+- [x] This PR does not contain plagiarized content.
+- [x] The title and description of the PR is clear and explains the approach.
+- [x] I am making a pull request against the main branch (left side).
+- [x] My commit messages styles matches our requested structure.
+- [x] The implementation was reviewed and confirmed to work as intended.
+- [x] I am only making changes to files I was requested to.
+
+## Screenshots / Validation Evidence
+<Relevant validation evidence: build output, logic confirmation, or description of verified behavior.>
+```
+
 ## Issue Reporting
 
 - Use the issue templates in `.github/ISSUE_TEMPLATE/`.

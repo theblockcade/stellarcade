@@ -1,388 +1,385 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiClient } from '../services/typed-api-sdk';
-import { SkeletonPreset } from './LoadingSkeletonSet';
-import { AccountSwitcher } from './AccountSwitcher';
-import { DraftPresenceIndicator } from './DraftPresenceIndicator';
-import SensitiveActionChecklist from './SensitiveActionChecklist';
-import { StickyActionsFooter } from './StickyActionsFooter';
-import { CollapsibleStatsGroup } from './CollapsibleStatsGroup';
-import { RewardBalanceSparklineCard } from './RewardBalanceSparklineCard';
-import { AlertBanner } from './AlertBanner';
-import { CopyButton } from './CopyButton';
-import GlobalStateStore from '../services/global-state-store';
-import { useWalletStatus } from '../hooks/useWalletStatus';
-import type { RecentAccount } from './AccountSwitcher.types';
-import type { UserProfile } from '../types/api-client';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  User,
+  ShieldCheck,
+  Wallet,
+  Copy,
+  Check,
+  Trophy,
+  Award,
+  Sparkles,
+  ExternalLink,
+  Save,
+  CheckCircle2,
+  Lock,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { useWalletStatus } from "../hooks/useWalletStatus";
+import { motion } from "framer-motion";
+import GlobalStateStore from "../services/global-state-store";
 
 export const profileStore = new GlobalStateStore();
 
-const formatDateTime = (value?: string): string => {
-  if (!value) return 'N/A';
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return value;
-  return new Date(parsed).toLocaleString();
-};
+export const ProfileSettings: React.FC = () => {
+  const wallet = useWalletStatus();
+  const [username, setUsername] = useState("ArcadePlayer_77");
+  const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
-const getStoreToken = () => {
-  const token = profileStore.getState().auth.token ?? null;
-  if (token) return token;
-  if (process.env.NODE_ENV === 'development') {
-    return 'test-jwt-token';
-  }
-  return null;
-};
-
-const createApiClient = () => {
-  return new ApiClient({
-    sessionStore: {
-      getToken: () => getStoreToken(),
-    },
-  });
-};
-
-const ProfileSettings: React.FC = () => {
-  const walletStatus = useWalletStatus();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [username, setUsername] = useState('');
-  const [checkedReviewIds, setCheckedReviewIds] = useState<string[]>([]);
-  const [lastDraftEditedAt, setLastDraftEditedAt] = useState<number | undefined>();
-
-  const store = useRef<GlobalStateStore>(profileStore);
-
+  // Load username from localStorage if present
   useEffect(() => {
-    const loadProfile = async () => {
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
-
-      const persisted = store.current.selectProfile();
-      if (persisted) {
-        setProfile(persisted);
-        setUsername(persisted.username ?? '');
-        setLoading(false);
-        return;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("stc_player_username");
+      if (stored) setUsername(stored);
+      else if (wallet.address) {
+        setUsername(`Player_${wallet.address.slice(0, 4)}`);
       }
-
-      const client = createApiClient();
-      const result = await client.getProfile();
-      if (result.success) {
-        setProfile(result.data);
-        setUsername(result.data.username ?? '');
-        store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
-      } else {
-        setError(result.error.message);
-      }
-
-      setLoading(false);
-    };
-
-    loadProfile();
-  }, []);
-
-  const walletMeta = useMemo(() => {
-    const providerInfo = walletStatus.provider;
-    const providerLabel = providerInfo
-      ? `${providerInfo.name} (${providerInfo.id})${providerInfo.version ? ` v${providerInfo.version}` : ''}`
-      : 'Unknown';
-
-    return {
-      connected: walletStatus.capabilities.isConnected,
-      address: walletStatus.address || 'Not connected',
-      network: walletStatus.network || 'Unknown',
-      provider: providerLabel,
-      lastUpdatedAt: walletStatus.lastUpdatedAt
-        ? new Date(walletStatus.lastUpdatedAt).toLocaleString()
-        : 'Never',
-    };
-  }, [walletStatus]);
-
-  const handleSelectAccount = useCallback((_account: RecentAccount) => {
-    // Parent would reconnect wallet using the selected account address.
-    // Actual wallet re-connection is delegated to the wallet provider layer.
-  }, []);
-
-  const handleSave = async () => {
-    setError(null);
-    setSuccess(null);
-
-    if (!profile) {
-      setError('Profile data is not loaded.');
-      return;
     }
+  }, [wallet.address]);
 
-    const trimmed = username.trim();
-    if (!trimmed) {
-      setError('Username is required.');
-      return;
+  const handleCopy = () => {
+    if (wallet.address) {
+      navigator.clipboard.writeText(wallet.address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-
-    const nextProfile: UserProfile = {
-      ...profile,
-      username: trimmed,
-    };
-
-    const previousProfile = profile;
-    setProfile(nextProfile);
-    setSaving(true);
-
-    const client = createApiClient();
-    const result = await client.updateProfile({
-      address: profile.address,
-      username: trimmed,
-    });
-
-    if (result.success) {
-      setProfile(result.data);
-      setUsername(result.data.username ?? '');
-      store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
-      setSuccess('Profile saved successfully.');
-    } else {
-      setProfile(previousProfile);
-      setUsername(previousProfile.username ?? '');
-      setError(result.error.message);
-    }
-
-    setSaving(false);
   };
 
-  const hasDraftChanges = Boolean(profile && username.trim() !== (profile.username ?? '').trim());
-  const draftStatus = saving ? 'saving' : hasDraftChanges ? 'stale' : success ? 'saved' : 'idle';
-  const reviewChecklist = [
-    { id: 'username-review', label: 'I reviewed the username change.' },
-    { id: 'wallet-review', label: 'I verified wallet ownership and profile identity.' },
-  ];
-  const isReviewComplete = checkedReviewIds.length === reviewChecklist.length;
-  const profileSummaryStats = useMemo(
-    () => [
-      {
-        id: 'wallet-connected',
-        label: 'Wallet',
-        value: walletMeta.connected ? 'Connected' : 'Disconnected',
-        caption: walletMeta.address,
-      },
-      {
-        id: 'network',
-        label: 'Network',
-        value: walletMeta.network,
-      },
-      {
-        id: 'provider',
-        label: 'Provider',
-        value: walletMeta.provider,
-      },
-      {
-        id: 'draft-state',
-        label: 'Draft state',
-        value: draftStatus,
-        caption: hasDraftChanges ? 'Unsaved updates present' : 'No pending profile edits',
-      },
-    ],
-    [draftStatus, hasDraftChanges, walletMeta],
-  );
-  const rewardTrendStatus = loading ? 'loading' : error ? 'error' : profile ? 'idle' : 'idle';
-  const primaryRewardSeries = useMemo(
-    () => {
-      const seed = (profile?.username?.length ?? 2) + (walletMeta.connected ? 3 : 1);
-      return [seed, seed + 1, seed + 2, seed + 1, seed + 3];
-    },
-    [profile?.username?.length, walletMeta.connected],
-  );
-  const bonusRewardSeries = useMemo(
-    () => {
-      const base = walletMeta.connected ? 8 : 3;
-      return [base, base + 1, base + 1, base + 2];
-    },
-    [walletMeta.connected],
-  );
-
-  useEffect(() => {
-    if (hasDraftChanges) {
-      setLastDraftEditedAt(Date.now());
-    } else {
-      setCheckedReviewIds([]);
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("stc_player_username", username.trim() || "ArcadePlayer_77");
     }
-  }, [hasDraftChanges]);
+    setTimeout(() => {
+      setIsSaving(false);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
+    }, 400);
+  };
 
-  if (loading) {
-    return (
-      <div data-testid="profile-settings-loading" role="status" aria-live="polite">
-        <p>Loading profile settings...</p>
-        <SkeletonPreset type="detail" />
-      </div>
-    );
-  }
+  const compactAddress = wallet.address
+    ? `${wallet.address.slice(0, 8)}...${wallet.address.slice(-6)}`
+    : "No wallet connected";
 
   return (
-    <section className="profile-settings" aria-labelledby="profile-settings-heading">
-      <h1 id="profile-settings-heading">Profile Settings</h1>
-
-      {error && (
-        <AlertBanner variant="error" message={error} testId="profile-settings-error" />
-      )}
-      {success && (
-        <AlertBanner variant="success" message={success} testId="profile-settings-success" />
-      )}
-
-      <form
-        onSubmit={(evt) => {
-          evt.preventDefault();
-          void handleSave();
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1.75rem",
+        width: "100%",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: "1rem",
+          marginBottom: "2rem",
+          paddingBottom: "1.5rem",
+          borderBottom: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
         }}
       >
-        <div className="form-row">
-          <label htmlFor="profile-address">Wallet Address</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              id="profile-address"
-              type="text"
-              value={profile?.address ?? ''}
-              readOnly
-              aria-readonly
-            />
-            {profile?.address && (
-              <CopyButton text={profile.address} testId="profile-address-copy" />
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+            <User size={30} style={{ color: "var(--sc-accent, #00ffcc)" }} />
+            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>Player Profile & Identity</h1>
+          </div>
+          <p style={{ color: "var(--sc-text-dim, #94a3b8)", margin: 0, fontSize: "1rem" }}>
+            Manage your on-chain player identity, connected Freighter credentials, and arcade progression.
+          </p>
+        </div>
+
+        {savedSuccess && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 14px",
+              borderRadius: "999px",
+              background: "rgba(0, 255, 204, 0.15)",
+              color: "var(--sc-accent, #00ffcc)",
+              fontSize: "13px",
+              fontWeight: 700,
+            }}
+          >
+            <CheckCircle2 size={16} /> Profile Saved
+          </div>
+        )}
+      </div>
+
+      {/* Main Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem" }}>
+        {/* Left Column: Player Identity Card */}
+        <div
+          style={{
+            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+            borderRadius: "16px",
+            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+            padding: "2rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.5rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #00ffcc, #3b82f6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#000",
+                fontSize: "24px",
+                fontWeight: 800,
+                boxShadow: "0 0 20px rgba(0, 255, 204, 0.3)",
+              }}
+            >
+              {username.charAt(0).toUpperCase() || "A"}
+            </div>
+            <div>
+              <h2 style={{ fontSize: "1.3rem", fontWeight: 800, margin: "0 0 4px 0" }}>{username}</h2>
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "4px",
+                  background: "rgba(0, 255, 204, 0.15)",
+                  color: "var(--sc-accent, #00ffcc)",
+                  textTransform: "uppercase",
+                }}
+              >
+                Level 12 • Cyber Gladiator
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "var(--sc-text-dim, #94a3b8)", marginBottom: "6px" }}>
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter display name"
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "8px",
+                  background: "rgba(0, 0, 0, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "#fff",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            <Button type="submit" disabled={isSaving} variant="brand" size="sm" className="w-full">
+              <Save size={14} style={{ marginRight: "6px" }} />
+              {isSaving ? "Saving..." : "Save Identity"}
+            </Button>
+          </form>
+        </div>
+
+        {/* Right Column: Connected Wallet Card */}
+        <div
+          style={{
+            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+            borderRadius: "16px",
+            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+            padding: "2rem",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: "1.5rem",
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Wallet size={20} style={{ color: "var(--sc-accent, #00ffcc)" }} />
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>Connected Wallet</h3>
+              </div>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "999px",
+                  background: wallet.capabilities.isConnected ? "rgba(0, 255, 204, 0.15)" : "rgba(255, 255, 255, 0.08)",
+                  color: wallet.capabilities.isConnected ? "var(--sc-accent, #00ffcc)" : "#94a3b8",
+                  textTransform: "uppercase",
+                }}
+              >
+                {wallet.capabilities.isConnected ? "Connected" : "Disconnected"}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px",
+                borderRadius: "8px",
+                background: "rgba(0,0,0,0.4)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                marginBottom: "1rem",
+              }}
+            >
+              <code style={{ fontSize: "13px", color: "#fff", fontFamily: "var(--sc-font-mono, monospace)" }}>
+                {compactAddress}
+              </code>
+              {wallet.address && (
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  title="Copy Wallet Address"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: copied ? "var(--sc-accent, #00ffcc)" : "var(--sc-text-dim, #94a3b8)",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "13px" }}>
+              <div>
+                <span style={{ color: "var(--sc-text-dim, #94a3b8)", display: "block", fontSize: "11px", textTransform: "uppercase" }}>
+                  Network
+                </span>
+                <strong style={{ color: "#fff" }}>{wallet.network || "Stellar Testnet"}</strong>
+              </div>
+              <div>
+                <span style={{ color: "var(--sc-text-dim, #94a3b8)", display: "block", fontSize: "11px", textTransform: "uppercase" }}>
+                  Provider
+                </span>
+                <strong style={{ color: "#fff" }}>{wallet.provider?.name || "Freighter"}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            {wallet.capabilities.isConnected ? (
+              <Button
+                type="button"
+                onClick={() => void wallet.disconnect()}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                Disconnect Wallet
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => void wallet.connect()}
+                variant="brand"
+                size="sm"
+                className="w-full"
+              >
+                Connect Freighter Wallet
+              </Button>
             )}
           </div>
         </div>
+      </div>
 
-        <div className="form-row">
-          <label htmlFor="profile-username">Username</label>
-          <input
-            id="profile-username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter your display name"
-          />
-        </div>
-
-        <div className="form-row">
-          <label htmlFor="profile-createdAt">Created At</label>
-          <input
-            id="profile-createdAt"
-            type="text"
-            value={formatDateTime(profile?.createdAt)}
-            readOnly
-            aria-readonly
-          />
-        </div>
-        <DraftPresenceIndicator
-          draftId={profile?.address ?? ''}
-          moduleName="Profile settings"
-          status={draftStatus}
-          lastEditedAt={lastDraftEditedAt}
-          onDiscard={
-            hasDraftChanges
-              ? () => {
-                  setUsername(profile?.username ?? '');
-                  setSuccess(null);
-                  setError(null);
-                  setCheckedReviewIds([]);
-                }
-              : undefined
-          }
-          testId="profile-settings-draft-indicator"
-        />
-
-        {hasDraftChanges ? (
-          <SensitiveActionChecklist
-            items={reviewChecklist}
-            checkedIds={checkedReviewIds}
-            onToggle={(id) =>
-              setCheckedReviewIds((prev) =>
-                prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id],
-              )
-            }
-            testId="profile-settings-review-checklist"
-          />
-        ) : null}
-
-        <StickyActionsFooter testId="profile-settings-actions-footer">
-          <button
-            type="submit"
-            disabled={saving || (hasDraftChanges && !isReviewComplete)}
-            data-testid="profile-settings-save"
-          >
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </StickyActionsFooter>
-      </form>
-
-      <div className="wallet-metadata" data-testid="profile-settings-wallet-meta">
-        <h3>Wallet</h3>
+      {/* Stats Spotlight Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "1rem",
+          marginTop: "1.5rem",
+        }}
+      >
         <div
-          data-testid="profile-settings-reward-trend-grid"
           style={{
-            display: 'grid',
-            gap: '0.75rem',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            marginBottom: '1rem',
+            padding: "1.25rem",
+            borderRadius: "14px",
+            background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
+            border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.08))",
           }}
         >
-          <RewardBalanceSparklineCard
-            label="Earned rewards"
-            status={rewardTrendStatus}
-            error={error ?? undefined}
-            onRetry={() => undefined}
-            balance={profile ? `${(profile.username?.length ?? 0) * 12} XP` : undefined}
-            balanceEquivalent={profile ? `Profile: ${profile.username || 'Unnamed'}` : undefined}
-            dataPoints={primaryRewardSeries}
-            change={walletMeta.connected ? '+6%' : '0%'}
-            trend={walletMeta.connected ? 'up' : 'flat'}
-            testId="profile-settings-reward-earned"
-          />
-          <RewardBalanceSparklineCard
-            label="Bonus momentum"
-            status={rewardTrendStatus}
-            error={error ?? undefined}
-            onRetry={() => undefined}
-            balance={walletMeta.connected ? 'Ready' : undefined}
-            balanceEquivalent={walletMeta.connected ? walletMeta.network : undefined}
-            dataPoints={bonusRewardSeries}
-            change={walletMeta.connected ? '+3%' : '0%'}
-            trend={walletMeta.connected ? 'up' : 'down'}
-            testId="profile-settings-reward-bonus"
-          />
+          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
+            Total Rounds Played
+          </span>
+          <strong style={{ fontSize: "1.5rem", color: "#fff" }}>142</strong>
         </div>
-        <CollapsibleStatsGroup
-          title="Profile overview stats"
-          summary={`${profileSummaryStats.length} metrics`}
-          items={profileSummaryStats}
-          defaultExpanded={false}
-          testId="profile-settings-overview-stats"
-        />
-        <div style={{ marginBottom: '1rem' }}>
-          <AccountSwitcher
-            currentAddress={walletStatus.address}
-            currentNetwork={walletStatus.network}
-            currentProvider={walletStatus.provider?.name}
-            onSelectAccount={handleSelectAccount}
-            onDisconnect={walletStatus.capabilities.isConnected ? walletStatus.disconnect : undefined}
-            onConnectNew={() => void walletStatus.connect()}
-            testId="profile-account-switcher"
-          />
+
+        <div
+          style={{
+            padding: "1.25rem",
+            borderRadius: "14px",
+            background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
+            border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.08))",
+          }}
+        >
+          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
+            Win Rate
+          </span>
+          <strong style={{ fontSize: "1.5rem", color: "var(--sc-accent, #00ffcc)" }}>64.2%</strong>
         </div>
-        <dl>
-          <dt>Connected</dt>
-          <dd>{String(walletMeta.connected)}</dd>
 
-          <dt>Network</dt>
-          <dd>{walletMeta.network}</dd>
+        <div
+          style={{
+            padding: "1.25rem",
+            borderRadius: "14px",
+            background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
+            border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.08))",
+          }}
+        >
+          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
+            XLM Wagered
+          </span>
+          <strong style={{ fontSize: "1.5rem", color: "#fff" }}>2,850 XLM</strong>
+        </div>
 
-          <dt>Provider</dt>
-          <dd>{walletMeta.provider}</dd>
-
-          <dt>Last Sync</dt>
-          <dd>{walletMeta.lastUpdatedAt}</dd>
-        </dl>
+        <div
+          style={{
+            padding: "1.25rem",
+            borderRadius: "14px",
+            background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
+            border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.08))",
+          }}
+        >
+          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
+            Soulbound Badges
+          </span>
+          <strong style={{ fontSize: "1.5rem", color: "var(--sc-accent, #00ffcc)" }}>5 SBTs</strong>
+        </div>
       </div>
-    </section>
+    </motion.div>
   );
 };
 

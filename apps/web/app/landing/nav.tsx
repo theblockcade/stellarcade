@@ -70,7 +70,6 @@ export function LandingNav() {
         <Link href="/" className={styles.brand} onClick={close}>
           StellarCade
         </Link>
-
         <div className={`${styles.navLinks} ${open ? styles.open : ""}`}>
           {SECTIONS.map((s) => (
             <a
@@ -82,6 +81,13 @@ export function LandingNav() {
               {s.label}
             </a>
           ))}
+          <a
+            href="https://docs.stellarcade.xyz"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Docs
+          </a>
         </div>
 
         <Button asChild variant="brand" size="sm" className={styles.launchBtn}>

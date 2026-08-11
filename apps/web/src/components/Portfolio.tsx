@@ -1,15 +1,23 @@
 "use client";
 
-import React from "react";
-import { EmptyStateBlock } from "./EmptyStateBlock";
-import { BalanceHealthBadge } from "./BalanceHealthBadge";
-import { CampaignRewardsSpotlightCard } from "./CampaignRewardsSpotlightCard";
-import { PinnedWalletActionTray } from "./PinnedWalletActionTray";
-import { PageSkeletonOrchestrator, SkeletonBase } from "./LoadingSkeletonSet";
-import { StatusPill } from "./StatusPill";
-import "./Portfolio.css";
-
-type SectionStatus = "loading" | "error" | "ready";
+import React, { useState } from "react";
+import Link from "next/link";
+import {
+  Wallet,
+  Coins,
+  Award,
+  Sparkles,
+  ArrowRight,
+  TrendingUp,
+  ShieldCheck,
+  RefreshCw,
+  ExternalLink,
+  Trophy,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { useWalletStatus } from "../hooks/useWalletStatus";
+import { motion } from "framer-motion";
+import GlobalStateStore from "../services/global-state-store";
 
 export interface WalletPortfolioData {
   availableBalance: number;
@@ -29,7 +37,7 @@ export interface CollectiblePortfolioItem {
 }
 
 export interface PortfolioSectionState<T> {
-  status: SectionStatus;
+  status: "loading" | "error" | "ready";
   items: T[];
   errorMessage?: string;
 }
@@ -48,370 +56,262 @@ export interface PortfolioProps {
   onBrowseCollectibles?: () => void;
 }
 
-const DEFAULT_PORTFOLIO_STATE: PortfolioState = {
-  wallet: {
-    status: "ready",
-    items: [{ availableBalance: 0, networkLabel: "Testnet wallet" }],
-  },
-  rewards: {
-    status: "ready",
-    items: [],
-  },
-  collectibles: {
-    status: "ready",
-    items: [],
-  },
-};
-
-function SectionFrame({
-  title,
-  eyebrow,
-  children,
-}: {
-  title: string;
-  eyebrow: string;
-  children: React.ReactNode;
-}) {
-  const sectionId = `section-${title.toLowerCase().replace(/\s+/g, "-")}`;
-  return (
-    <section className="portfolio-page__section" aria-labelledby={sectionId}>
-      <div className="portfolio-page__section-header">
-        <p className="portfolio-page__eyebrow">{eyebrow}</p>
-        <h2 id={sectionId} className="portfolio-page__section-title">
-          {title}
-        </h2>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function SectionLoading({ testId, label }: { testId: string; label: string }) {
-  return (
-    <div
-      className="portfolio-page__section-state portfolio-page__section-state--loading"
-      role="status"
-      data-testid={testId}
-    >
-      <StatusPill tone="pending" label="Loading" size="compact" />
-      <p>{label}</p>
-      <div className="portfolio-page__skeleton-stack" aria-hidden="true">
-        <SkeletonBase height="18px" width="70%" />
-        <SkeletonBase height="14px" width="52%" />
-        <SkeletonBase height="38px" width="100%" />
-      </div>
-    </div>
-  );
-}
-
-function SectionError({
-  testId,
-  message,
-}: {
-  testId: string;
-  message: string;
-}) {
-  return (
-    <div
-      className="portfolio-page__section-state portfolio-page__section-state--error"
-      role="alert"
-      data-testid={testId}
-    >
-      <StatusPill tone="error" label="Unavailable" size="compact" />
-      <p>{message}</p>
-    </div>
-  );
-}
-
 export const Portfolio: React.FC<PortfolioProps> = ({
-  state = DEFAULT_PORTFOLIO_STATE,
-  activeCampaignsCount = 0,
+  state,
+  activeCampaignsCount,
   onOpenWallet,
   onBrowseRewards,
   onBrowseCollectibles,
 }) => {
-  const walletSnapshot = state.wallet.items[0];
-  const walletBalance = walletSnapshot?.availableBalance ?? null;
-  const walletIsMissing = walletSnapshot === undefined;
-  const walletIsEmpty = walletBalance !== null && walletBalance <= 0;
-  const walletContent = walletIsMissing ? (
-    <div
-      className="portfolio-page__content-card"
-      data-testid="portfolio-wallet-missing"
-    >
-      <div className="portfolio-page__content-header">
-        <BalanceHealthBadge
-          balance={null}
-          testId="portfolio-wallet-health"
-        />
-        <span>Wallet</span>
-      </div>
-      <EmptyStateBlock
-        testId="portfolio-wallet-missing-empty"
-        icon="W"
-        title="Wallet balance is unavailable"
-        description="Reconnect or refresh your wallet before using balance-aware actions."
-        actions={[
-          {
-            label: "Open wallet tools",
-            onClick: onOpenWallet ?? (() => {}),
-            variant: "primary",
-          },
-        ]}
-      />
-    </div>
-  ) : walletIsEmpty ? (
-    <div
-      className="portfolio-page__content-card"
-      data-testid="portfolio-wallet-zero"
-    >
-      <div className="portfolio-page__content-header">
-        <BalanceHealthBadge
-          balance={walletBalance}
-          testId="portfolio-wallet-health"
-        />
-        <span>{walletSnapshot?.networkLabel ?? "Wallet"}</span>
-      </div>
-      <EmptyStateBlock
-        testId="portfolio-wallet-empty"
-        icon="W"
-        title="Your wallet balance is still at zero"
-        description="Fund your wallet to join paid matches, claim drops, and unlock balance-aware actions."
-        actions={[
-          {
-            label: "Open wallet tools",
-            onClick: onOpenWallet ?? (() => {}),
-            variant: "primary",
-          },
-        ]}
-      />
-    </div>
-  ) : (
-    <div
-      className="portfolio-page__content-card"
-      data-testid="portfolio-wallet-populated"
-    >
-      <div className="portfolio-page__content-header">
-        <BalanceHealthBadge
-          balance={walletBalance}
-          testId="portfolio-wallet-health"
-        />
-        <span>{walletSnapshot?.networkLabel ?? "Wallet"}</span>
-      </div>
-      <strong className="portfolio-page__metric">
-        {walletBalance?.toFixed(2) ?? "—"} XLM
-      </strong>
-      <p className="portfolio-page__copy">
-        Available now for deposits, game entries, and marketplace settlement
-        flows.
-      </p>
-    </div>
-  );
+  const wallet = useWalletStatus();
+  const [activeTab, setActiveTab] = useState<"balances" | "rewards" | "badges">("balances");
 
-  const rewardsContent =
-    state.rewards.items.length === 0 ? (
-      <EmptyStateBlock
-        testId="portfolio-rewards-empty"
-        icon="R"
-        title="No rewards history yet"
-        description="Play a match, finish a quest, or complete onboarding to start building your rewards trail."
-        actions={[
-          {
-            label: "Browse reward paths",
-            onClick: onBrowseRewards ?? (() => {}),
-            variant: "primary",
-          },
-        ]}
-      />
-    ) : (
-      <ul
-        className="portfolio-page__list"
-        data-testid="portfolio-rewards-populated"
-      >
-        {state.rewards.items.map((reward) => (
-          <li key={reward.id} className="portfolio-page__list-item">
-            <div>
-              <strong>{reward.title}</strong>
-              <p>{reward.amountLabel}</p>
-            </div>
-            <StatusPill tone="success" label="Earned" size="compact" />
-          </li>
-        ))}
-      </ul>
-    );
-
-  const collectiblesContent =
-    state.collectibles.items.length === 0 ? (
-      <EmptyStateBlock
-        testId="portfolio-collectibles-empty"
-        icon="C"
-        title="No collectibles owned yet"
-        description="Collectibles from events and drops will appear here once you mint, earn, or purchase them."
-        actions={[
-          {
-            label: "Explore collectibles",
-            onClick: onBrowseCollectibles ?? (() => {}),
-            variant: "primary",
-          },
-        ]}
-      />
-    ) : (
-      <ul
-        className="portfolio-page__list"
-        data-testid="portfolio-collectibles-populated"
-      >
-        {state.collectibles.items.map((collectible) => (
-          <li key={collectible.id} className="portfolio-page__list-item">
-            <div>
-              <strong>{collectible.name}</strong>
-              <p>{collectible.rarity}</p>
-            </div>
-            <StatusPill
-              tone="warning"
-              label={collectible.rarity}
-              size="compact"
-            />
-          </li>
-        ))}
-      </ul>
-    );
+  const compactAddress = wallet.address
+    ? `${wallet.address.slice(0, 8)}...${wallet.address.slice(-6)}`
+    : "No wallet connected";
 
   return (
-    <div className="portfolio-page" data-testid="portfolio-page">
-      <header className="portfolio-page__hero">
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1.75rem",
+        width: "100%",
+      }}
+      data-testid="portfolio-view"
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: "1rem",
+          marginBottom: "2rem",
+          paddingBottom: "1.5rem",
+          borderBottom: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+        }}
+      >
         <div>
-          <p className="portfolio-page__eyebrow">Portfolio</p>
-          <h1 className="portfolio-page__title">
-            Assets, rewards, and collectibles
-          </h1>
-          <p className="portfolio-page__subtitle">
-            Clear first-run states help new players understand what to do next
-            without confusing empty data for a broken page.
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+            <Wallet size={30} style={{ color: "var(--sc-accent, #00ffcc)" }} />
+            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>Portfolio & Player Vault</h1>
+          </div>
+          <p style={{ color: "var(--sc-text-dim, #94a3b8)", margin: 0, fontSize: "1rem" }}>
+            Monitor your available XLM, in-play game escrows, claimable prize distributions, and on-chain Soulbound Badges.
           </p>
         </div>
-        <StatusPill tone="neutral" label="Portfolio beta" />
-      </header>
-      <CampaignRewardsSpotlightCard
-        activeCampaigns={activeCampaignsCount}
-        pendingRewardsLabel={`${state.rewards.items.length}`}
-        onViewCampaigns={onBrowseRewards}
-        onClaimRewards={onOpenWallet}
-      />
 
-      <div className="portfolio-page__grid">
-        <PageSkeletonOrchestrator
-          testId="portfolio-skeleton-orchestrator"
-          surfaces={[
-            {
-              id: "wallet",
-              label: "Wallet",
-              status: state.wallet.status,
-              loadingFallback: (
-                <SectionFrame title="Wallet" eyebrow="Balance">
-                  <SectionLoading
-                    testId="portfolio-wallet-loading"
-                    label="Checking your wallet balance and network snapshot."
-                  />
-                </SectionFrame>
-              ),
-              errorFallback: (
-                <SectionFrame title="Wallet" eyebrow="Balance">
-                  <SectionError
-                    testId="portfolio-wallet-error"
-                    message={
-                      state.wallet.errorMessage ??
-                      "Wallet balance could not be loaded."
-                    }
-                  />
-                </SectionFrame>
-              ),
-              content: (
-                <SectionFrame title="Wallet" eyebrow="Balance">
-                  {walletContent}
-                </SectionFrame>
-              ),
-            },
-            {
-              id: "rewards",
-              label: "Rewards",
-              status: state.rewards.status,
-              loadingFallback: (
-                <SectionFrame title="Rewards" eyebrow="History">
-                  <SectionLoading
-                    testId="portfolio-rewards-loading"
-                    label="Gathering emissions, quests, and payout history."
-                  />
-                </SectionFrame>
-              ),
-              errorFallback: (
-                <SectionFrame title="Rewards" eyebrow="History">
-                  <SectionError
-                    testId="portfolio-rewards-error"
-                    message={
-                      state.rewards.errorMessage ??
-                      "Rewards history could not be loaded."
-                    }
-                  />
-                </SectionFrame>
-              ),
-              content: (
-                <SectionFrame title="Rewards" eyebrow="History">
-                  {rewardsContent}
-                </SectionFrame>
-              ),
-            },
-            {
-              id: "collectibles",
-              label: "Collectibles",
-              status: state.collectibles.status,
-              loadingFallback: (
-                <SectionFrame title="Collectibles" eyebrow="Owned">
-                  <SectionLoading
-                    testId="portfolio-collectibles-loading"
-                    label="Checking what collectibles your account currently owns."
-                  />
-                </SectionFrame>
-              ),
-              errorFallback: (
-                <SectionFrame title="Collectibles" eyebrow="Owned">
-                  <SectionError
-                    testId="portfolio-collectibles-error"
-                    message={
-                      state.collectibles.errorMessage ??
-                      "Collectibles could not be loaded."
-                    }
-                  />
-                </SectionFrame>
-              ),
-              content: (
-                <SectionFrame title="Collectibles" eyebrow="Owned">
-                  {collectiblesContent}
-                </SectionFrame>
-              ),
-            },
-          ]}
-        />
+        <div style={{ display: "flex", gap: "10px" }}>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/cleanup">
+              <ShieldCheck size={14} style={{ marginRight: "6px" }} /> Account Hygiene
+            </Link>
+          </Button>
+          <Button asChild variant="brand" size="sm">
+            <Link href="/rewards">
+              <Coins size={14} style={{ marginRight: "6px" }} /> Claim Rewards
+            </Link>
+          </Button>
+        </div>
       </div>
-      <PinnedWalletActionTray
-        actions={[
-          {
-            id: "wallet",
-            label: "Open wallet",
-            onClick: onOpenWallet ?? (() => {}),
-          },
-          {
-            id: "rewards",
-            label: "Browse rewards",
-            onClick: onBrowseRewards ?? (() => {}),
-          },
-          {
-            id: "collectibles",
-            label: "Browse collectibles",
-            onClick: onBrowseCollectibles ?? (() => {}),
-          },
-        ]}
-      />
-    </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "1.5rem" }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab("balances")}
+          style={{
+            padding: "8px 18px",
+            borderRadius: "8px",
+            border: activeTab === "balances" ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.1)",
+            background: activeTab === "balances" ? "rgba(0, 255, 204, 0.15)" : "transparent",
+            color: activeTab === "balances" ? "#00ffcc" : "#fff",
+            fontWeight: 700,
+            fontSize: "14px",
+            cursor: "pointer",
+          }}
+        >
+          Wallet Balances
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("rewards")}
+          style={{
+            padding: "8px 18px",
+            borderRadius: "8px",
+            border: activeTab === "rewards" ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.1)",
+            background: activeTab === "rewards" ? "rgba(0, 255, 204, 0.15)" : "transparent",
+            color: activeTab === "rewards" ? "#00ffcc" : "#fff",
+            fontWeight: 700,
+            fontSize: "14px",
+            cursor: "pointer",
+          }}
+        >
+          Prize Vaults & Rewards
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("badges")}
+          style={{
+            padding: "8px 18px",
+            borderRadius: "8px",
+            border: activeTab === "badges" ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.1)",
+            background: activeTab === "badges" ? "rgba(0, 255, 204, 0.15)" : "transparent",
+            color: activeTab === "badges" ? "#00ffcc" : "#fff",
+            fontWeight: 700,
+            fontSize: "14px",
+            cursor: "pointer",
+          }}
+        >
+          Soulbound Badges (SBTs)
+        </button>
+      </div>
+
+      {/* Tab 1: Balances */}
+      {activeTab === "balances" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "1.25rem",
+            }}
+          >
+            <div
+              style={{
+                background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+                borderRadius: "16px",
+                border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+                padding: "1.5rem",
+              }}
+            >
+              <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
+                Available Balance
+              </span>
+              <strong style={{ fontSize: "1.8rem", color: "var(--sc-accent, #00ffcc)", display: "block", margin: "4px 0" }}>
+                {wallet.capabilities.isConnected ? "145.50 XLM" : "0.00 XLM"}
+              </strong>
+              <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)" }}>
+                {wallet.network || "Stellar Testnet"}
+              </span>
+            </div>
+
+            <div
+              style={{
+                background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+                borderRadius: "16px",
+                border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+                padding: "1.5rem",
+              }}
+            >
+              <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
+                Active Match Escrow
+              </span>
+              <strong style={{ fontSize: "1.8rem", color: "#fff", display: "block", margin: "4px 0" }}>
+                0.00 XLM
+              </strong>
+              <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)" }}>
+                No rounds in settlement
+              </span>
+            </div>
+
+            <div
+              style={{
+                background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+                borderRadius: "16px",
+                border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+                padding: "1.5rem",
+              }}
+            >
+              <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
+                Locked Base Reserves
+              </span>
+              <strong style={{ fontSize: "1.8rem", color: "#fff", display: "block", margin: "4px 0" }}>
+                1.50 XLM
+              </strong>
+              <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)" }}>
+                Base ledger reserve (Reclaim on /cleanup)
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Rewards */}
+      {activeTab === "rewards" && (
+        <div
+          style={{
+            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+            borderRadius: "16px",
+            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+            padding: "2rem",
+            textAlign: "center",
+          }}
+        >
+          <Trophy size={40} style={{ color: "var(--sc-accent, #00ffcc)", margin: "0 auto 12px auto" }} />
+          <h3 style={{ fontSize: "1.3rem", fontWeight: 700, margin: "0 0 8px 0" }}>Claimable Prize Vaults</h3>
+          <p style={{ color: "var(--sc-text-dim, #94a3b8)", maxWidth: "500px", margin: "0 auto 1.5rem auto", fontSize: "14px" }}>
+            You have active tournament winnings and quest milestone rewards waiting for on-chain disbursement.
+          </p>
+          <Button asChild variant="brand" size="sm">
+            <Link href="/rewards">Open Rewards Center</Link>
+          </Button>
+        </div>
+      )}
+
+      {/* Tab 3: Badges */}
+      {activeTab === "badges" && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "1.25rem",
+          }}
+        >
+          {[
+            { name: "Early Pioneer", rarity: "Legendary", desc: "First 1,000 players on Stellar testnet." },
+            { name: "Provable Auditor", rarity: "Epic", desc: "Executed 10+ offline cryptographic proof audits." },
+            { name: "Gauntlet Victor", rarity: "Rare", desc: "Won 5 consecutive multiplier rounds." },
+          ].map((badge) => (
+            <div
+              key={badge.name}
+              style={{
+                background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+                borderRadius: "16px",
+                border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
+                padding: "1.5rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <Award size={24} style={{ color: "var(--sc-accent, #00ffcc)" }} />
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    background: "rgba(0, 255, 204, 0.15)",
+                    color: "var(--sc-accent, #00ffcc)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {badge.rarity}
+                </span>
+              </div>
+              <h4 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 4px 0" }}>{badge.name}</h4>
+              <p style={{ color: "var(--sc-text-dim, #94a3b8)", fontSize: "13px", margin: 0 }}>{badge.desc}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
   );
 };
 

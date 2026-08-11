@@ -23,34 +23,96 @@
 }
 
 .app-header {
-  padding: 1.5rem 2rem 1.5rem 4.5rem;
+  padding: 0.75rem 1.5rem 0.75rem 4rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--glass-border);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px);
+  background: rgba(10, 10, 10, 0.8);
   position: sticky;
   top: 0;
   z-index: 100;
+  min-height: 56px;
 }
 
 @media (min-width: 1024px) {
   .app-header {
-    padding-left: 2rem;
+    padding-left: 1.5rem;
   }
 }
 
-.logo {
-  font-size: 1.5rem;
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.app-header__search-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-dim, #94a3b8);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+@media (min-width: 768px) {
+  .app-header__search-btn {
+    display: flex;
+  }
+}
+
+.app-header__search-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.app-header__search-placeholder {
+  color: #94a3b8;
+}
+
+.app-header__search-kbd {
+  font-size: 10px;
   font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-family: inherit;
+}
+
+/* Groups the locale switcher and the wallet control so they sit together on
+   the right, instead of space-between pushing them to opposite ends once the
+   header held more than one control. */
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-size: 1.35rem;
+  font-weight: 800;
   letter-spacing: -0.05em;
   color: var(--accent);
   text-shadow: 0 0 10px var(--accent-glow);
+  line-height: 1;
 }
 
 .app-content {
   flex: 1;
-  padding: 4rem 2rem;
+  padding: 1rem 1.5rem 2.5rem 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;

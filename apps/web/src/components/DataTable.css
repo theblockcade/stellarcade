@@ -1,9 +1,10 @@
 .data-table {
   width: 100%;
-  background: #fff;
-  border: 1px solid #dde3eb;
-  border-radius: 8px;
-  overflow-x: auto;
+  background: var(--sc-bg-card, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
 }
 
 .data-table table {
@@ -14,10 +15,20 @@
 
 .data-table th,
 .data-table td {
-  padding: 0.75rem 0.9rem;
-  border-bottom: 1px solid #eef2f7;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   text-align: left;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
+  color: #fff;
+}
+
+.data-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sc-text-dim, #94a3b8);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .data-table th.sortable {
@@ -26,63 +37,89 @@
 }
 
 .data-table th.sortable:hover {
-  background: #f4f7fb;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sc-accent, #00ffcc);
 }
 
 .data-table--compact th,
 .data-table--compact td {
-  padding: 0.45rem 0.65rem;
+  padding: 0.5rem 0.75rem;
   font-size: 0.82rem;
 }
 
 .data-table--compact .data-table-pagination {
-  padding: 0.55rem 0.7rem;
+  padding: 0.55rem 0.75rem;
 }
 
 .data-table--compact .page-controls button {
-  padding: 0.2rem 0.55rem;
+  padding: 0.25rem 0.6rem;
 }
 
 .sort-indicator {
   margin-left: 0.35rem;
   font-size: 0.85rem;
+  color: var(--sc-accent, #00ffcc);
 }
 
-.data-table tbody tr:nth-child(odd) {
-  background: #fafbff;
+.data-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(0, 255, 204, 0.04);
 }
 
 .data-table-empty,
 .data-table-loading {
-  padding: 1rem;
+  padding: 2rem;
   text-align: center;
-  color: #6d7583;
+  color: var(--sc-text-dim, #94a3b8);
+  font-size: 0.9rem;
 }
 
 .data-table-pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0.9rem;
-  background: #f6f8fb;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--sc-text-dim, #94a3b8);
+  font-size: 0.82rem;
 }
 
 .page-controls button {
-  padding: 0.3rem 0.8rem;
+  padding: 0.35rem 0.8rem;
   margin-right: 0.5rem;
-  border: 1px solid #c9d2dd;
-  background: #fff;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.page-controls button:hover:not(:disabled) {
+  background: rgba(0, 255, 204, 0.15);
+  border-color: var(--sc-accent, #00ffcc);
+  color: var(--sc-accent, #00ffcc);
 }
 
 .page-controls button:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .page-size select {
   margin-left: 0.4rem;
-  padding: 0.2rem 0.4rem;
+  padding: 0.25rem 0.5rem;
+  background: #111;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  outline: none;
 }
 
 @media (max-width: 640px) {
@@ -97,55 +134,5 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-  }
-
-  .page-controls button {
-    margin-right: 0;
-  }
-}
-
-.data-table--loading {
-  overflow: hidden;
-}
-
-.data-table-loading__status {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.data-table-skeleton-cell {
-  display: block;
-  height: 0.85rem;
-  max-width: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #e8edf5 0%, #f6f8fb 45%, #e8edf5 90%);
-  background-size: 220% 100%;
-  animation: data-table-skeleton-shimmer 1.2s ease-in-out infinite;
-}
-
-.data-table--compact .data-table-skeleton-cell {
-  height: 0.7rem;
-}
-
-@keyframes data-table-skeleton-shimmer {
-  0% {
-    background-position: 120% 0;
-  }
-
-  100% {
-    background-position: -120% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .data-table-skeleton-cell {
-    animation: none;
   }
 }

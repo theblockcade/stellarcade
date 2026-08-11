@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "../../../src/components/ui/button";
+import { motion } from "framer-motion";
 import {
   verifyFairnessProof,
   FAIRNESS_TEST_VECTORS,
@@ -97,7 +98,19 @@ function VerifyPageContent() {
   };
 
   return (
-    <div className={styles.container}>
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1.75rem",
+        width: "100%",
+      }}
+    >
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.titleRow}>
@@ -342,7 +355,7 @@ function VerifyPageContent() {
           )}
         </section>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
