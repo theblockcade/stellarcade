@@ -168,8 +168,8 @@ export interface TestVectorPreset {
 export const FAIRNESS_TEST_VECTORS: TestVectorPreset[] = [
   {
     id: "coin-flip-pass",
-    name: "Valid Coin Flip Round (Heads)",
-    description: "Standard verified coin flip round with valid commitment hash matching Heads outcome.",
+    name: "Valid Coin Flip Round (Tails)",
+    description: "Standard verified coin flip round with valid commitment hash matching Tails outcome.",
     gameType: "coin-flip",
     input: {
       serverSeed: "d9e87b92f1a63c8e41209b55f8492049d98a00281b37492c10a45372810f27bc",
