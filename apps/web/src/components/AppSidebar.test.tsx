@@ -39,8 +39,12 @@ describe("AppSidebar", () => {
 
     expect(screen.getByText("Play")).toBeInTheDocument();
     expect(screen.getByText("Account")).toBeInTheDocument();
+    expect(screen.getByText("About")).toBeInTheDocument();
     expect(screen.getByTestId("app-sidebar-link-profile")).toHaveAttribute("aria-current", "page");
     expect(screen.getByTestId("app-sidebar-link-lobby")).not.toHaveAttribute("aria-current");
+    expect(screen.getByTestId("app-sidebar-link-verify")).toBeInTheDocument();
+    expect(screen.getByTestId("app-sidebar-link-cleanup")).toBeInTheDocument();
+    expect(screen.getByTestId("app-sidebar-link-about")).toBeInTheDocument();
   });
 
   it("supports mobile open/close toggle behavior", () => {
