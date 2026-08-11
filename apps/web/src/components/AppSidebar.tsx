@@ -1,15 +1,9 @@
 "use client";
 
 import React from "react";
+import { User, Shield, Trophy, Gamepad2, Coins, Settings, HelpCircle, Layers, FileText, ChevronRight } from "lucide-react";
+import { useWalletStatus } from "../hooks/useWalletStatus";
 import "./AppSidebar.css";
-
-/**
- * Ported verbatim from frontend/src/components/v1/AppSidebar.tsx. Takes
- * `currentRoute`/`onNavigate` as props rather than reading a router
- * directly, so no react-router -> Next adaptation was needed here — the
- * adaptation lives in whatever wires this up to next/navigation (a later
- * slice, once routes exist for it to navigate to).
- */
 
 export type AppRoute =
   | "lobby"
@@ -60,26 +54,24 @@ const sections: SidebarSection[] = [
   },
   {
     id: "account",
-    title: "Vault & Account",
+    title: "Vault & Assets",
     items: [
       { route: "portfolio", label: "Portfolio Vault" },
       { route: "rewards", label: "Claim Rewards" },
       { route: "cleanup", label: "Account Hygiene" },
-      { route: "profile", label: "Player Profile" },
-      { route: "settings", label: "Settings" },
     ],
   },
   {
-    id: "protocol",
-    title: "Protocol",
+    id: "system",
+    title: "System & Info",
     items: [
+      { route: "settings", label: "Settings" },
       { route: "about", label: "Architecture & About" },
       { route: "terms", label: "Terms of Protocol" },
       { route: "privacy", label: "Privacy Architecture" },
     ],
   },
 ];
-
 
 function getMobileNavigationMediaQuery(): MediaQueryList | null {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -90,6 +82,7 @@ function getMobileNavigationMediaQuery(): MediaQueryList | null {
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate }) => {
+  const wallet = useWalletStatus();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
   const [isMobileViewport, setIsMobileViewport] = React.useState(() => {
@@ -118,6 +111,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
 
   const isClosedMobileNavigation = isMobileViewport && !isMobileOpen;
 
+  const compactAddress = wallet.address
+    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
+    : "Guest Player";
+
   return (
     <>
       <button
@@ -139,13 +136,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
         aria-label="Primary dashboard"
         aria-hidden={isClosedMobileNavigation ? true : undefined}
         data-testid="app-sidebar"
-        // React 19 supports `inert` as a real boolean prop (frontend/'s React
-        // 18 needed the `inert: ""` string hack to render the attribute at
-        // all) — pass the boolean directly rather than porting that hack.
         inert={isClosedMobileNavigation || undefined}
       >
         <div className="app-sidebar__header">
-          <h2 className="app-sidebar__title">Navigation</h2>
+          <h2 className="app-sidebar__title">StellarCade</h2>
           <div className="app-sidebar__controls">
             <button
               type="button"
@@ -154,7 +148,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               data-testid="app-sidebar-collapse-toggle"
             >
-              {isCollapsed ? "->" : "<-"}
+              {isCollapsed ? "→" : "←"}
             </button>
             <button
               type="button"
@@ -163,10 +157,62 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
               aria-label="Close navigation menu"
               data-testid="app-sidebar-mobile-close"
             >
-              x
+              ✕
             </button>
           </div>
         </div>
+
+        {/* PROMINENT TOP PLAYER PROFILE CARD */}
+        {!isCollapsed && (
+          <div style={{ padding: "0 1rem 1rem 1rem" }}>
+            <button
+              type="button"
+              onClick={() => handleNavigate("profile")}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 12px",
+                borderRadius: "12px",
+                background: currentRoute === "profile" ? "rgba(0, 255, 204, 0.15)" : "rgba(255, 255, 255, 0.04)",
+                border: currentRoute === "profile" ? "1px solid var(--sc-accent, #00ffcc)" : "1px solid rgba(255, 255, 255, 0.08)",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.15s ease",
+              }}
+              data-testid="sidebar-profile-card"
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #00ffcc, #3b82f6)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#000",
+                    fontWeight: 800,
+                    fontSize: "14px",
+                  }}
+                >
+                  <User size={18} />
+                </div>
+                <div>
+                  <strong style={{ display: "block", fontSize: "13px", color: "#fff", lineHeight: 1.2 }}>
+                    {compactAddress}
+                  </strong>
+                  <span style={{ fontSize: "11px", color: "var(--sc-accent, #00ffcc)", fontWeight: 600 }}>
+                    {wallet.capabilities.isConnected ? "✓ Connected" : "View Profile"}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={14} style={{ color: "var(--sc-text-dim, #94a3b8)" }} />
+            </button>
+          </div>
+        )}
 
         <div className="app-sidebar__nav-groups">
           {sections.map((section) => (

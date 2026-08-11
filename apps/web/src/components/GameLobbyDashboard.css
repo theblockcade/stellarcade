@@ -286,3 +286,55 @@
     padding-bottom: calc(104px + env(safe-area-inset-bottom));
   }
 }
+
+/* ── Lobby KPI Strip & Metrics ─────────────────────────────────────────── */
+
+.lobby-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.status-card__metric-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.25rem 0;
+}
+
+.status-card__metric-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--accent, #00ffcc);
+  font-family: var(--sc-font-mono, monospace);
+}
+
+.status-card__metric-note {
+  font-size: 0.85rem;
+  color: var(--text-main, #ffffff);
+  font-weight: 600;
+}
+
+.status-card__metric-caption {
+  font-size: 0.75rem;
+  color: var(--text-dim, #94a3b8);
+}
+
+.btn-play {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--accent, #00ffcc);
+  color: #000000;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-play:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+

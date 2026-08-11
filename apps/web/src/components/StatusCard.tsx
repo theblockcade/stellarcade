@@ -1,5 +1,7 @@
-import React, { ReactNode } from 'react';
-import type { StatusToneVariant } from '../types/status-tone';
+"use client";
+
+import React, { ReactNode } from "react";
+import type { StatusToneVariant } from "../types/status-tone";
 
 interface StatusCardProps {
   id: string;
@@ -17,55 +19,112 @@ interface StatusCardProps {
   onAction?: () => void;
 }
 
-const StatusCard: React.FC<StatusCardProps> = ({
+export const StatusCard: React.FC<StatusCardProps> = ({
   id,
   name,
   status,
   wager,
-  tone = 'neutral',
+  tone = "neutral",
   beforeSlot,
   afterSlot,
   bodySlot,
   footerSlot,
   hideDefaultAction = false,
-  actionLabel = 'Join Game',
+  actionLabel = "Join Game",
   isStale = false,
   onAction,
 }: StatusCardProps) => {
+  const getToneBorder = () => {
+    switch (tone) {
+      case "success":
+        return "rgba(0, 255, 204, 0.4)";
+      case "warning":
+        return "rgba(234, 179, 8, 0.4)";
+      case "error":
+        return "rgba(239, 68, 68, 0.4)";
+      case "neutral":
+      default:
+        return "var(--sc-border-glass, rgba(255, 255, 255, 0.1))";
+    }
+  };
+
   return (
-    <div className={`status-card tone-${tone} ${isStale ? 'is-stale opacity-75' : ''}`} data-testid="status-card">
-      <div className="status-indicator"></div>
-      <div className="card-header">
-        <div className="flex items-center gap-2">
+    <div
+      style={{
+        background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
+        borderRadius: "14px",
+        border: `1px solid ${getToneBorder()}`,
+        padding: "1.25rem",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        gap: "1rem",
+        opacity: isStale ? 0.75 : 1,
+      }}
+      data-testid="status-card"
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           {beforeSlot}
-          <h3>{name}</h3>
+          <h3 style={{ fontSize: "1.05rem", fontWeight: 700, margin: 0, color: "#fff" }}>{name}</h3>
         </div>
-        <span className="game-id">#{id.slice(0, 8)}</span>
+        <span
+          style={{
+            fontSize: "11px",
+            fontFamily: "var(--sc-font-mono, monospace)",
+            color: "var(--sc-text-dim, #94a3b8)",
+            background: "rgba(255,255,255,0.06)",
+            padding: "2px 6px",
+            borderRadius: "4px",
+          }}
+        >
+          #{id.replace(/^#-?/, "").slice(0, 8)}
+        </span>
       </div>
-      <div className="card-body">
+
+      <div>
         {bodySlot ?? (
-          <>
-            <div className="status-label">
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--sc-accent, #00ffcc)" }}>
               {status.toUpperCase()}
               {isStale && (
                 <span
-                  className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded border border-amber-200 uppercase"
-                  data-testid="status-card-stale-badge"
+                  style={{
+                    marginLeft: "8px",
+                    padding: "2px 6px",
+                    fontSize: "10px",
+                    borderRadius: "4px",
+                    background: "rgba(234, 179, 8, 0.2)",
+                    color: "#facc15",
+                    textTransform: "uppercase",
+                  }}
                 >
                   Stale
                 </span>
               )}
             </div>
-            {wager !== undefined && <div className="wager-amount">{wager} XLM</div>}
-          </>
+            {wager !== undefined && (
+              <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#fff" }}>{wager} XLM</div>
+            )}
+          </div>
         )}
       </div>
-      <div className="card-footer flex justify-between items-center">
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {!hideDefaultAction && (
           <button
             type="button"
-            className="btn-play"
             onClick={onAction}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "6px",
+              background: "var(--sc-accent, #00ffcc)",
+              color: "#000",
+              fontWeight: 700,
+              fontSize: "12px",
+              border: "none",
+              cursor: "pointer",
+            }}
             data-testid={`btn-play-${id}`}
           >
             {actionLabel}
