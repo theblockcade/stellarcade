@@ -62,6 +62,7 @@ function routeToPath(route: AppRoute): string {
     case "portfolio":
       return "/portfolio";
     case "games":
+      return "/games";
     case "lobby":
     default:
       return "/app";
