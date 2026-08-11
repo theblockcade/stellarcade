@@ -1,0 +1,39 @@
+.bulk-selection-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.bulk-selection-toolbar__count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sc-accent, #00f0ff);
+}
+
+.bulk-selection-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bulk-selection-toolbar__action {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.bulk-selection-toolbar__clear {
+  background: transparent;
+  border: none;
+  color: var(--sc-text-dim, #94a3b8);
+  cursor: pointer;
+}

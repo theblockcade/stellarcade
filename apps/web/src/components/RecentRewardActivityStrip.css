@@ -1,0 +1,60 @@
+.recent-reward-activity-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.recent-reward-activity-strip__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recent-reward-activity-strip__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--sc-text-main, #ffffff);
+}
+
+.recent-reward-activity-strip__count {
+  font-size: 0.75rem;
+  color: var(--sc-text-dim, #94a3b8);
+}
+
+.recent-reward-activity-strip__list {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  list-style: none;
+  padding: 0 0 0.5rem 0;
+  margin: 0;
+}
+
+.recent-reward-activity-strip__item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--sc-bg-card, #11161e);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 140px;
+}
+
+.recent-reward-activity-strip__item-amount {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.recent-reward-activity-strip__item-source {
+  font-size: 0.75rem;
+  color: var(--sc-text-main, #ffffff);
+}
+
+.recent-reward-activity-strip__item-time {
+  font-size: 0.7rem;
+  color: var(--sc-text-dim, #94a3b8);
+  margin-top: 0.25rem;
+}
