@@ -10,7 +10,8 @@ import { AppSidebar, type AppRoute } from "./AppSidebar";
 import NotificationCenter from "./NotificationCenter";
 import { ModalStackProvider } from "./modal-stack";
 import { FeatureFlagsProvider } from "../services/feature-flags";
-import CommandPalette, { type Command } from "./CommandPalette";
+import { Search } from "lucide-react";
+import CommandPalette, { commandStore, type Command } from "./CommandPalette";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import "./AppShell.css";
 
@@ -241,8 +242,17 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <div className="app-main-layout">
         <header className="app-header" role="banner">
           <div className="app-header__left">
-            <div className="logo">{t("app.title")}</div>
             <Breadcrumbs />
+            <button
+              type="button"
+              onClick={() => commandStore.dispatch({ type: "COMMAND_PALETTE_OPEN" })}
+              className="app-header__search-btn"
+              aria-label="Open command palette (⌘K)"
+            >
+              <Search size={14} style={{ color: "var(--sc-accent, #00ffcc)" }} />
+              <span className="app-header__search-placeholder">Quick search...</span>
+              <kbd className="app-header__search-kbd">⌘K</kbd>
+            </button>
           </div>
           <div className="app-header__actions">
             <LocaleSwitcher />
