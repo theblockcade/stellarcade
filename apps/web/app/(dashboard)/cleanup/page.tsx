@@ -169,7 +169,7 @@ export default function CleanupPage() {
               {scanResult.totalSubentries}
             </span>
             <span className={styles.statHint}>
-              {(scanResult.totalLockedReserveXlm).toFixed(1)} XLM locked in base reserves
+              {(scanResult.totalLockedReserveXlm).toFixed(1)} XLM locked in Base Account Reserve
             </span>
           </div>
 

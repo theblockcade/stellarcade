@@ -336,6 +336,27 @@ export function CinematicFooter() {
               <div className="flex flex-wrap justify-center gap-3 md:gap-6 w-full mt-2">
                 <MagneticButton
                   as={Link}
+                  href="/about"
+                  className="footer-glass-pill px-6 py-3 rounded-full text-muted-foreground font-medium text-xs md:text-sm hover:text-foreground"
+                >
+                  About
+                </MagneticButton>
+                <MagneticButton
+                  as={Link}
+                  href="/verify"
+                  className="footer-glass-pill px-6 py-3 rounded-full text-muted-foreground font-medium text-xs md:text-sm hover:text-foreground"
+                >
+                  Verify
+                </MagneticButton>
+                <MagneticButton
+                  as={Link}
+                  href="/cleanup"
+                  className="footer-glass-pill px-6 py-3 rounded-full text-muted-foreground font-medium text-xs md:text-sm hover:text-foreground"
+                >
+                  Cleanup
+                </MagneticButton>
+                <MagneticButton
+                  as={Link}
                   href="/portfolio"
                   className="footer-glass-pill px-6 py-3 rounded-full text-muted-foreground font-medium text-xs md:text-sm hover:text-foreground"
                 >

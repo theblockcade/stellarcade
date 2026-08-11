@@ -252,7 +252,7 @@ function VerifyPageContent() {
             type="button"
             onClick={runVerification}
             style={{ marginTop: "0.5rem" }}
-            data-testid="btn-verify-now"
+            data-testid="verify-execute-btn"
           >
             <RotateCcw size={14} style={{ marginRight: "0.5rem" }} />
             Recompute Proof
@@ -284,6 +284,11 @@ function VerifyPageContent() {
                   <h3 className={styles.statusBannerTitle}>
                     {result.isValid ? "PROVABLY FAIR VERIFIED" : "VERIFICATION FAILED"}
                   </h3>
+                  {result.isValid && (
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--sc-accent, #00ffcc)", textTransform: "uppercase", marginTop: "2px" }}>
+                      Commitment Verified
+                    </div>
+                  )}
                   <p className={styles.statusBannerSubtitle}>
                     {result.isValid
                       ? "All seed commitments match and the outcome is cryptographically authentic."
