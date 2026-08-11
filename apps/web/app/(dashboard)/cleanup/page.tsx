@@ -46,8 +46,13 @@ export default function CleanupPage() {
   };
 
   useEffect(() => {
-    handleScan(targetAddress);
-  }, []);
+    if (address) {
+      setTargetAddress(address);
+      handleScan(address);
+    } else {
+      handleScan(targetAddress);
+    }
+  }, [address]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>

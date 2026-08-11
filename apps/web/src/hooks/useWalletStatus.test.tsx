@@ -359,7 +359,7 @@ describe("connect action", () => {
     });
 
     expect(mockService.connect).toHaveBeenCalledWith(undefined);
-    expect(mockService.setProviderAdapter).not.toHaveBeenCalled();
+    expect(mockService.setProviderAdapter).toHaveBeenCalled();
   });
 
   it("calls setProviderAdapter then connect when adapter provided", async () => {

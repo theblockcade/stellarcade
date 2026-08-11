@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -32,11 +33,32 @@ const DEFAULT_INPUT: VerificationInput = {
   rangeSize: 2,
 };
 
-export default function VerifyPage() {
+function VerifyPageContent() {
+  const searchParams = useSearchParams();
   const [input, setInput] = useState<VerificationInput>(DEFAULT_INPUT);
   const [result, setResult] = useState<FairnessVerificationOutcome | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const serverSeed = searchParams.get("serverSeed") || searchParams.get("secret");
+    const commitHash = searchParams.get("commitHash") || searchParams.get("hash");
+    const clientSeed = searchParams.get("clientSeed");
+    const nonce = searchParams.get("nonce");
+    const rangeSize = searchParams.get("rangeSize");
+
+    if (serverSeed || commitHash || clientSeed) {
+      setInput((prev) => ({
+        ...prev,
+        serverSeed: serverSeed ?? prev.serverSeed,
+        commitHash: commitHash ?? prev.commitHash,
+        clientSeed: clientSeed ?? prev.clientSeed,
+        nonce: nonce ? Number(nonce) : prev.nonce,
+        rangeSize: rangeSize ? Number(rangeSize) : prev.rangeSize,
+      }));
+    }
+  }, [searchParams]);
 
   const runVerification = () => {
     startTransition(async () => {
@@ -321,5 +343,13 @@ export default function VerifyPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: "2rem", color: "var(--sc-text-dim)" }}>Loading verifier...</div>}>
+      <VerifyPageContent />
+    </Suspense>
   );
 }

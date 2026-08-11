@@ -141,6 +141,16 @@ function CoinFlipResultContent({ game, currentWalletAddress, onResolve, classNam
                             Game concluded.
                         </div>
                     )}
+                    <div className="mt-3">
+                        <a
+                            href={`/verify?commitHash=${game.id}&rangeSize=2`}
+                            className="stellarcade-btn stellarcade-btn-outline w-full text-xs"
+                            style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
+                            data-testid="btn-verify-outcome"
+                        >
+                            🛡️ Verify Cryptographic Proof
+                        </a>
+                    </div>
                 </div>
             )}
         </div>

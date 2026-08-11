@@ -54,6 +54,39 @@ function makeClientError(params: {
   };
 }
 
+export const ONCHAIN_GAMES_CATALOG: Game[] = [
+  {
+    id: "coinflip-duel",
+    name: "Coinflip Duel",
+    status: "active",
+    wager: 5,
+    description: "Instant 50/50 provably fair on-chain duel. Double your stake on heads or tails.",
+    contract: "coin-flip",
+    players: 142,
+    category: "PVP / Duel",
+  },
+  {
+    id: "rng-dice",
+    name: "Verifiable Dice Roll",
+    status: "active",
+    wager: 10,
+    description: "Multi-sided dice arena backed by cryptographic seed commitments and Soroban RNG.",
+    contract: "random-generator",
+    players: 89,
+    category: "Table / RNG",
+  },
+  {
+    id: "prizepool-gauntlet",
+    name: "Prize Pool Gauntlet",
+    status: "active",
+    wager: 25,
+    description: "High-roller reserve pool with accumulated yields and on-chain payout splits.",
+    contract: "prize-pool",
+    players: 37,
+    category: "Jackpot / Pool",
+  },
+];
+
 function makeUnauthorizedError(): ApiClientError {
   return makeClientError({
     code: 'API_UNAUTHORIZED',
@@ -199,13 +232,18 @@ export class ApiClient {
   constructor(baseUrl: string, sessionStore?: SessionStore);
   constructor(config: ApiClientConfig);
   constructor(arg1?: string | ApiClientConfig, arg2?: SessionStore) {
+    const envBaseUrl =
+      (typeof process !== 'undefined' &&
+        (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.VITE_API_BASE_URL)) ||
+      '';
+
     if (typeof arg1 === 'string') {
-      this._baseUrl = arg1;
+      this._baseUrl = arg1 || envBaseUrl;
       this._sessionStore = arg2;
       return;
     }
 
-    this._baseUrl = arg1?.baseUrl ?? '';
+    this._baseUrl = arg1?.baseUrl || envBaseUrl;
     this._sessionStore = arg1?.sessionStore;
   }
 
