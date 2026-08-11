@@ -1,5 +1,6 @@
 {
   "app.title": "StellarCade",
+  "nav.home": "ホーム",
   "nav.lobby": "アーケードロビー",
   "nav.games": "ゲームアリーナ",
   "nav.tournaments": "トーナメント",

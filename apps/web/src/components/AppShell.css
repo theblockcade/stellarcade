@@ -40,6 +40,15 @@
   }
 }
 
+/* Groups the locale switcher and the wallet control so they sit together on
+   the right, instead of space-between pushing them to opposite ends once the
+   header held more than one control. */
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .logo {
   font-size: 1.5rem;
   font-weight: 700;
@@ -50,7 +59,7 @@
 
 .app-content {
   flex: 1;
-  padding: 4rem 2rem;
+  padding: 1.5rem 2rem 3rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;

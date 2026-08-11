@@ -1,5 +1,6 @@
 {
   "app.title": "StellarCade",
+  "nav.home": "Accueil",
   "nav.lobby": "Salon d'Arcade",
   "nav.games": "Arène de Jeux",
   "nav.tournaments": "Tournois",
