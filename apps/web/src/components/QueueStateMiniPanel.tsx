@@ -59,8 +59,14 @@ export const QueueStateMiniPanel: React.FC<QueueStateMiniPanelProps> = ({
     lastUpdated: new Date().toISOString(),
   };
 
+  const containerClass = [
+    "queue-state-mini-panel",
+    `queue-state-mini-panel--${context}`,
+    className,
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className={`queue-state-mini-panel ${className}`} data-testid={testId}>
+    <div className={containerClass} data-testid={testId}>
       <header className="queue-state-mini-panel__header">
         <div className="queue-state-mini-panel__title-row">
           <h3 className="queue-state-mini-panel__title">{resolvedTitle}</h3>

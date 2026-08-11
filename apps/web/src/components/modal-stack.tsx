@@ -78,6 +78,15 @@ interface ModalStackContextValue {
 
 const ModalStackContext = createContext<ModalStackContextValue | null>(null);
 
+function focusFirstInteractive(container: HTMLElement | null): boolean {
+  const firstInteractive = container?.querySelector<HTMLElement>(INTERACTIVE_SELECTOR);
+  if (!firstInteractive) {
+    return false;
+  }
+  firstInteractive.focus();
+  return true;
+}
+
 export const ModalStackProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -97,13 +106,49 @@ export const ModalStackProvider: React.FC<{ children: React.ReactNode }> = ({
         setStack((current) => {
           const target = current.find((item) => item.id === entry.id) ?? null;
           const next = current.filter((item) => item.id !== entry.id);
-          target?.returnFocusTarget?.focus?.();
+
+          queueMicrotask(() => {
+            if (next.length > 0) {
+              const nextTopContainer = document.querySelector<HTMLElement>(
+                `[data-modal-stack-id="${next[next.length - 1].id}"]`
+              );
+              if (focusFirstInteractive(nextTopContainer)) {
+                return;
+              }
+            }
+            target?.returnFocusTarget?.focus?.();
+          });
+
           return next;
         });
       };
     },
     []
   );
+
+  useEffect(() => {
+    if (stack.length === 0) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      const topEntry = stack[stack.length - 1];
+      if (!topEntry?.onRequestClose) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      topEntry.onRequestClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [stack]);
 
   const value = useMemo<ModalStackContextValue>(
     () => ({
@@ -121,15 +166,17 @@ export const ModalStackProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+export interface UseModalStackRegistrationOptions {
+  active: boolean;
+  modalId: string;
+  onRequestClose?: () => void;
+}
+
 export function useModalStackRegistration({
   active,
   modalId,
   onRequestClose,
-}: {
-  active: boolean;
-  modalId: string;
-  onRequestClose?: () => void;
-}) {
+}: UseModalStackRegistrationOptions) {
   const context = useContext(ModalStackContext);
   const registerModal = context?.registerModal;
   const unregisterRef = useRef<(() => void) | null>(null);
@@ -165,3 +212,42 @@ export function useModalStackRegistration({
     stackIndex: active ? context.getStackIndex(modalId) : -1,
   };
 }
+
+export interface ModalOverlayProps {
+  active: boolean;
+  modalId: string;
+  onRequestClose?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const ModalOverlay: React.FC<ModalOverlayProps> = ({
+  active,
+  modalId,
+  onRequestClose,
+  children,
+  className,
+}) => {
+  useModalStackRegistration({ active, modalId, onRequestClose });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(containerRef, active);
+
+  if (!active) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      data-modal-stack-id={modalId}
+      className={className}
+    >
+      {children}
+    </div>
+  );
+};
+
+export default ModalOverlay;
