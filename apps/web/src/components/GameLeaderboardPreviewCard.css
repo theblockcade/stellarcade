@@ -1,0 +1,67 @@
+.leaderboard-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--sc-bg-card, #11161e);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--sc-text-main, #ffffff);
+}
+
+.leaderboard-preview-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.leaderboard-preview-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.leaderboard-preview-card__game-id {
+  font-size: 0.75rem;
+  color: var(--sc-text-dim, #94a3b8);
+}
+
+.leaderboard-preview-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.leaderboard-preview-card__entry {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.375rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.rank-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 24px;
+}
+
+.rank-badge--gold { color: #eab308; }
+.rank-badge--silver { color: #94a3b8; }
+.rank-badge--bronze { color: #d97706; }
+
+.leaderboard-preview-card__name {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.leaderboard-preview-card__score {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--sc-accent, #00f0ff);
+}
