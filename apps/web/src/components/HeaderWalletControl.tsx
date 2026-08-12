@@ -91,6 +91,11 @@ export const HeaderWalletControl: React.FC = () => {
     return (
       <div className="hwc" data-testid="header-wallet-connected">
         <div className="hwc__identity">
+          {xlmBalance !== null && (
+            <span className="hwc__balance" data-testid="header-wallet-balance">
+              {xlmBalance} XLM
+            </span>
+          )}
           <button
             type="button"
             className="hwc__address"
@@ -101,23 +106,6 @@ export const HeaderWalletControl: React.FC = () => {
             <span>{shortenAddress(wallet.address)}</span>
             {copied ? <Check size={13} /> : <Copy size={13} />}
           </button>
-          {xlmBalance !== null && (
-            <span
-              className="hwc__balance"
-              style={{
-                fontWeight: 600,
-                fontSize: "0.82rem",
-                color: "#10b981",
-                padding: "2px 8px",
-                background: "rgba(16, 185, 129, 0.1)",
-                borderRadius: "12px",
-                border: "1px solid rgba(16, 185, 129, 0.2)",
-              }}
-              data-testid="header-wallet-balance"
-            >
-              {xlmBalance} XLM
-            </span>
-          )}
           {wallet.network && (
             <span className="hwc__network" data-testid="header-wallet-network">
               <span className="hwc__pulse" aria-hidden="true" />

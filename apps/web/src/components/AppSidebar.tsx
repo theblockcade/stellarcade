@@ -134,9 +134,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
     setIsMobileOpen(false);
   };
 
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isClosedMobileNavigation = isMobileViewport && !isMobileOpen;
 
-  const compactAddress = wallet.address
+  const compactAddress = mounted && wallet.address
     ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
     : t("common.guest_player", "Guest Player");
 
@@ -230,7 +235,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                     {compactAddress}
                   </strong>
                   <span style={{ fontSize: "11px", color: "var(--sc-accent, #00ffcc)", fontWeight: 600 }}>
-                    {wallet.capabilities.isConnected
+                    {mounted && wallet.capabilities.isConnected
                       ? t("common.connected", "Connected")
                       : t("common.view_profile", "View Profile")}
                   </span>
