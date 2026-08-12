@@ -37,3 +37,21 @@ jobs:
           cd ../fee-shield && cargo clippy --locked -- -D warnings
           cd ../streak-ladder && cargo clippy --locked -- -D warnings
           cd ../creator-drops && cargo clippy --locked -- -D warnings
+
+  lint-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run Web Lint
+        run: pnpm --filter @stellarcade/web run lint
