@@ -34,7 +34,10 @@ export const HeaderWalletControl: React.FC = () => {
     // The adapter has to be passed explicitly — useWalletStatus only installs
     // a provider when one is supplied, which is why bare connect() calls
     // elsewhere in the app silently did nothing.
-    void wallet.connect(defaultFreighterAdapter);
+    const res = wallet.connect(defaultFreighterAdapter);
+    if (res && typeof (res as unknown as Promise<void>).catch === "function") {
+      void (res as unknown as Promise<void>).catch(() => {});
+    }
   }, [wallet]);
 
   const handleCopy = useCallback(async () => {

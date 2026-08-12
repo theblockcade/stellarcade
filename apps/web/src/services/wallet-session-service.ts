@@ -81,6 +81,7 @@ export class WalletSessionService {
       const restored = this.restore();
       if (restored) {
         this.meta = restored;
+        this.state = WalletSessionState.CONNECTED;
       }
     } catch {
       // restore sanitizes storage on failure

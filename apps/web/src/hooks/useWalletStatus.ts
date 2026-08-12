@@ -195,7 +195,12 @@ export function useWalletStatus(
     ): Promise<void> => {
       const activeAdapter = adapter ?? defaultFreighterAdapter;
       svcRef.current!.setProviderAdapter(activeAdapter);
-      await svcRef.current!.connect(opts);
+      try {
+        await svcRef.current!.connect(opts);
+      } catch (err) {
+        // Error state is broadcasted to subscribers by WalletSessionService
+        throw err;
+      }
     },
     [],
   );
