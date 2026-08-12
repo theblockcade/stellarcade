@@ -70,24 +70,30 @@ const getLeaderboard = async (req, res, next) => {
 
 const playSimpleGame = async (req, res, next) => {
   try {
-    const { gameType, _amount, _choice } = req.body;
+    const { gameType, gameId, wager, amount, choice, side } = req.body;
+    const resolvedGameType = gameType || gameId || 'coin-flip';
+    const resolvedWager = wager !== undefined ? wager : (amount !== undefined ? amount : 0);
+    const resolvedChoice = choice || side || 'heads';
+
     const result = await gameService.playSimpleGame({
       userId: req.user.id,
-      gameType,
+      gameType: resolvedGameType,
+      wager: resolvedWager,
+      choice: resolvedChoice,
     });
     res.status(200).json(result);
     audit.log({
       actor: req.user.id,
       action: 'game.play',
-      target: gameType,
-      payload: { gameType },
+      target: resolvedGameType,
+      payload: { gameType: resolvedGameType, wager: resolvedWager },
       outcome: 'success',
     });
   } catch (error) {
     audit.log({
       actor: req.user?.id || 'anonymous',
       action: 'game.play',
-      target: req.body?.gameType || 'unknown',
+      target: req.body?.gameType || req.body?.gameId || 'unknown',
       outcome: 'failure',
       metadata: { error: error.message },
     });
