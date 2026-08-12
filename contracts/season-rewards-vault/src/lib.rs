@@ -245,13 +245,13 @@ impl SeasonRewardsVault {
     // -----------------------------------------------------------------------
 
     /// Claim a pending reward for a user.
-    pub fn claim_reward(env: Env, user: Address, season_id: u64, reward_index: usize) -> Result<(), Error> {
+    pub fn claim_reward(env: Env, user: Address, season_id: u64, reward_index: u32) -> Result<(), Error> {
         require_initialized(&env)?;
 
         user.require_auth();
 
         let mut queue = get_claim_queue(&env, season_id);
-        if reward_index >= queue.len() as usize {
+        if reward_index >= queue.len() {
             return Err(Error::RewardNotFound);
         }
 
@@ -265,12 +265,12 @@ impl SeasonRewardsVault {
         }
 
         // Check if reward is still claimable (not expired)
-        if env.ledger().sequence() > reward.expires_at {
+        if u64::from(env.ledger().sequence()) > reward.expires_at {
             return Err(Error::NotClaimable);
         }
 
         // Mark as claimed
-        let mut claimed_reward = reward;
+        let mut claimed_reward = reward.clone();
         claimed_reward.is_claimed = true;
         queue.set(reward_index, claimed_reward.clone());
         set_claim_queue(&env, season_id, &queue);
@@ -316,7 +316,7 @@ impl SeasonRewardsVault {
         let mut rollover_amount = 0i128;
 
         for reward in queue.iter() {
-            if !reward.is_claimed && env.ledger().sequence() > reward.expires_at {
+            if !reward.is_claimed && u64::from(env.ledger().sequence()) > reward.expires_at {
                 rollover_amount += reward.amount;
             }
         }
@@ -366,7 +366,7 @@ impl SeasonRewardsVault {
 
         let oldest_claim_age = queue.iter()
             .filter(|reward| !reward.is_claimed)
-            .map(|reward| current_ledger.saturating_sub(reward.created_at))
+            .map(|reward| u64::from(current_ledger).saturating_sub(reward.created_at))
             .max()
             .unwrap_or(0);
 
@@ -555,7 +555,7 @@ fn update_user_claim_summary(env: &Env, user: &Address, season_id: u64, amount: 
     set_user_claim_summary(env, user, season_id, &updated_summary);
 }
 
-fn mark_user_reward_claimed(env: &Env, user: &Address, season_id: u64, reward_index: usize) {
+fn mark_user_reward_claimed(env: &Env, user: &Address, season_id: u64, reward_index: u32) {
     let mut rewards = get_user_rewards(env, user);
     
     // Find the corresponding reward in user's rewards and mark as claimed
@@ -773,7 +773,7 @@ mod test {
         );
 
         // Claim the reward
-        client.claim_reward(&user, &1u64, &0usize);
+        client.claim_reward(&user, &1u64, &0u32);
 
         let snapshot = client.get_claim_queue_snapshot(&1u64);
         assert_eq!(snapshot.total_pending_amount, 0i128); // Should be 0 after claim

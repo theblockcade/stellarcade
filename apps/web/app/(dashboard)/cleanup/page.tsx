@@ -113,7 +113,7 @@ export default function CleanupPage() {
       <div className={styles.header}>
         <div className={styles.titleRow}>
           <Sparkles size={32} style={{ color: "var(--sc-accent)" }} />
-          <h1 className={styles.title}>Account Hygiene & Reserve Recovery</h1>
+          <h1 className={styles.title}>Cleanup & Reserve Recovery</h1>
         </div>
         <p className={styles.subtitle}>
           Reclaim XLM base reserves locked by zero-balance trustlines, expired event badges, and stale
@@ -169,7 +169,7 @@ export default function CleanupPage() {
               {scanResult.totalSubentries}
             </span>
             <span className={styles.statHint}>
-              {(scanResult.totalLockedReserveXlm).toFixed(1)} XLM locked in base reserves
+              {(scanResult.totalLockedReserveXlm).toFixed(1)} XLM locked in Base Account Reserve
             </span>
           </div>
 

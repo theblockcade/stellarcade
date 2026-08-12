@@ -3,8 +3,14 @@ const express = require('express');
 
 // Mock the database to prevent it from trying to connect and calling process.exit(1)
 jest.mock('../../src/config/database', () => {
-    const mock = jest.fn();
+    const queryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        first: jest.fn().mockResolvedValue({ id: 1, wallet_address: 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY', balance: 100 }),
+        update: jest.fn().mockResolvedValue(1),
+    };
+    const mock = jest.fn(() => queryBuilder);
     mock.raw = jest.fn().mockResolvedValue({});
+    mock.fn = { now: () => new Date() };
     return mock;
 });
 
@@ -21,12 +27,14 @@ jest.mock('../../src/config/redis', () => {
 
 const router = require('../../src/routes/games.routes');
 const GameModel = require('../../src/models/Game.model');
+const TransactionModel = require('../../src/models/Transaction.model');
 
-// Mock the model to avoid DB connection issues in tests
+// Mock the models to avoid DB connection issues in tests
 jest.mock('../../src/models/Game.model');
+jest.mock('../../src/models/Transaction.model');
 
 jest.mock('../../src/middleware/auth.middleware', () => (req, res, next) => {
-  req.user = { id: 1 };
+  req.user = { id: 1, walletAddress: 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY' };
   next();
 });
 
@@ -36,7 +44,7 @@ app.use(express.json());
 
 // Mock middleware that might be needed
 app.use((req, res, next) => {
-    req.user = { id: 1 }; // Mock user for auth-protected routes
+    req.user = { id: 1, walletAddress: 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY' }; // Mock user for auth-protected routes
     next();
 });
 
@@ -47,18 +55,25 @@ describe('GET /api/games', () => {
     const res = await request(app).get('/api/games');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ games: [] });
+    expect(res.body.games).toBeInstanceOf(Array);
+    expect(res.body.games.length).toBe(3);
+    expect(res.body.games[0].id).toBe('coinflip-duel');
   });
 });
 
 describe('POST /api/games/play', () => {
   test('returns success through game service', async () => {
+    GameModel.create.mockResolvedValue({ id: 1 });
+    TransactionModel.create.mockResolvedValue({ id: 1 });
+
     const res = await request(app)
       .post('/api/games/play')
-      .send({ gameType: 'coin-flip' });
+      .send({ gameId: 'coinflip-duel', wager: 10, choice: 'heads' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true });
+    expect(res.body.result).toBeDefined();
+    expect(res.body.win).toBeDefined();
+    expect(res.body.txHash).toBeDefined();
   });
 });
 

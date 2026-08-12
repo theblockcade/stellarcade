@@ -175,13 +175,13 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
     },
     {
       id: "go-terms",
-      label: "Go to Terms of Protocol",
+      label: "Go to Terms",
       description: "Terms and conditions of smart contract interaction",
       action: () => handleNavigate("terms"),
     },
     {
       id: "go-privacy",
-      label: "Go to Privacy Architecture",
+      label: "Go to Privacy",
       description: "Zero-custody data and privacy policy",
       action: () => handleNavigate("privacy"),
     },
@@ -193,7 +193,7 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
     },
     {
       id: "go-cleanup",
-      label: "Go to Account Hygiene",
+      label: "Go to Cleanup",
       description: "Reclaim locked XLM reserves from inactive subentries",
       action: () => handleNavigate("cleanup"),
     },
@@ -269,8 +269,8 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <p>{t("footer.copyright", "© 2026 StellarCade. All rights reserved.")}</p>
 
             <div className="footer-links">
-              <a href="/terms">{t("footer.terms", "Terms of Protocol")}</a>
-              <a href="/privacy">{t("footer.privacy", "Privacy Architecture")}</a>
+              <a href="/terms">{t("footer.terms", "Terms")}</a>
+              <a href="/privacy">{t("footer.privacy", "Privacy")}</a>
             </div>
           </div>
         </footer>

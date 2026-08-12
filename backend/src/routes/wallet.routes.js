@@ -1,5 +1,5 @@
 const express = require('express');
-const { deposit, withdraw } = require('../controllers/wallet.controller');
+const { getBalance, deposit, withdraw } = require('../controllers/wallet.controller');
 const auth = require('../middleware/auth.middleware');
 const idempotency = require('../middleware/idempotency.middleware');
 const { rateLimit } = require('../middleware/rate-limit.middleware');
@@ -16,6 +16,55 @@ const amountValidation = [
 ];
 
 const routeDocs = [
+  {
+    method: 'get',
+    path: '/:address/balance',
+    operationId: 'getWalletBalance',
+    summary: 'Fetch a wallet\'s balance by Stellar address',
+    tags: ['Wallet'],
+    parameters: [
+      {
+        name: 'address',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' },
+        description: 'Stellar wallet address (G...).',
+      },
+    ],
+    responses: {
+      200: {
+        description: 'Balance returned successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['address', 'balances'],
+              properties: {
+                address: { type: 'string' },
+                balances: { type: 'object', additionalProperties: { type: 'string' } },
+              },
+            },
+          },
+        },
+      },
+      404: {
+        description: 'No account found for that wallet address',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
+          },
+        },
+      },
+      500: {
+        description: 'Unexpected server error',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
+          },
+        },
+      },
+    },
+  },
   {
     method: 'post',
     path: '/deposit',
@@ -132,6 +181,7 @@ const routeDocs = [
   },
 ];
 
+router.get('/:address/balance', rateLimit('wallet'), getBalance);
 router.post('/deposit', auth, rateLimit('wallet'), idempotency, amountValidation, validate, deposit);
 router.post('/withdraw', auth, rateLimit('wallet'), idempotency, amountValidation, validate, withdraw);
 

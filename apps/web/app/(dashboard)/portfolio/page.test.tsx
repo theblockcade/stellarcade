@@ -11,6 +11,8 @@ const { default: PortfolioPage } = await import("./page.js");
 describe("PortfolioPage", () => {
   it("renders the Portfolio component", () => {
     render(<PortfolioPage />);
-    expect(screen.getByTestId("portfolio-page")).toBeInTheDocument();
+    // Portfolio's own root testid is "portfolio-view" — "portfolio-page"
+    // never existed on the component, so this always failed.
+    expect(screen.getByTestId("portfolio-view")).toBeInTheDocument();
   });
 });

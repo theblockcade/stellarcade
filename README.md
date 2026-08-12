@@ -1,8 +1,9 @@
 # 🌌 Stellarcade
 
-[![Stellar](https://img.shields.io/badge/Stellar-Soroban-black.svg?style=for-the-badge&logo=stellar)](https://stellar.org)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=for-the-badge)](https://github.com/stellar/stellarcade)
-[![Test Coverage](https://img.shields.io/badge/coverage-85%25-blue.svg?style=for-the-badge)](https://github.com/stellar/stellarcade)
+[![Lint Codebase](https://github.com/theblockcade/stellarcade/actions/workflows/lint.yml/badge.svg)](https://github.com/theblockcade/stellarcade/actions/workflows/lint.yml)
+[![Test Backend API](https://github.com/theblockcade/stellarcade/actions/workflows/test-backend.yml/badge.svg)](https://github.com/theblockcade/stellarcade/actions/workflows/test-backend.yml)
+[![Test Contracts](https://github.com/theblockcade/stellarcade/actions/workflows/test-contracts.yml/badge.svg)](https://github.com/theblockcade/stellarcade/actions/workflows/test-contracts.yml)
+[![Test Frontend App](https://github.com/theblockcade/stellarcade/actions/workflows/test-web.yml/badge.svg)](https://github.com/theblockcade/stellarcade/actions/workflows/test-web.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 **Stellarcade** is a decentralized arcade platform built on the Stellar network using Soroban smart contracts. We provide provably fair games, community prize pools, and a seamless gaming experience using Stellar's fast and low-cost infrastructure.
@@ -22,6 +23,16 @@
 - **Frontend**: Vite + React (TypeScript)
 - **Infrastructure**: Docker, GitHub Actions
 
+## 📦 TypeScript SDK
+
+StellarCade ships with an official, open-source TypeScript SDK for wallet connection, game interactions, and client-side fairness verification:
+
+```bash
+npm install @stellarcade/sdk @stellar/stellar-sdk
+```
+
+For setup and client configuration details, see the [stellarcade-sdk repository](https://github.com/TheBlockCade/stellarcade-sdk).
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -36,7 +47,7 @@ For a complete local development environment:
 
 ```bash
 # Clone the repository
-git clone https://github.com/stellar/stellarcade.git
+git clone https://github.com/theblockcade/stellarcade.git
 cd stellarcade
 
 # Enable Git hooks (mirrors CI checks locally)

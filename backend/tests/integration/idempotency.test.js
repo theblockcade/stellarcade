@@ -44,6 +44,7 @@ const walletRouter = require('../../src/routes/wallet.routes');
 
 // Mock wallet controller to isolate middleware testing
 jest.mock('../../src/controllers/wallet.controller', () => ({
+    getBalance: jest.fn((req, res) => res.status(200).json({ address: req.params.address, balances: {} })),
     deposit: jest.fn((req, res) => res.status(200).json({ success: true, balance: 100 })),
     withdraw: jest.fn((req, res) => res.status(200).json({ success: true, balance: 50 })),
 }));

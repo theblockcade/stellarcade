@@ -22,14 +22,14 @@ const ROUTE_KEYS: Record<string, { key: string; fallback: string }> = {
   leaderboard: { key: "nav.leaderboard", fallback: "Leaderboard" },
   history: { key: "nav.history", fallback: "Match History" },
   rewards: { key: "nav.rewards", fallback: "Claim Rewards" },
-  portfolio: { key: "nav.portfolio", fallback: "Portfolio Vault" },
-  cleanup: { key: "nav.cleanup", fallback: "Account Hygiene" },
+  portfolio: { key: "nav.portfolio", fallback: "Portfolio" },
+  cleanup: { key: "nav.cleanup", fallback: "Cleanup" },
   profile: { key: "nav.profile", fallback: "Player Profile" },
   settings: { key: "nav.settings", fallback: "Settings" },
   verify: { key: "nav.verify", fallback: "Fairness Verifier" },
-  about: { key: "nav.about", fallback: "Architecture & About" },
-  terms: { key: "nav.terms", fallback: "Terms of Protocol" },
-  privacy: { key: "nav.privacy", fallback: "Privacy Architecture" },
+  about: { key: "nav.about", fallback: "About" },
+  terms: { key: "nav.terms", fallback: "Terms" },
+  privacy: { key: "nav.privacy", fallback: "Privacy" },
 };
 
 export default function Breadcrumbs() {

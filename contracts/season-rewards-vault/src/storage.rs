@@ -112,15 +112,16 @@ pub fn add_to_claim_queue(env: &Env, season_id: u64, reward: &SeasonReward) {
     set_claim_queue(env, season_id, &queue);
 }
 
-pub fn remove_from_claim_queue(env: &Env, season_id: u64, index: usize) -> Option<SeasonReward> {
+pub fn remove_from_claim_queue(env: &Env, season_id: u64, index: u32) -> Option<SeasonReward> {
     let mut queue = get_claim_queue(env, season_id);
-    if index >= queue.len() as usize {
+    if index >= queue.len() {
         return None;
     }
     
-    let removed = queue.remove_at(index);
+    let removed = queue.get(index);
+    queue.remove(index);
     set_claim_queue(env, season_id, &queue);
-    Some(removed)
+    removed
 }
 
 pub fn get_rollover_balance(env: &Env, season_id: u64) -> Option<RolloverBalance> {

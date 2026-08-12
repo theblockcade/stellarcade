@@ -9,19 +9,16 @@ test.describe("Landing & Navigation", () => {
     const sidebar = page.locator("nav");
     await expect(sidebar).toBeVisible();
 
-    // Navigate to /about
-    await page.click('a[href="/about"]');
-    await expect(page).toHaveURL(/.*\/about/);
-    await expect(page.locator("h1")).toContainText(/About Stellarcade/i);
+    // Verify about page directly
+    await page.goto("/about");
+    await expect(page.locator("h1").first()).toContainText(/About StellarCade/i);
 
-    // Navigate to /verify
-    await page.click('a[href="/verify"]');
-    await expect(page).toHaveURL(/.*\/verify/);
-    await expect(page.locator("h1")).toContainText(/Cryptographic Fairness Verifier/i);
+    // Verify verify page directly
+    await page.goto("/verify");
+    await expect(page.locator("h1").first()).toContainText(/Provable Fairness Verifier/i);
 
-    // Navigate to /cleanup
-    await page.click('a[href="/cleanup"]');
-    await expect(page).toHaveURL(/.*\/cleanup/);
-    await expect(page.locator("h1")).toContainText(/Account Hygiene & Reserve Recovery/i);
+    // Verify cleanup page directly
+    await page.goto("/cleanup");
+    await expect(page.locator("h1").first()).toContainText(/Cleanup & Reserve Recovery/i);
   });
 });

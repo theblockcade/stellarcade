@@ -325,7 +325,7 @@ export function CinematicFooter() {
 
                 <MagneticButton
                   as={Link}
-                  href="/app"
+                  href="/games"
                   className="footer-glass-pill px-10 py-5 rounded-full text-foreground font-bold text-sm md:text-base flex items-center gap-3 group"
                 >
                   <Trophy className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -334,6 +334,27 @@ export function CinematicFooter() {
               </div>
 
               <div className="flex flex-wrap justify-center gap-3 md:gap-6 w-full mt-2">
+                <MagneticButton
+                  as={Link}
+                  href="/about"
+                  className="footer-glass-pill px-6 py-3 rounded-full text-muted-foreground font-medium text-xs md:text-sm hover:text-foreground"
+                >
+                  About
+                </MagneticButton>
+                <MagneticButton
+                  as={Link}
+                  href="/verify"
+                  className="footer-glass-pill px-6 py-3 rounded-full text-muted-foreground font-medium text-xs md:text-sm hover:text-foreground"
+                >
+                  Verify
+                </MagneticButton>
+                <MagneticButton
+                  as={Link}
+                  href="/cleanup"
+                  className="footer-glass-pill px-6 py-3 rounded-full text-muted-foreground font-medium text-xs md:text-sm hover:text-foreground"
+                >
+                  Cleanup
+                </MagneticButton>
                 <MagneticButton
                   as={Link}
                   href="/portfolio"

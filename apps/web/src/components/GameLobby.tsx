@@ -1,653 +1,1343 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import {
-  Gamepad2,
-  Coins,
-  Dices,
-  Trophy,
-  Flame,
-  ShieldCheck,
-  Award,
-  ArrowRight,
-  TrendingUp,
-  Sparkles,
-  Zap,
-  CheckCircle2,
-  Lock,
-  ExternalLink,
-  History,
-} from "lucide-react";
-import { Button } from "./ui/button";
-import { useWalletStatus } from "../hooks/useWalletStatus";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import StatusCard from "./StatusCard";
+import NetworkGuardBanner from "./NetworkGuardBanner";
+import WalletStatusCard from "./WalletStatusCard";
+import PrizePoolStateCard from "./PrizePoolStateCard";
 import { DataTable, type DataTableColumn } from "./DataTable";
-import { motion } from "framer-motion";
+import { SkeletonPreset } from "./LoadingSkeletonSet";
+import TransactionDetailDrawer from "./TransactionDetailDrawer";
+import SectionHeader from "./SectionHeader";
+import { commandStore } from "./CommandPalette";
+import { DashboardMissionStrip } from "./DashboardMissionStrip";
+import { QuickActionSurface } from "./QuickActionSurface";
+import { RecoverableErrorPanel } from "./RecoverableErrorPanel";
+import { PendingActionResumeChip } from "./PendingActionResumeChip";
+import { ResumeTaskBanner } from "./ResumeTaskBanner";
+import { SegmentedControl } from "./SegmentedControl";
+import { WalletSessionActivityRail } from "./WalletSessionActivityRail";
+import { ActionToolbar, type ToolbarAction } from "./ActionToolbar";
+import { InlineStatDelta } from "./InlineStatDelta";
+import { QueueHealthWidget } from "./QueueHealthWidget";
+import { QueueStateMiniPanel } from "./QueueStateMiniPanel";
+import { CollapsibleStatsGroup } from "./CollapsibleStatsGroup";
+import { RewardBalanceSparklineCard } from "./RewardBalanceSparklineCard";
+import { useWalletStatus } from "../hooks/useWalletStatus";
+import { ApiClient, ONCHAIN_GAMES_CATALOG } from "../services/typed-api-sdk";
+import defaultFreighterAdapter from "../services/freighter-adapter";
+import CoinFlipResultCard from "./CoinFlipResultCard";
+import Drawer from "./Drawer";
+import { CoinFlipGame, CoinFlipGameState, CoinFlipSide } from "../types/contracts/coinFlip";
+import GlobalStateStore, {
+  getTableDensityPreference,
+  ONBOARDING_CHECKLIST_DISMISSED_FLAG,
+  persistTableDensityPreference,
+  type TableDensityPreference,
+} from "../services/global-state-store";
+import { isSupportedNetwork } from "../utils/useNetworkGuard";
+import type { Game } from "../types/api-client";
+import type { PendingTransactionSnapshot } from "../types/global-state";
+import "./GameLobbyDashboard.css";
 
-interface ArenaTable {
+const DASHBOARD_DENSITY_SCOPE = "dashboard-surfaces";
+const DASHBOARD_COMMAND_SURFACE_USED_KEY = "stc_dashboard_command_surface_used_v1";
+const DASHBOARD_SESSION_KEY = "stc_dashboard_session_seen_v1";
+const DASHBOARD_LAST_CONTEXT_KEY = "stc_dashboard_last_context_v1";
+
+type LobbyContext =
+  | "wallet-panel"
+  | "live-arena"
+  | "leaderboard"
+  | "activity-rail";
+
+const LOBBY_CONTEXT_LABELS: Record<LobbyContext, string> = {
+  "wallet-panel": "Wallet and network status",
+  "live-arena": "Live Arena",
+  leaderboard: "Active Games Leaderboard",
+  "activity-rail": "Wallet activity rail",
+};
+
+interface LeaderboardRow {
+  rank: number;
   id: string;
-  game: string;
-  type: string;
-  wager: string;
-  multiplier: string;
-  status: "active" | "open" | "filling";
-  players: string;
+  name: string;
+  status: string;
+  wager: number;
 }
 
-const ARENA_TABLES: ArenaTable[] = [
-  {
-    id: "table-1",
-    game: "Coinflip Duel",
-    type: "1v1 PvP",
-    wager: "5 XLM",
-    multiplier: "2.0x",
-    status: "active",
-    players: "2/2",
-  },
-  {
-    id: "table-2",
-    game: "Verifiable Dice Roll",
-    type: "Multiplier",
-    wager: "10 XLM",
-    multiplier: "1.98x - 98x",
-    status: "open",
-    players: "1/1",
-  },
-  {
-    id: "table-3",
-    game: "Prize Pool Gauntlet",
-    type: "Tournament Pot",
-    wager: "25 XLM",
-    multiplier: "10.0x Pot",
-    status: "filling",
-    players: "8/16",
-  },
-];
-
-interface ActivityItem {
-  id: string;
-  player: string;
-  game: string;
-  outcome: "win" | "loss";
-  amount: string;
-  time: string;
-  proofHash: string;
+function formatCompactAddress(address: string | null): string {
+  if (!address) {
+    return "No wallet connected";
+  }
+  if (address.length <= 12) {
+    return address;
+  }
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-const RECENT_ACTIVITY: ActivityItem[] = [
-  {
-    id: "act-1",
-    player: "NeonViper",
-    game: "Coinflip Duel",
-    outcome: "win",
-    amount: "+10.00 XLM",
-    time: "2m ago",
-    proofHash: "e3b0c44298fc1c149afbf4c8996fb924",
-  },
-  {
-    id: "act-2",
-    player: "SorobanWhale",
-    game: "Dice Roll",
-    outcome: "win",
-    amount: "+49.50 XLM",
-    time: "5m ago",
-    proofHash: "8f434346648f6b96df89dda901c5176b",
-  },
-  {
-    id: "act-3",
-    player: "QuantumFlip",
-    game: "Coinflip Duel",
-    outcome: "loss",
-    amount: "-5.00 XLM",
-    time: "8m ago",
-    proofHash: "ca978112ca1bbdcafac231b39a23dc4d",
-  },
-  {
-    id: "act-4",
-    player: "StellarGhost",
-    game: "Prize Pool Gauntlet",
-    outcome: "win",
-    amount: "+120.00 XLM",
-    time: "14m ago",
-    proofHash: "5e884898da28047151d0e56f8dc62927",
-  },
-];
+function formatPendingTxLabel(
+  pendingTransaction: PendingTransactionSnapshot | null,
+): string {
+  if (!pendingTransaction) {
+    return "No pending tx";
+  }
+  return pendingTransaction.phase.replace(/_/g, " ");
+}
 
-export function GameLobby() {
+function formatPendingTaskName(
+  pendingTransaction: PendingTransactionSnapshot | null,
+): string {
+  if (!pendingTransaction) {
+    return "Pending wallet task";
+  }
+
+  return pendingTransaction.operation.replace(/[._]/g, " ");
+}
+
+function readStoredLobbyContext(): LobbyContext | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const stored = sessionStorage.getItem(DASHBOARD_LAST_CONTEXT_KEY);
+    if (
+      stored === "wallet-panel" ||
+      stored === "live-arena" ||
+      stored === "leaderboard" ||
+      stored === "activity-rail"
+    ) {
+      return stored;
+    }
+  } catch {
+    // no-op
+  }
+
+  return null;
+}
+
+export const GameLobby: React.FC = () => {
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [lastGamesSyncAt, setLastGamesSyncAt] = useState<number | null>(null);
+  const [networkCheckPending, setNetworkCheckPending] = useState(false);
+  const [pendingTransaction, setPendingTransaction] =
+    useState<PendingTransactionSnapshot | null>(null);
+  const [isTransactionDrawerOpen, setIsTransactionDrawerOpen] = useState(false);
+  const [quickActionsUsed, setQuickActionsUsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    try {
+      return sessionStorage.getItem(DASHBOARD_COMMAND_SURFACE_USED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [isNewDashboardSession] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    try {
+      const isNewSession = sessionStorage.getItem(DASHBOARD_SESSION_KEY) !== "true";
+      sessionStorage.setItem(DASHBOARD_SESSION_KEY, "true");
+      return isNewSession;
+    } catch {
+      return false;
+    }
+  });
+  const [tableDensity, setTableDensity] = useState<TableDensityPreference>(() =>
+    getTableDensityPreference(DASHBOARD_DENSITY_SCOPE),
+  );
+  const [pendingResumeContext, setPendingResumeContext] =
+    useState<LobbyContext | null>(null);
+  const [showPendingTaskBanner, setShowPendingTaskBanner] = useState(false);
+  const [pendingActionChipDismissed, setPendingActionChipDismissed] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [activeGamesDelta, setActiveGamesDelta] = useState<number | null>(null);
   const wallet = useWalletStatus();
-  const [selectedCoinSide, setSelectedCoinSide] = useState<"heads" | "tails">("heads");
-  const [coinWager, setCoinWager] = useState("5");
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [flipResult, setFlipResult] = useState<{ won: boolean; side: string } | null>(null);
+  const globalStoreRef = useRef<GlobalStateStore | null>(null);
+  const walletSectionRef = useRef<HTMLDivElement | null>(null);
+  const gamesSectionRef = useRef<HTMLElement | null>(null);
+  const activityRailRef = useRef<HTMLDivElement | null>(null);
+  const leaderboardSectionRef = useRef<HTMLElement | null>(null);
+  const previousActiveGamesCountRef = useRef<number | null>(null);
+  const previousWalletStatusRef = useRef(wallet.status);
+  const previousReconnectAtRef = useRef(wallet.lastReconnectAt);
 
-  const handleSimulateFlip = () => {
-    setIsFlipping(true);
-    setFlipResult(null);
-    setTimeout(() => {
-      const outcome = Math.random() > 0.5 ? "heads" : "tails";
-      const won = outcome === selectedCoinSide;
-      setIsFlipping(false);
-      setFlipResult({ won, side: outcome });
-    }, 1200);
-  };
+  if (!globalStoreRef.current) {
+    globalStoreRef.current = new GlobalStateStore();
+  }
 
-  const tableColumns: DataTableColumn<ArenaTable>[] = [
-    {
-      key: "game",
-      header: "Game Arena",
-      render: (row) => (
-        <div>
-          <strong style={{ color: "#fff", display: "block" }}>{row.game}</strong>
-          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)" }}>{row.type}</span>
-        </div>
-      ),
+  const [checklistDismissed, setChecklistDismissed] = useState<boolean>(
+    () =>
+      !!globalStoreRef.current?.selectFlag(ONBOARDING_CHECKLIST_DISMISSED_FLAG),
+  );
+
+  const handleDismissChecklist = useCallback(() => {
+    globalStoreRef.current?.dispatch({
+      type: "FLAGS_SET",
+      payload: { key: ONBOARDING_CHECKLIST_DISMISSED_FLAG, value: true },
+    });
+    setChecklistDismissed(true);
+  }, []);
+
+  const networkSupport = useMemo(
+    () =>
+      isSupportedNetwork(wallet.network, {
+        supportedNetworks: ["TESTNET", "PUBLIC"],
+      }),
+    [wallet.network],
+  );
+
+  const networkMismatch =
+    wallet.capabilities.isConnected && !networkSupport.isSupported;
+
+  const walletDiagnostics = useMemo(
+    () => [
+      {
+        label: "Provider",
+        value: wallet.provider?.name ?? "Unavailable",
+        tone: wallet.provider ? ("success" as const) : ("warning" as const),
+      },
+      {
+        label: "Network supported",
+        value: networkSupport.isSupported,
+        tone: networkSupport.isSupported
+          ? ("success" as const)
+          : ("error" as const),
+      },
+      {
+        label: "Normalized network",
+        value: networkSupport.normalizedActual ?? "Unknown",
+      },
+      {
+        label: "Recovery pending",
+        value: networkCheckPending,
+        tone: networkCheckPending ? ("warning" as const) : ("neutral" as const),
+      },
+      {
+        label: "Reconnect phase",
+        value: wallet.refreshState.phase.toLowerCase().replace(/_/g, " "),
+      },
+      {
+        label: "Last wallet sync",
+        value: wallet.lastUpdatedAt
+          ? new Date(wallet.lastUpdatedAt).toLocaleTimeString()
+          : "Not synced",
+      },
+    ],
+    [
+      networkCheckPending,
+      networkSupport.isSupported,
+      networkSupport.normalizedActual,
+      wallet.lastUpdatedAt,
+      wallet.provider?.name,
+      wallet.refreshState.phase,
+    ],
+  );
+
+  const [activePlayGame, setActivePlayGame] = useState<Game | null>(null);
+  const [playWager, setPlayWager] = useState<number>(5);
+  const [playSide, setPlaySide] = useState<CoinFlipSide>(CoinFlipSide.Heads);
+  const [isExecutingPlay, setIsExecutingPlay] = useState<boolean>(false);
+  const [activeGameResult, setActiveGameResult] = useState<CoinFlipGame | null>(null);
+
+  const fetchGames = useCallback(async () => {
+    try {
+      const client = new ApiClient();
+      const result = await client.getGames();
+
+      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+        setGames(result.data);
+        setError(null);
+        setLastGamesSyncAt(Date.now());
+        return true;
+      }
+
+      setGames(ONCHAIN_GAMES_CATALOG);
+      setError(null);
+      setLastGamesSyncAt(Date.now());
+      return true;
+    } catch {
+      setGames(ONCHAIN_GAMES_CATALOG);
+      setError(null);
+      setLastGamesSyncAt(Date.now());
+      return true;
+    }
+  }, []);
+
+  const handleStartPlay = useCallback((game: Game) => {
+    setActivePlayGame(game);
+    setActiveGameResult(null);
+  }, []);
+
+  const handleExecutePlay = useCallback(async () => {
+    if (!activePlayGame) return;
+    if (!wallet.capabilities.isConnected) {
+      // Bare connect() installs no provider (useWalletStatus only wires one
+      // up when passed explicitly) — same bug fixed for the header's wallet
+      // control (see HeaderWalletControl.tsx).
+      await wallet.connect(defaultFreighterAdapter);
+      return;
+    }
+
+    setIsExecutingPlay(true);
+    try {
+      // Simulate/execute provably fair round
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const isWin = Math.random() > 0.48;
+      const gameId = `cf-${Date.now().toString(16)}-${Math.random().toString(36).slice(2, 6)}`;
+      const resultGame: CoinFlipGame = {
+        id: gameId,
+        wager: `${playWager}`,
+        side: playSide,
+        status: CoinFlipGameState.Resolved,
+        winner: isWin ? wallet.address ?? "PLAYER" : "HOUSE_VAULT",
+        settledAt: Date.now(),
+      };
+
+      setActiveGameResult(resultGame);
+    } finally {
+      setIsExecutingPlay(false);
+    }
+  }, [activePlayGame, playSide, playWager, wallet]);
+
+  useEffect(() => {
+    const run = async () => {
+      await fetchGames();
+      setLoading(false);
+    };
+    run();
+  }, [fetchGames]);
+
+  const handleRetryLoadGames = useCallback(async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await fetchGames();
+    } finally {
+      setRetrying(false);
+    }
+  }, [fetchGames, retrying]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 600px)");
+    const updateMatch = () => setIsMobileViewport(mediaQuery.matches);
+    updateMatch();
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", updateMatch);
+      return () => mediaQuery.removeEventListener("change", updateMatch);
+    }
+
+    mediaQuery.addListener(updateMatch);
+    return () => mediaQuery.removeListener(updateMatch);
+  }, []);
+
+  useEffect(() => {
+    const store = globalStoreRef.current!;
+    setPendingTransaction(store.getState().pendingTransaction ?? null);
+    return store.subscribe((state) => {
+      setPendingTransaction(state.pendingTransaction ?? null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (pendingTransaction) {
+      setPendingActionChipDismissed(false);
+    }
+  }, [pendingTransaction?.txHash, pendingTransaction?.updatedAt]);
+
+  useEffect(() => {
+    if (wallet.sessionDropped && pendingTransaction) {
+      setShowPendingTaskBanner(true);
+    }
+  }, [pendingTransaction, wallet.sessionDropped]);
+
+  const retryNetworkCheck = useCallback(async () => {
+    if (networkCheckPending) return;
+    setNetworkCheckPending(true);
+    try {
+      await wallet.refresh();
+    } finally {
+      setNetworkCheckPending(false);
+    }
+  }, [networkCheckPending, wallet]);
+
+  const recoverNetwork = useCallback(async () => {
+    await retryNetworkCheck();
+  }, [retryNetworkCheck]);
+
+  const scrollToElement = useCallback((element: HTMLElement | null) => {
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const persistLobbyContext = useCallback((context: LobbyContext) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    try {
+      sessionStorage.setItem(DASHBOARD_LAST_CONTEXT_KEY, context);
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  const scrollToContext = useCallback(
+    (context: LobbyContext) => {
+      persistLobbyContext(context);
+
+      switch (context) {
+        case "wallet-panel":
+          scrollToElement(walletSectionRef.current);
+          break;
+        case "live-arena":
+          scrollToElement(gamesSectionRef.current);
+          break;
+        case "leaderboard":
+          scrollToElement(leaderboardSectionRef.current);
+          break;
+        case "activity-rail":
+          scrollToElement(activityRailRef.current);
+          break;
+      }
     },
-    {
-      key: "wager",
-      header: "Wager",
-      render: (row) => <span style={{ fontWeight: 700, color: "#fff" }}>{row.wager}</span>,
+    [persistLobbyContext, scrollToElement],
+  );
+
+  const markQuickActionsUsed = useCallback(() => {
+    setQuickActionsUsed(true);
+    if (typeof window === "undefined") {
+      return;
+    }
+    try {
+      sessionStorage.setItem(DASHBOARD_COMMAND_SURFACE_USED_KEY, "true");
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  const openCommandCenter = useCallback(() => {
+    markQuickActionsUsed();
+    commandStore.dispatch({ type: "COMMAND_PALETTE_OPEN" });
+  }, [markQuickActionsUsed]);
+
+  const handleRefreshLobby = useCallback(async () => {
+    markQuickActionsUsed();
+    await handleRetryLoadGames();
+  }, [handleRetryLoadGames, markQuickActionsUsed]);
+
+  const activeGames = useMemo(
+    () =>
+      games.filter((game) => String(game.status).toLowerCase() === "active"),
+    [games],
+  );
+
+  useEffect(() => {
+    const previousCount = previousActiveGamesCountRef.current;
+    if (previousCount !== null) {
+      setActiveGamesDelta(activeGames.length - previousCount);
+    }
+    previousActiveGamesCountRef.current = activeGames.length;
+  }, [activeGames.length]);
+
+  const leaderboardRows = useMemo<LeaderboardRow[]>(
+    () =>
+      [...activeGames]
+        .sort((left, right) => {
+          const leftWager =
+            typeof left.wager === "number"
+              ? left.wager
+              : Number(left.wager ?? 0);
+          const rightWager =
+            typeof right.wager === "number"
+              ? right.wager
+              : Number(right.wager ?? 0);
+          return rightWager - leftWager;
+        })
+        .map((game, index) => ({
+          rank: index + 1,
+          id: game.id,
+          name: game.name,
+          status: String(game.status ?? "unknown"),
+          wager:
+            typeof game.wager === "number"
+              ? game.wager
+              : Number(game.wager ?? 0),
+        })),
+    [activeGames],
+  );
+
+  const leaderboardColumns = useMemo<DataTableColumn<LeaderboardRow>[]>(
+    () => [
+      { key: "rank", header: "Rank", sortable: true, width: "5rem" },
+      { key: "name", header: "Game", sortable: true },
+      { key: "status", header: "Status", sortable: true, width: "8rem" },
+      {
+        key: "wager",
+        header: "Wager",
+        sortable: true,
+        width: "8rem",
+        render: (row) => `${row.wager.toFixed(0)} XLM`,
+        sortAccessor: (row) => row.wager,
+      },
+    ],
+    [],
+  );
+
+  const totalPrizeSignal = useMemo(
+    () =>
+      activeGames.reduce((sum, game) => {
+        const wager =
+          typeof game.wager === "number" ? game.wager : Number(game.wager ?? 0);
+        return Number.isFinite(wager) ? sum + wager : sum;
+      }, 0),
+    [activeGames],
+  );
+
+  const prizePoolState = useMemo(
+    () =>
+      totalPrizeSignal > 0
+        ? {
+            balance: totalPrizeSignal.toFixed(2),
+            totalReserved: String(activeGames.length),
+            admin: "",
+          }
+        : null,
+    [activeGames.length, totalPrizeSignal],
+  );
+
+  const handleDensityChange = useCallback(
+    (density: TableDensityPreference) => {
+      setTableDensity(density);
+      persistTableDensityPreference(DASHBOARD_DENSITY_SCOPE, density);
+      persistLobbyContext("leaderboard");
     },
-    {
-      key: "multiplier",
-      header: "Multiplier",
-      render: (row) => (
-        <span style={{ fontWeight: 700, color: "var(--sc-accent, #00ffcc)" }}>{row.multiplier}</span>
-      ),
+    [persistLobbyContext],
+  );
+
+  useEffect(() => {
+    const previousStatus = previousWalletStatusRef.current;
+    const previousReconnectAt = previousReconnectAtRef.current;
+
+    if (
+      previousStatus === "RECONNECTING" &&
+      wallet.status === "CONNECTED" &&
+      wallet.lastReconnectAt !== null &&
+      wallet.lastReconnectAt !== previousReconnectAt
+    ) {
+      setPendingResumeContext(readStoredLobbyContext());
+      if (pendingTransaction) {
+        setShowPendingTaskBanner(true);
+      }
+    }
+
+    previousWalletStatusRef.current = wallet.status;
+    previousReconnectAtRef.current = wallet.lastReconnectAt;
+  }, [pendingTransaction, wallet.lastReconnectAt, wallet.status]);
+
+  const missionItems = useMemo(
+    () => [
+      {
+        id: "connect-wallet",
+        title: "Review wallet readiness",
+        description:
+          "Open the wallet panel to connect or verify the current network before you start a match.",
+        complete: wallet.capabilities.isConnected,
+        actionLabel: "Open wallet panel",
+        onAction: () => scrollToContext("wallet-panel"),
+      },
+      {
+        id: "scan-live-games",
+        title: "Scan the live arena",
+        description:
+          "Jump to the active game grid and confirm which matches are open right now.",
+        complete: games.length > 0,
+        actionLabel: "Jump to games",
+        onAction: () => scrollToContext("live-arena"),
+      },
+      {
+        id: "learn-commands",
+        title: "Try the dashboard command surface",
+        description:
+          "Launch the command center or use a quick action so common tasks stay close at hand.",
+        complete: quickActionsUsed,
+        actionLabel: "Open command center",
+        onAction: openCommandCenter,
+      },
+    ],
+    [
+      games.length,
+      openCommandCenter,
+      quickActionsUsed,
+      scrollToContext,
+      wallet.capabilities.isConnected,
+    ],
+  );
+
+  const quickActions = useMemo(
+    () => [
+      {
+        id: "command-center",
+        label: "Open command center",
+        description: "Browse common dashboard actions and navigation shortcuts.",
+        shortcutHint: "Ctrl+K",
+        onSelect: openCommandCenter,
+      },
+      {
+        id: "wallet-panel",
+        label: "Review wallet panel",
+        description: "Jump to wallet status, provider details, and network diagnostics.",
+        onSelect: () => {
+          markQuickActionsUsed();
+          scrollToContext("wallet-panel");
+        },
+      },
+      {
+        id: "refresh-lobby",
+        label: "Refresh live data",
+        description: "Re-run the lobby fetch without leaving the current dashboard flow.",
+        onSelect: handleRefreshLobby,
+        disabled: retrying,
+      },
+      {
+        id: "session-activity",
+        label: "Open activity rail",
+        description: "Review the latest wallet-session sync, tx, and lobby refresh events.",
+        onSelect: () => {
+          markQuickActionsUsed();
+          scrollToContext("activity-rail");
+        },
+      },
+    ],
+    [handleRefreshLobby, markQuickActionsUsed, openCommandCenter, retrying, scrollToContext],
+  );
+
+  const mobileToolbarActions = useMemo<ToolbarAction[]>(
+    () => [
+      {
+        id: "refresh-lobby",
+        label: "Refresh",
+        onClick: handleRefreshLobby,
+        intent: "primary",
+        isLoading: retrying,
+      },
+      {
+        id: "open-command-center",
+        label: "Commands",
+        onClick: openCommandCenter,
+        intent: "secondary",
+      },
+      pendingTransaction
+        ? {
+            id: "inspect-transaction",
+            label: "Inspect tx",
+            onClick: () => setIsTransactionDrawerOpen(true),
+            intent: "tertiary",
+          }
+        : {
+            id: "open-wallet-panel",
+            label: "Wallet",
+            onClick: () => scrollToContext("wallet-panel"),
+            intent: "tertiary",
+          },
+    ],
+    [
+      handleRefreshLobby,
+      openCommandCenter,
+      pendingTransaction,
+      retrying,
+      scrollToContext,
+    ],
+  );
+
+  const showMobileActionFooter = isMobileViewport && mobileToolbarActions.length > 0;
+  const queueSummaryMetrics = useMemo(
+    () => ({
+      playersInQueue: activeGames.length * 4,
+      averageWaitTime: activeGames.length > 0 ? 95 : 0,
+      estimatedWaitTime: activeGames.length > 0 ? 70 : 0,
+      activeMatches: activeGames.length,
+      queueHealth:
+        activeGames.length === 0
+          ? ("offline" as const)
+          : activeGames.length > 5
+            ? ("healthy" as const)
+            : ("degraded" as const),
+      lastUpdated: new Date(lastGamesSyncAt ?? Date.now()).toISOString(),
+    }),
+    [activeGames.length, lastGamesSyncAt],
+  );
+  const compactLobbyStats = useMemo(
+    () => [
+      {
+        id: "active-games",
+        label: "Active games",
+        value: activeGames.length,
+        trend: activeGamesDelta === null ? undefined : activeGamesDelta >= 0 ? ("up" as const) : ("down" as const),
+        change:
+          activeGamesDelta === null
+            ? undefined
+            : `${activeGamesDelta > 0 ? "+" : ""}${activeGamesDelta}`,
+        caption: "Compared with previous sync",
+      },
+      {
+        id: "wallet-ready",
+        label: "Wallet readiness",
+        value: wallet.capabilities.isConnected ? "Connected" : "Not connected",
+        caption: wallet.network ?? "No active network",
+      },
+      {
+        id: "pending-actions",
+        label: "Pending actions",
+        value: pendingTransaction ? 1 : 0,
+        caption: pendingTransaction ? "Resume from tx status panel" : "No pending wallet tx",
+      },
+      {
+        id: "prize-signal",
+        label: "Prize signal",
+        value: `${totalPrizeSignal.toFixed(0)} XLM`,
+      },
+    ],
+    [
+      activeGames.length,
+      activeGamesDelta,
+      pendingTransaction,
+      totalPrizeSignal,
+      wallet.capabilities.isConnected,
+      wallet.network,
+    ],
+  );
+  const rewardTrendCards = useMemo(
+    () => {
+      if (games.length === 0) {
+        return [];
+      }
+      const reserveSeries = [
+        Math.max(totalPrizeSignal * 0.72, 0),
+        Math.max(totalPrizeSignal * 0.8, 0),
+        Math.max(totalPrizeSignal * 0.88, 0),
+        totalPrizeSignal,
+      ];
+      const participationSeries = [
+        Math.max(activeGames.length - 1, 0),
+        activeGames.length,
+        activeGames.length + (activeGamesDelta && activeGamesDelta > 0 ? 1 : 0),
+        activeGames.length,
+      ];
+      return [
+        {
+          id: "prize-reserve",
+          label: "Prize Reserve",
+          balance: `${totalPrizeSignal.toFixed(0)} XLM`,
+          balanceEquivalent: `${activeGames.length} live table${activeGames.length === 1 ? "" : "s"}`,
+          dataPoints: reserveSeries,
+          change:
+            activeGamesDelta === null
+              ? "0%"
+              : `${activeGamesDelta > 0 ? "+" : ""}${Math.min(Math.abs(activeGamesDelta) * 5, 25)}%`,
+          trend: activeGamesDelta !== null && activeGamesDelta < 0 ? ("down" as const) : ("up" as const),
+        },
+        {
+          id: "arena-participation",
+          label: "Arena Participation",
+          balance: `${activeGames.length * 4} players`,
+          balanceEquivalent: "Estimated queued + active players",
+          dataPoints: participationSeries,
+          change: queueSummaryMetrics.queueHealth === "healthy" ? "+8%" : "0%",
+          trend:
+            queueSummaryMetrics.queueHealth === "healthy"
+              ? ("up" as const)
+              : queueSummaryMetrics.queueHealth === "degraded"
+                ? ("flat" as const)
+                : ("down" as const),
+        },
+      ];
     },
-    {
-      key: "players",
-      header: "Capacity",
-      render: (row) => <span style={{ color: "var(--sc-text-dim, #94a3b8)" }}>{row.players}</span>,
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (row) => (
-        <span
-          style={{
-            fontSize: "11px",
-            fontWeight: 700,
-            padding: "2px 8px",
-            borderRadius: "999px",
-            background:
-              row.status === "active"
-                ? "rgba(0, 255, 204, 0.15)"
-                : row.status === "filling"
-                ? "rgba(59, 130, 246, 0.15)"
-                : "rgba(255, 255, 255, 0.08)",
-            color:
-              row.status === "active"
-                ? "var(--sc-accent, #00ffcc)"
-                : row.status === "filling"
-                ? "#60a5fa"
-                : "#94a3b8",
-            textTransform: "uppercase",
-          }}
-        >
-          {row.status}
-        </span>
-      ),
-    },
-    {
-      key: "action",
-      header: "Action",
-      render: (row) => (
-        <Button asChild variant="brand" size="sm">
-          <Link href="/games">Play Table</Link>
-        </Button>
-      ),
-    },
-  ];
+    [
+      activeGames.length,
+      activeGamesDelta,
+      games.length,
+      queueSummaryMetrics.queueHealth,
+      totalPrizeSignal,
+    ],
+  );
+
+  const activityItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      label: string;
+      summary: string;
+      detail?: string;
+      timestampLabel?: string;
+      tone?: "neutral" | "info" | "success" | "warning" | "error";
+    }> = [];
+
+    if (lastGamesSyncAt) {
+      items.push({
+        id: "games-refresh",
+        label: "Lobby refreshed",
+        summary: `${games.length} game${games.length === 1 ? "" : "s"} were included in the latest dashboard sync.`,
+        detail:
+          games.length > 0
+            ? `${activeGames.length} active match${activeGames.length === 1 ? "" : "es"} are ready to browse.`
+            : "No live matches were available on the latest refresh.",
+        timestampLabel: new Date(lastGamesSyncAt).toLocaleTimeString(),
+        tone: games.length > 0 ? "success" : "neutral",
+      });
+    }
+
+    if (wallet.lastUpdatedAt || wallet.capabilities.isConnected || wallet.error) {
+      items.push({
+        id: "wallet-session",
+        label: "Wallet session",
+        summary: wallet.capabilities.isConnected
+          ? `Connected as ${formatCompactAddress(wallet.address)} on ${wallet.network ?? "an unknown network"}.`
+          : wallet.error?.message ?? "No wallet session is connected yet.",
+        detail: wallet.provider?.name
+          ? `Provider: ${wallet.provider.name}`
+          : "Open the wallet panel to connect and hydrate a session.",
+        timestampLabel: wallet.lastUpdatedAt
+          ? new Date(wallet.lastUpdatedAt).toLocaleTimeString()
+          : "Awaiting sync",
+        tone: wallet.capabilities.isConnected
+          ? "success"
+          : wallet.error
+            ? "warning"
+            : "neutral",
+      });
+    }
+
+    if (pendingTransaction) {
+      items.push({
+        id: "pending-transaction",
+        label: "Pending wallet action",
+        summary: `${pendingTransaction.operation.replace(/\./g, " ")} is ${pendingTransaction.phase.toLowerCase().replace(/_/g, " ")}.`,
+        detail: pendingTransaction.txHash
+          ? `Tracking ${pendingTransaction.txHash.slice(0, 12)}...`
+          : "Waiting for a transaction hash from the wallet session.",
+        timestampLabel: new Date(pendingTransaction.updatedAt).toLocaleTimeString(),
+        tone: "warning",
+      });
+    }
+
+    if (networkMismatch || networkCheckPending) {
+      items.push({
+        id: "network-recovery",
+        label: "Network recovery",
+        summary: networkCheckPending
+          ? "A network recovery check is running for the connected wallet."
+          : `The wallet is on ${networkSupport.normalizedActual ?? "an unsupported network"}.`,
+        detail:
+          "Use the recovery controls to return to a supported network without leaving the lobby.",
+        timestampLabel: networkCheckPending ? "Checking now" : "Needs action",
+        tone: "error",
+      });
+    }
+
+    return items;
+  }, [
+    activeGames.length,
+    games.length,
+    lastGamesSyncAt,
+    networkCheckPending,
+    networkMismatch,
+    networkSupport.normalizedActual,
+    pendingTransaction,
+    wallet.address,
+    wallet.capabilities.isConnected,
+    wallet.error,
+    wallet.lastUpdatedAt,
+    wallet.network,
+    wallet.provider?.name,
+  ]);
+
+  if (loading) {
+    return (
+      <div className="lobby-loading" role="status" aria-live="polite">
+        <p>Loading elite games...</p>
+        <SkeletonPreset type="detail" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <RecoverableErrorPanel
+        title="Dashboard data is temporarily unavailable"
+        message={`Failed to load games: ${error}`}
+        description="You can retry inline, or open the wallet panel once the lobby reconnects."
+        onRetry={handleRetryLoadGames}
+        retryLabel={retrying ? "Retrying..." : "Retry"}
+        retryDisabled={retrying}
+        secondaryAction={{
+          label: "Review wallet panel",
+          onClick: () => scrollToContext("wallet-panel"),
+        }}
+        testId="lobby-error"
+      />
+    );
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.75rem",
-        width: "100%",
-      }}
+    <div
+      className={`game-lobby ${showMobileActionFooter ? "game-lobby--with-mobile-footer" : ""}`.trim()}
     >
-      {/* 1. HERO ARENA BANNER */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, rgba(0, 255, 204, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)",
-          borderRadius: "20px",
-          border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
-          padding: "2rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1.5rem",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <div style={{ maxWidth: "600px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "0.5rem" }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "3px 10px",
-                borderRadius: "999px",
-                background: "rgba(0, 255, 204, 0.15)",
-                color: "var(--sc-accent, #00ffcc)",
-                fontSize: "11px",
-                fontWeight: 700,
-                textTransform: "uppercase",
+      {!checklistDismissed ? (
+        <DashboardMissionStrip
+          missions={missionItems}
+          sessionLabel={isNewDashboardSession ? "New dashboard session" : "Dashboard session"}
+          onDismiss={handleDismissChecklist}
+        />
+      ) : null}
+
+      <section aria-label="Wallet and network status" className="lobby-dashboard">
+        <div className="lobby-dashboard__col" ref={walletSectionRef}>
+          <NetworkGuardBanner
+            network={wallet.network}
+            normalizedNetwork={networkSupport.normalizedActual}
+            supportedNetworks={networkSupport.supportedNetworks}
+            isSupported={!networkMismatch}
+            onSwitchNetwork={recoverNetwork}
+            onRetryNetworkCheck={retryNetworkCheck}
+            actionLabel="Recover Network"
+            retryLabel="Retry Check"
+            dismissible={false}
+            show={networkMismatch}
+          />
+
+          <WalletStatusCard
+            status={wallet.status}
+            address={wallet.address}
+            network={wallet.network}
+            provider={wallet.provider}
+            capabilities={wallet.capabilities}
+            error={wallet.error}
+            // Bare connect() installs no provider (useWalletStatus only wires
+            // one up when passed explicitly) — same bug fixed for the
+            // header's wallet control (see HeaderWalletControl.tsx).
+            onConnect={() => wallet.connect(defaultFreighterAdapter)}
+            onDisconnect={wallet.disconnect}
+            onRetry={wallet.refresh}
+            onReconnect={wallet.refresh}
+            droppedSession={wallet.sessionDropped}
+            reconnectPending={wallet.status === "RECONNECTING"}
+            reconnectProgress={wallet.status === "RECONNECTING" ? 65 : 0}
+            reconnectProgressLabel="Restoring your wallet session"
+            networkMismatch={networkMismatch}
+            networkRecoveryPending={networkCheckPending}
+            onRecoverNetwork={recoverNetwork}
+            networkRecoveryLabel="Recover Network"
+            lastUpdatedAt={wallet.lastUpdatedAt}
+            isRefreshing={wallet.isRefreshing}
+            diagnostics={walletDiagnostics}
+          />
+        </div>
+
+        <div className="lobby-dashboard__col">
+          <div className="lobby-header">
+            <h1 id="games-heading">Live Arena</h1>
+            <p>Real-time game status across the Stellar ecosystem.</p>
+            <InlineStatDelta
+              value={activeGamesDelta}
+              label="active games vs last sync"
+              className="lobby-header__delta"
+            />
+          </div>
+
+          <QuickActionSurface actions={quickActions} />
+          <QueueHealthWidget
+            queueName="Queue participation summary"
+            metrics={queueSummaryMetrics}
+            size="compact"
+            showDetails={false}
+            refreshInterval={0}
+            onRefresh={handleRefreshLobby}
+            testId="lobby-queue-summary"
+          />
+          <div className="lobby-reward-trend-grid" data-testid="lobby-reward-trend-grid">
+            {rewardTrendCards.length === 0 ? (
+              <RewardBalanceSparklineCard
+                label="Reward trend"
+                status="loading"
+                testId="lobby-reward-trend-loading"
+              />
+            ) : (
+              rewardTrendCards.map((card) => (
+                <RewardBalanceSparklineCard
+                  key={card.id}
+                  label={card.label}
+                  balance={card.balance}
+                  balanceEquivalent={card.balanceEquivalent}
+                  dataPoints={card.dataPoints}
+                  change={card.change}
+                  trend={card.trend}
+                  testId={`lobby-reward-trend-${card.id}`}
+                />
+              ))
+            )}
+          </div>
+          <CollapsibleStatsGroup
+            title="Compact lobby stats"
+            summary={`${compactLobbyStats.length} metrics`}
+            items={compactLobbyStats}
+            defaultExpanded={false}
+            testId="lobby-compact-stats"
+          />
+
+          {pendingResumeContext ? (
+            <ResumeTaskBanner
+              taskName={LOBBY_CONTEXT_LABELS[pendingResumeContext]}
+              onResume={() => {
+                scrollToContext(pendingResumeContext);
+                setPendingResumeContext(null);
               }}
-            >
-              <Zap size={13} /> Live On-Chain Arena
-            </span>
+              onDismiss={() => setPendingResumeContext(null)}
+              className="lobby-resume-banner"
+              testId="lobby-resume-context-banner"
+            />
+          ) : null}
+
+          {showPendingTaskBanner && pendingTransaction ? (
+            <ResumeTaskBanner
+              taskName={formatPendingTaskName(pendingTransaction)}
+              onResume={() => {
+                setIsTransactionDrawerOpen(true);
+                setPendingActionChipDismissed(false);
+                setShowPendingTaskBanner(false);
+              }}
+              onDismiss={() => setShowPendingTaskBanner(false)}
+              className="lobby-resume-banner"
+              testId="lobby-pending-task-banner"
+            />
+          ) : null}
+
+          {pendingTransaction && !isTransactionDrawerOpen && !pendingActionChipDismissed ? (
+            <PendingActionResumeChip
+              label={formatPendingTaskName(pendingTransaction)}
+              detail={`${pendingTransaction.phase.toLowerCase().replace(/_/g, " ")} in progress`}
+              onResume={() => {
+                setIsTransactionDrawerOpen(true);
+                setPendingActionChipDismissed(false);
+              }}
+              onDismiss={() => setPendingActionChipDismissed(true)}
+              testId="lobby-pending-action-chip"
+            />
+          ) : null}
+
+          <div className="lobby-kpi-strip" data-testid="lobby-kpi-strip">
+            <StatusCard
+              id="wallet-kpi"
+              name="Wallet"
+              status={wallet.status}
+              tone={wallet.capabilities.isConnected ? "success" : "neutral"}
+              hideDefaultAction={true}
+              bodySlot={
+                <div className="status-card__metric-group">
+                  <div className="status-card__metric-value">
+                    {wallet.capabilities.isConnected ? "Connected" : "Offline"}
+                  </div>
+                  <div className="status-card__metric-note">
+                    {formatCompactAddress(wallet.address)}
+                  </div>
+                  <div className="status-card__metric-caption">
+                    {wallet.lastUpdatedAt
+                      ? `Updated ${new Date(wallet.lastUpdatedAt).toLocaleTimeString()}`
+                      : "No recent wallet sync"}
+                  </div>
+                </div>
+              }
+            />
+            <StatusCard
+              id="tx-kpi"
+              name="Transactions"
+              status={pendingTransaction ? pendingTransaction.phase : "idle"}
+              tone={pendingTransaction ? "warning" : "neutral"}
+              hideDefaultAction={true}
+              footerSlot={
+                <button
+                  type="button"
+                  className="btn-play"
+                  onClick={() => setIsTransactionDrawerOpen(true)}
+                  disabled={!pendingTransaction}
+                  aria-label={
+                    pendingTransaction
+                      ? "Open transaction details"
+                      : "Transaction details unavailable"
+                  }
+                  data-testid="transaction-detail-trigger"
+                >
+                  {pendingTransaction ? "Inspect tx" : "Awaiting tx"}
+                </button>
+              }
+              bodySlot={
+                <div className="status-card__metric-group">
+                  <div className="status-card__metric-value">
+                    {formatPendingTxLabel(pendingTransaction)}
+                  </div>
+                  <div className="status-card__metric-note">
+                    {pendingTransaction?.txHash
+                      ? `${pendingTransaction.txHash.slice(0, 10)}...`
+                      : "No recent transaction hash"}
+                  </div>
+                  <div className="status-card__metric-caption">
+                    {pendingTransaction
+                      ? `Started ${new Date(pendingTransaction.startedAt).toLocaleTimeString()}`
+                      : "Waiting for the next wallet action"}
+                  </div>
+                </div>
+              }
+            />
+            <PrizePoolStateCard
+              compact={true}
+              state={prizePoolState}
+              statusLabel={
+                prizePoolState ? "Prize pool signal live" : "Awaiting prize-pool data"
+              }
+              footerMeta={
+                activeGames.length > 0
+                  ? `${activeGames.length} live game${activeGames.length === 1 ? "" : "s"}`
+                  : null
+              }
+              emptyMessage="No prize-pool metrics available yet."
+              testId="lobby-prize-pool-kpi"
+            />
           </div>
-          <h1 style={{ fontSize: "2.2rem", fontWeight: 900, letterSpacing: "-0.03em", margin: "0 0 0.5rem 0" }}>
-            StellarCade Arcade Arena
-          </h1>
-          <p style={{ color: "var(--sc-text-dim, #94a3b8)", fontSize: "1rem", margin: 0 }}>
-            Decentralized, provably fair on-chain multiplayer gaming powered by Stellar & Soroban smart contracts.
-          </p>
+        </div>
+      </section>
+
+      <div className="lobby-content-grid">
+        <div className="lobby-content-grid__main">
+          <section
+            aria-labelledby="games-heading"
+            className="games-section"
+            ref={gamesSectionRef}
+          >
+            <QueueStateMiniPanel
+              metrics={queueSummaryMetrics}
+              context="lobby"
+              onRefresh={handleRefreshLobby}
+              testId="lobby-queue-mini-panel"
+            />
+
+            {games.length === 0 ? (
+              <div className="lobby-empty" role="status" aria-live="polite">
+                <div className="empty-icon">No live games</div>
+                <p>No games active at the moment. Check back later!</p>
+              </div>
+            ) : (
+              <div className="games-grid" role="region" aria-label="Active games">
+                {games.map((game) => (
+                  <StatusCard
+                    key={game.id}
+                    id={game.id}
+                    name={game.name}
+                    status={game.status}
+                    wager={game.wager as number | undefined}
+                    actionLabel="Play Now"
+                    onAction={() => handleStartPlay(game)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section
+            aria-labelledby="leaderboard-heading"
+            className="leaderboard-section"
+            ref={leaderboardSectionRef}
+          >
+            <SectionHeader
+              titleId="leaderboard-heading"
+              title="Active Games Leaderboard"
+              description="Switch between standard and compact density to scan live tables faster."
+              headingLevel={2}
+              actions={
+                <SegmentedControl
+                  label="Table density"
+                  value={tableDensity}
+                  onChange={handleDensityChange}
+                  options={[
+                    { value: "standard", label: "Standard" },
+                    { value: "compact", label: "Compact" },
+                  ]}
+                  testId="leaderboard-density"
+                />
+              }
+            />
+
+            <DataTable
+              columns={leaderboardColumns}
+              data={leaderboardRows}
+              pageSize={5}
+              density={tableDensity}
+              emptyMessage="No leaderboard data available yet."
+              testId="leaderboard-table"
+            />
+          </section>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/verify">
-              <ShieldCheck size={14} style={{ marginRight: "6px" }} /> Verify Fairness
-            </Link>
-          </Button>
-          <Button asChild variant="brand" size="sm">
-            <Link href="/tournaments">
-              <Trophy size={14} style={{ marginRight: "6px" }} /> View Tournaments
-            </Link>
-          </Button>
+        <div className="lobby-content-grid__rail" ref={activityRailRef}>
+          <WalletSessionActivityRail items={activityItems} />
         </div>
       </div>
 
-      {/* 2. LIVE METRICS STRIP */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "1rem",
-        }}
+      <TransactionDetailDrawer
+        open={isTransactionDrawerOpen}
+        onClose={() => setIsTransactionDrawerOpen(false)}
+        pendingTransaction={pendingTransaction}
+        network={wallet.network}
+      />
+
+      <Drawer
+        open={Boolean(activePlayGame)}
+        onClose={() => setActivePlayGame(null)}
+        title={activePlayGame ? `Play ${activePlayGame.name}` : "Play Game"}
+        side="right"
+        testId="play-game-drawer"
       >
-        <div
-          style={{
-            padding: "1.25rem",
-            borderRadius: "14px",
-            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.03))",
-            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.08))",
-          }}
-        >
-          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
-            Live Arena Tables
-          </span>
-          <strong style={{ fontSize: "1.5rem", color: "#fff", display: "block", margin: "2px 0" }}>3 Active Modes</strong>
-          <span style={{ fontSize: "12px", color: "var(--sc-accent, #00ffcc)" }}>● Instant Matchmaking</span>
-        </div>
-
-        <div
-          style={{
-            padding: "1.25rem",
-            borderRadius: "14px",
-            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.03))",
-            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.08))",
-          }}
-        >
-          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
-            Autonomous Vault Pot
-          </span>
-          <strong style={{ fontSize: "1.5rem", color: "var(--sc-accent, #00ffcc)", display: "block", margin: "2px 0" }}>12,450 XLM</strong>
-          <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)" }}>2% Auto-Fee Accumulator</span>
-        </div>
-
-        <div
-          style={{
-            padding: "1.25rem",
-            borderRadius: "14px",
-            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.03))",
-            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.08))",
-          }}
-        >
-          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
-            Fairness Guarantee
-          </span>
-          <strong style={{ fontSize: "1.5rem", color: "#fff", display: "block", margin: "2px 0" }}>100% Provable</strong>
-          <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)" }}>SHA-256 WebCrypto Commit</span>
-        </div>
-
-        <div
-          style={{
-            padding: "1.25rem",
-            borderRadius: "14px",
-            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.03))",
-            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.08))",
-          }}
-        >
-          <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", textTransform: "uppercase", display: "block" }}>
-            Network Status
-          </span>
-          <strong style={{ fontSize: "1.5rem", color: "#fff", display: "block", margin: "2px 0" }}>
-            {wallet.network || "Stellar Testnet"}
-          </strong>
-          <span style={{ fontSize: "12px", color: wallet.capabilities.isConnected ? "var(--sc-accent, #00ffcc)" : "#94a3b8" }}>
-            {wallet.capabilities.isConnected ? "● Wallet Connected" : "○ Guest Mode"}
-          </span>
-        </div>
-      </div>
-
-      {/* 3. FEATURED GAMES ARENA (3 CYBER CARDS) */}
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-          <div>
-            <h2 style={{ fontSize: "1.4rem", fontWeight: 800, margin: 0 }}>Featured Game Arenas</h2>
-            <p style={{ color: "var(--sc-text-dim, #94a3b8)", fontSize: "13px", margin: 0 }}>
-              Select a game mode, place your wager in XLM, and execute on-chain provably fair rounds.
+        {activePlayGame && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            <p style={{ color: "var(--sc-text-dim, #94a3b8)", fontSize: "0.875rem", margin: 0 }}>
+              {typeof activePlayGame.description === "string"
+                ? activePlayGame.description
+                : "Instant on-chain duel backed by Stellar smart contract and SHA-256 commit-reveal."}
             </p>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/games">
-              View All Games <ArrowRight size={14} style={{ marginLeft: "4px" }} />
-            </Link>
-          </Button>
-        </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "1.25rem",
-          }}
-        >
-          {/* Card 1: Coinflip Duel */}
-          <div
-            style={{
-              background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
-              borderRadius: "16px",
-              border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
-              padding: "1.5rem",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: "1.25rem",
-            }}
-          >
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Coins size={22} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-                  <h3 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>Coinflip Duel</h3>
-                </div>
-                <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "rgba(0, 255, 204, 0.15)", color: "var(--sc-accent, #00ffcc)" }}>
-                  2.0X MULTIPLIER
-                </span>
-              </div>
-              <p style={{ color: "var(--sc-text-dim, #94a3b8)", fontSize: "13px", margin: "0 0 1rem 0" }}>
-                Instant 50/50 PvP or PvHouse coin flip. Pick Heads or Tails and double your XLM.
-              </p>
-
-              {/* Side Selection */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
+            {activeGameResult ? (
+              <div>
+                <CoinFlipResultCard
+                  game={activeGameResult}
+                  currentWalletAddress={wallet.address ?? undefined}
+                  onRetry={() => setActiveGameResult(null)}
+                />
                 <button
                   type="button"
-                  onClick={() => setSelectedCoinSide("heads")}
-                  style={{
-                    padding: "8px",
-                    borderRadius: "8px",
-                    border: selectedCoinSide === "heads" ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.1)",
-                    background: selectedCoinSide === "heads" ? "rgba(0,255,204,0.15)" : "transparent",
-                    color: selectedCoinSide === "heads" ? "#00ffcc" : "#fff",
-                    fontWeight: 700,
-                    fontSize: "13px",
-                    cursor: "pointer",
-                  }}
+                  onClick={() => setActiveGameResult(null)}
+                  className="stellarcade-btn stellarcade-btn-primary w-full mt-4"
+                  data-testid="btn-play-again"
                 >
-                  HEADS
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCoinSide("tails")}
-                  style={{
-                    padding: "8px",
-                    borderRadius: "8px",
-                    border: selectedCoinSide === "tails" ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.1)",
-                    background: selectedCoinSide === "tails" ? "rgba(0,255,204,0.15)" : "transparent",
-                    color: selectedCoinSide === "tails" ? "#00ffcc" : "#fff",
-                    fontWeight: 700,
-                    fontSize: "13px",
-                    cursor: "pointer",
-                  }}
-                >
-                  TAILS
+                  Play Another Round
                 </button>
               </div>
-
-              {/* Result Preview */}
-              {flipResult && (
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    background: flipResult.won ? "rgba(0, 255, 204, 0.15)" : "rgba(239, 68, 68, 0.15)",
-                    border: `1px solid ${flipResult.won ? "#00ffcc" : "#ef4444"}`,
-                    color: flipResult.won ? "#00ffcc" : "#ef4444",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    textAlign: "center",
-                    marginBottom: "10px",
-                  }}
-                >
-                  {flipResult.won ? `🎉 WON! Landed on ${flipResult.side.toUpperCase()}` : `Landed on ${flipResult.side.toUpperCase()} (Try again!)`}
-                </div>
-              )}
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleSimulateFlip}
-              disabled={isFlipping}
-              variant="brand"
-              size="sm"
-              className="w-full"
-            >
-              {isFlipping ? "Flipping on Soroban..." : "Flip 5 XLM (Instant Play)"}
-            </Button>
-          </div>
-
-          {/* Card 2: Verifiable Dice */}
-          <div
-            style={{
-              background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
-              borderRadius: "16px",
-              border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
-              padding: "1.5rem",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: "1.25rem",
-            }}
-          >
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Dices size={22} style={{ color: "#60a5fa" }} />
-                  <h3 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>Verifiable Dice</h3>
-                </div>
-                <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa" }}>
-                  UP TO 98X
-                </span>
-              </div>
-              <p style={{ color: "var(--sc-text-dim, #94a3b8)", fontSize: "13px", margin: "0 0 1rem 0" }}>
-                Cryptographic roll over/under. Set your win probability and multiplier curve.
-              </p>
-
-              <div
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  background: "rgba(0,0,0,0.3)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "13px",
-                  marginBottom: "10px",
-                }}
-              >
-                <span style={{ color: "var(--sc-text-dim, #94a3b8)" }}>Target: Roll &gt; 50</span>
-                <strong style={{ color: "#60a5fa" }}>1.98x Payout</strong>
-              </div>
-            </div>
-
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/games">Launch Dice Arena</Link>
-            </Button>
-          </div>
-
-          {/* Card 3: Prize Pool Gauntlet */}
-          <div
-            style={{
-              background: "var(--sc-bg-card, rgba(255, 255, 255, 0.04))",
-              borderRadius: "16px",
-              border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.1))",
-              padding: "1.5rem",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: "1.25rem",
-            }}
-          >
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Trophy size={22} style={{ color: "#fbbf24" }} />
-                  <h3 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>Gauntlet Pot</h3>
-                </div>
-                <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "rgba(251, 191, 36, 0.15)", color: "#fbbf24" }}>
-                  TOURNAMENT
-                </span>
-              </div>
-              <p style={{ color: "var(--sc-text-dim, #94a3b8)", fontSize: "13px", margin: "0 0 1rem 0" }}>
-                Survivor bracket arena where entry fees compound into a winner-takes-all smart contract vault.
-              </p>
-
-              <div
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  background: "rgba(0,0,0,0.3)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "13px",
-                  marginBottom: "10px",
-                }}
-              >
-                <span style={{ color: "var(--sc-text-dim, #94a3b8)" }}>Active Pot: 1,500 XLM</span>
-                <strong style={{ color: "#fbbf24" }}>8/16 Joined</strong>
-              </div>
-            </div>
-
-            <Button asChild variant="brand" size="sm" className="w-full">
-              <Link href="/tournaments">Enter Gauntlet</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. LIVE ARENA TABLES & AUDIT STREAM */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "1.5rem" }}>
-        {/* Left Column: Live Arena Tables */}
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-            <h3 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>Active Arena Tables</h3>
-            <span style={{ fontSize: "12px", color: "var(--sc-accent, #00ffcc)" }}>● 3 Tables Running</span>
-          </div>
-          <DataTable columns={tableColumns} data={ARENA_TABLES} pageSize={5} />
-        </div>
-
-        {/* Right Column: Real-Time Provable Activity */}
-        <div
-          style={{
-            background: "var(--sc-bg-card, rgba(255, 255, 255, 0.03))",
-            borderRadius: "16px",
-            border: "1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.08))",
-            padding: "1.25rem",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <History size={18} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>Live Settlement Feed</h3>
-              </div>
-              <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)" }}>Stellar ledger updates</span>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {RECENT_ACTIVITY.map((act) => (
-                <div
-                  key={act.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 12px",
-                    borderRadius: "8px",
-                    background: "rgba(0,0,0,0.3)",
-                    border: "1px solid rgba(255,255,255,0.04)",
-                  }}
-                >
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff", display: "block" }}>{act.player}</strong>
-                    <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)" }}>
-                      {act.game} • {act.time}
-                    </span>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <span
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.5rem" }}>
+                    Choose Your Pick:
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setPlaySide(CoinFlipSide.Heads)}
                       style={{
-                        display: "block",
-                        fontSize: "13px",
-                        fontWeight: 800,
-                        color: act.outcome === "win" ? "var(--sc-accent, #00ffcc)" : "#ef4444",
+                        padding: "0.75rem",
+                        borderRadius: "8px",
+                        border: playSide === CoinFlipSide.Heads ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
+                        background: playSide === CoinFlipSide.Heads ? "rgba(56, 189, 248, 0.15)" : "transparent",
+                        color: "#fff",
+                        fontWeight: 700,
+                        cursor: "pointer",
                       }}
+                      data-testid="btn-pick-heads"
                     >
-                      {act.amount}
-                    </span>
-                    <Link
-                      href={`/verify?hash=${act.proofHash}`}
+                      🪙 Heads
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlaySide(CoinFlipSide.Tails)}
                       style={{
-                        fontSize: "10px",
-                        color: "var(--sc-accent, #00ffcc)",
-                        textDecoration: "none",
-                        fontWeight: 600,
+                        padding: "0.75rem",
+                        borderRadius: "8px",
+                        border: playSide === CoinFlipSide.Tails ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
+                        background: playSide === CoinFlipSide.Tails ? "rgba(56, 189, 248, 0.15)" : "transparent",
+                        color: "#fff",
+                        fontWeight: 700,
+                        cursor: "pointer",
                       }}
+                      data-testid="btn-pick-tails"
                     >
-                      Verify Proof ↗
-                    </Link>
+                      🪙 Tails
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div style={{ marginTop: "1rem" }}>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/history">View Complete Match History</Link>
-            </Button>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.5rem" }}>
+                    Wager Amount (XLM):
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.4rem" }}>
+                    {[5, 10, 25, 50].map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => setPlayWager(w)}
+                        style={{
+                          padding: "0.5rem",
+                          borderRadius: "6px",
+                          border: playWager === w ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
+                          background: playWager === w ? "rgba(56, 189, 248, 0.15)" : "transparent",
+                          color: "#fff",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {w} XLM
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: "1rem" }}>
+                  <button
+                    type="button"
+                    onClick={handleExecutePlay}
+                    disabled={isExecutingPlay}
+                    style={{
+                      width: "100%",
+                      padding: "0.875rem",
+                      borderRadius: "8px",
+                      background: "var(--sc-accent, #38bdf8)",
+                      color: "#000",
+                      fontWeight: 700,
+                      fontSize: "1rem",
+                      border: "none",
+                      cursor: isExecutingPlay ? "not-allowed" : "pointer",
+                      opacity: isExecutingPlay ? 0.7 : 1,
+                    }}
+                    data-testid="btn-confirm-bet"
+                  >
+                    {isExecutingPlay
+                      ? "🎲 Settling on Soroban..."
+                      : !wallet.capabilities.isConnected
+                      ? "Connect Wallet & Play"
+                      : `Place ${playWager} XLM Bet`}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-    </motion.div>
+        )}
+      </Drawer>
+
+      {showMobileActionFooter ? (
+        <ActionToolbar
+          actions={mobileToolbarActions}
+          mobileSticky={true}
+          className="game-lobby__mobile-action-footer"
+          testId="lobby-mobile-action-footer"
+        />
+      ) : null}
+    </div>
   );
 };
 

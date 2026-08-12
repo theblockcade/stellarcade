@@ -1,0 +1,42 @@
+name: Test Frontend App
+
+on:
+  push:
+    branches: [main, develop, feat/*]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck Web App
+        run: pnpm --filter @stellarcade/web run typecheck
+
+      - name: Run Web Unit Tests
+        run: pnpm --filter @stellarcade/web run test
+
+      - name: Build Web App
+        run: pnpm --filter @stellarcade/web run build
+
+      - name: Install Playwright Browsers
+        run: pnpm --filter @stellarcade/web exec playwright install --with-deps
+
+      - name: Run E2E Tests
+        run: pnpm --filter @stellarcade/web exec playwright test

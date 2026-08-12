@@ -120,6 +120,41 @@ const GameModel = {
   },
 
   /**
+   * Ranks users by total payout (winnings), optionally scoped to one game type.
+   *
+   * @param {Object} params
+   * @param {string} [params.gameType] - Filter by game type
+   * @param {number} [params.limit=10]
+   * @returns {Promise<Array<{userId: number, walletAddress: string, username: string|null, score: string}>>}
+   */
+  async getLeaderboard({ gameType, limit = 10 } = {}) {
+    try {
+      const safeLimit = Math.max(Number(limit) || 10, 1);
+
+      const query = db('games')
+        .join('users', 'games.user_id', 'users.id')
+        .select(
+          'games.user_id as userId',
+          'users.wallet_address as walletAddress',
+          'users.username as username',
+        )
+        .sum('games.payout as score')
+        .groupBy('games.user_id', 'users.wallet_address', 'users.username')
+        .orderBy('score', 'desc')
+        .limit(safeLimit);
+
+      if (gameType) {
+        query.where('games.game_type', gameType);
+      }
+
+      return await query;
+    } catch (error) {
+      logger.error('Error in GameModel.getLeaderboard:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Updates a game row and returns updated record.
    *
    * @param {number|string} gameId
