@@ -38,7 +38,7 @@ For the fastest setup, use Docker Compose to run the backend and databases:
 
 ```bash
 # From the project root
-git clone https://github.com/stellar/stellarcade.git
+git clone https://github.com/theblockcade/stellarcade.git
 cd stellarcade
 
 # Enable Git hooks (mirrors CI checks locally)
@@ -56,7 +56,7 @@ docker ps
 ### Step 1: Clone and Initialize
 
 ```bash
-git clone https://github.com/stellar/stellarcade.git
+git clone https://github.com/theblockcade/stellarcade.git
 cd stellarcade
 
 # Enable Git hooks for pre-commit formatting and pre-push validation
@@ -356,6 +356,6 @@ cd contracts && cargo clean
 
 ## 🆘 Getting Help
 
-- Check existing issues on [GitHub](https://github.com/stellar/stellarcade/issues)
+- Check existing issues on [GitHub](https://github.com/theblockcade/stellarcade/issues)
 - Review [Security Guidelines](SECURITY.md) for security concerns
 - Join the community on [Discord](#) (placeholder)
