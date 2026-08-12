@@ -71,3 +71,68 @@ pub fn get_release_threshold_accessor(env: Env) -> ReleaseThresholdAccessor
 
 `ReleaseThresholdAccessor`
 
+### `release_threshold_accessor`
+Backwards-compatible accessor for the release-threshold read model.
+
+```rust
+pub fn release_threshold_accessor(env: Env) -> ReleaseThresholdAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ReleaseThresholdAccessor`
+
+### `vault_allocation_summary`
+```rust
+pub fn vault_allocation_summary(env: Env) -> VaultAllocationSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`VaultAllocationSummary`
+
+### `unlock_window_accessor`
+```rust
+pub fn unlock_window_accessor(env: Env, unlock_threshold: i128) -> UnlockWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `unlock_threshold` | `i128` |
+
+#### Return Type
+
+`UnlockWindowAccessor`
+
+### `pending_outflow_summary`
+Return the pending outflow pressure summary.  Zero-state returns `Unconfigured` with zeroed numeric fields.
+
+```rust
+pub fn pending_outflow_summary(env: Env) -> PendingOutflowSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`PendingOutflowSummary`
+

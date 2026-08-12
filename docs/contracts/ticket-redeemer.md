@@ -169,6 +169,40 @@ pub fn get_queue_entry(env: Env, ticket_id: u64) -> QueueEntryView
 
 `QueueEntryView`
 
+### `get_redemption_summary`
+Returns a summary of redemption counts.
+
+```rust
+pub fn get_redemption_summary(env: Env) -> RedemptionCountSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`RedemptionCountSummary`
+
+### `get_validation_delay`
+Returns the validation delay (scan window size).
+
+```rust
+pub fn get_validation_delay(env: Env) -> u32
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u32`
+
 ### `get_scan_window`
 Returns the current scan window state, or None if no window exists.
 

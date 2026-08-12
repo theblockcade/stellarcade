@@ -62,6 +62,38 @@ pub fn liability_summary(env: Env) -> LiabilitySummary
 
 `LiabilitySummary`
 
+### `ledger_balance_summary`
+```rust
+pub fn ledger_balance_summary(env: Env) -> LedgerBalanceSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`LedgerBalanceSummary`
+
+### `dispute_window_accessor`
+```rust
+pub fn dispute_window_accessor(env: Env, escrow_id: u64, dispute_window_secs: u64) -> DisputeWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `escrow_id` | `u64` |
+| `dispute_window_secs` | `u64` |
+
+#### Return Type
+
+`DisputeWindowAccessor`
+
 ### `settlement_window`
 ```rust
 pub fn settlement_window(env: Env, escrow_id: u64) -> SettlementWindow

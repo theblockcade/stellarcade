@@ -84,3 +84,39 @@ pub fn set_release_schedule(env: Env, partner: Address, releases: Vec<Release>)
 | `partner` | `Address` |
 | `releases` | `Vec<Release>` |
 
+### `ledger_balance_summary`
+Returns an aggregated balance summary for a partner.  Missing partners return `exists = false` with zeroed amounts.
+
+```rust
+pub fn ledger_balance_summary(env: Env, partner: Address) -> LedgerBalanceSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `partner` | `Address` |
+
+#### Return Type
+
+`LedgerBalanceSummary`
+
+### `revocation_window`
+Returns the revocation-window state for a partner.  Reports how many releases are pending vs processed and whether the commitment can still be revoked. Missing partners return `exists = false` with zeroed fields.
+
+```rust
+pub fn revocation_window(env: Env, partner: Address) -> RevocationWindow
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `partner` | `Address` |
+
+#### Return Type
+
+`RevocationWindow`
+

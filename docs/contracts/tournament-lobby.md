@@ -99,3 +99,70 @@ pub fn set_ready(env: Env, lobby_id: u64, player: Address, ready: bool)
 | `player` | `Address` |
 | `ready` | `bool` |
 
+### `set_paused`
+Set global paused state. Admin only.
+
+```rust
+pub fn set_paused(env: Env, admin: Address, paused: bool)
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `paused` | `bool` |
+
+### `lobby_config_snapshot`
+Return a snapshot of the lobby configuration.
+
+```rust
+pub fn lobby_config_snapshot(env: Env, lobby_id: u64) -> LobbyConfigSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `lobby_id` | `u64` |
+
+#### Return Type
+
+`LobbyConfigSnapshot`
+
+### `set_start_grace`
+Set start grace period for a lobby. Admin only.
+
+```rust
+pub fn set_start_grace(env: Env, admin: Address, lobby_id: u64, grace_blocks: u32)
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `lobby_id` | `u64` |
+| `grace_blocks` | `u32` |
+
+### `start_grace_config`
+Return the start grace configuration for a lobby.
+
+```rust
+pub fn start_grace_config(env: Env, lobby_id: u64) -> StartGraceConfig
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `lobby_id` | `u64` |
+
+#### Return Type
+
+`StartGraceConfig`
+

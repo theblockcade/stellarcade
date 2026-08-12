@@ -88,7 +88,7 @@ pub fn demotion_risk(env: Env, user: Address) -> DemotionRisk
 `DemotionRisk`
 
 ### `player_bucket_summary`
-Return a joined player and bucket snapshot as a stable read model. Before `init` this returns `configured = false` and `state = NotConfigured`. Unknown players return `state = MissingPlayer` with zeroed bucket fields. Missing referenced buckets return `state = MissingBucket` while preserving player data. Paused buckets return `state = Paused`.
+Return a joined player+bucket snapshot for UI/API consumers.  This read is side-effect free and returns predictable fallback values: - before `init`: `configured = false`, `state = NotConfigured` - unknown player: `player_found = false`, `state = MissingPlayer` - dangling bucket reference: `bucket_found = false`, `state = MissingBucket` - paused bucket: `state = Paused`
 
 ```rust
 pub fn player_bucket_summary(env: Env, user: Address) -> PlayerBucketSummary
@@ -104,4 +104,40 @@ pub fn player_bucket_summary(env: Env, user: Address) -> PlayerBucketSummary
 #### Return Type
 
 `PlayerBucketSummary`
+
+### `ladder_standings_snapshot`
+Return a ladder-standings snapshot for a player showing their position within the assigned bucket.  Handles not-configured, missing-player, and missing-bucket states with predictable zeroed fallbacks.
+
+```rust
+pub fn ladder_standings_snapshot(env: Env, user: Address) -> LadderStandingsSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`LadderStandingsSnapshot`
+
+### `checkpoint_delay`
+Return the checkpoint-delay info for a player's demotion window.  Shows the timestamp at which the next checkpoint fires and how many seconds remain. Missing players/buckets return zeroed timing fields.
+
+```rust
+pub fn checkpoint_delay(env: Env, user: Address) -> CheckpointDelay
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`CheckpointDelay`
 

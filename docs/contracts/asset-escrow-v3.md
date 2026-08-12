@@ -109,6 +109,25 @@ pub fn get_unlock_readiness(env: Env, beneficiary: Address, lock_id: u32) -> Unl
 
 `UnlockReadinessInfo`
 
+### `get_release_cooldown`
+Get release cooldown for a specific lock. Handles missing lock by treating as releasable.
+
+```rust
+pub fn get_release_cooldown(env: Env, beneficiary: Address, lock_id: u32) -> ReleaseCooldownAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `beneficiary` | `Address` |
+| `lock_id` | `u32` |
+
+#### Return Type
+
+`ReleaseCooldownAccessor`
+
 ### `list_locks`
 List all lock IDs for a beneficiary (paginated).
 

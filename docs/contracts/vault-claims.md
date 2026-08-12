@@ -104,3 +104,37 @@ pub fn release_window(env: Env, claim_id: u64) -> ReleaseWindow
 
 `ReleaseWindow`
 
+### `reserve_exposure_snapshot`
+Return reserve exposure based on aggregate claim counters.  `exposure_bps` is floored basis-point math over all tracked claim amounts. Empty and unconfigured vaults return zero exposure.
+
+```rust
+pub fn reserve_exposure_snapshot(env: Env) -> ReserveExposureSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ReserveExposureSnapshot`
+
+### `release_queue_accessor`
+Return the current release queue aggregate.  Claims registered before the queue index existed are still reflected in `reserve_exposure_snapshot`; this queue accessor reports the indexed subset and falls back to zeros for empty or unconfigured state.
+
+```rust
+pub fn release_queue_accessor(env: Env) -> ReleaseQueueAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ReleaseQueueAccessor`
+

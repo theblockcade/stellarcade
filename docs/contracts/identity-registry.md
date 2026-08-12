@@ -78,3 +78,41 @@ pub fn verification_summary(env: Env, identity: Address) -> VerificationSummary
 
 `VerificationSummary`
 
+### `status_verification_snapshot`
+Point-in-time snapshot of an identity's verification status.  Returns zeroed fields with `exists: false` when the identity is unknown.
+
+```rust
+pub fn status_verification_snapshot(env: Env, identity: Address) -> StatusVerificationSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `identity` | `Address` |
+
+#### Return Type
+
+`StatusVerificationSnapshot`
+
+### `renewal_window_accessor`
+Renewal-window details for a single identity.  The caller supplies `expires_at_ledger` and `renewal_window_ledgers`. Neither value is stored by the contract — the caller controls the expiry policy.
+
+```rust
+pub fn renewal_window_accessor(env: Env, identity: Address, expires_at_ledger: u32, renewal_window_ledgers: u32) -> RenewalWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `identity` | `Address` |
+| `expires_at_ledger` | `u32` |
+| `renewal_window_ledgers` | `u32` |
+
+#### Return Type
+
+`RenewalWindowAccessor`
+

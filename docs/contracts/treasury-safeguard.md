@@ -96,3 +96,37 @@ pub fn reset_safeguard(env: Env, admin: Address)
 | `env` | `Env` |
 | `admin` | `Address` |
 
+### `get_safeguard_limits_summary`
+Return a summary of configured safeguard limits and current utilization.  `utilization_bps = floor(current_value.min(threshold_limit) * 10_000 / threshold_limit)` when `threshold_limit > 0 && current_value > 0`, otherwise 0. Missing or unconfigured states return `is_configured = false` with all zeros.
+
+```rust
+pub fn get_safeguard_limits_summary(env: Env) -> SafeguardLimitsSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`SafeguardLimitsSummary`
+
+### `get_override_window_accessor`
+Return an override-window view for the safeguard.  `override_available` is true when the safeguard is configured, not in cooldown, and not paused — meaning an authorized caller may act without waiting for a cooldown to expire.
+
+```rust
+pub fn get_override_window_accessor(env: Env) -> OverrideWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`OverrideWindowAccessor`
+

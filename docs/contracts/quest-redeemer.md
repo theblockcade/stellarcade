@@ -78,6 +78,44 @@ pub fn get_redemption_snapshot(env: Env, user: Address, quest_id: u32) -> Redemp
 
 `RedemptionSnapshot`
 
+### `turn_in_queue_summary`
+Backwards-compatible alias for the turn-in queue summary accessor.
+
+```rust
+pub fn turn_in_queue_summary(env: Env, user: Address, quest_id: u32) -> RedemptionSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+| `quest_id` | `u32` |
+
+#### Return Type
+
+`RedemptionSnapshot`
+
+### `reward_gap`
+Returns how far a quest turn-in is from being claimable.  Zero-state behavior: - Uninitialized or paused contracts return `reward_gap = 1`. - Redeemed quests return `reward_gap = 0`.
+
+```rust
+pub fn reward_gap(env: Env, user: Address, quest_id: u32) -> RewardGap
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+| `quest_id` | `u32` |
+
+#### Return Type
+
+`RewardGap`
+
 ### `has_redeemed`
 Checks if a specific redemption has already occurred.
 

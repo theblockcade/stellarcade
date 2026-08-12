@@ -129,3 +129,40 @@ pub fn list_queued_rewards(env: Env, recipient: Address, start: u32, limit: u32)
 
 `Vec<u32>`
 
+### `get_unlock_schedules_snapshot`
+Returns an unlock schedules snapshot.
+
+```rust
+pub fn get_unlock_schedules_snapshot(env: Env, recipient: Address) -> UnlockQueueSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `recipient` | `Address` |
+
+#### Return Type
+
+`UnlockQueueSummary`
+
+### `get_release_delay`
+Returns the release delay for a specific queue entry.
+
+```rust
+pub fn get_release_delay(env: Env, recipient: Address, queue_id: u32) -> u32
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `recipient` | `Address` |
+| `queue_id` | `u32` |
+
+#### Return Type
+
+`u32`
+

@@ -112,3 +112,38 @@ pub fn is_paused(env: Env) -> bool
 
 `bool`
 
+### `get_matchmaking_state_snapshot`
+Returns a matchmaking state snapshot.
+
+```rust
+pub fn get_matchmaking_state_snapshot(env: Env, match_id: u32) -> MatchSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `match_id` | `u32` |
+
+#### Return Type
+
+`MatchSnapshot`
+
+### `get_queue_timeout`
+Returns the queue timeout.
+
+```rust
+pub fn get_queue_timeout(_env: Env) -> u64
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `_env` | `Env` |
+
+#### Return Type
+
+`u64`
+

@@ -103,3 +103,39 @@ pub fn release_readiness(env: Env, escrow_id: u64) -> ReleaseReadiness
 
 `ReleaseReadiness`
 
+### `active_listing_snapshot`
+Compact active-listing check: confirms the escrow is Locked and undisputed without returning full address fields.
+
+```rust
+pub fn active_listing_snapshot(env: Env, escrow_id: u64) -> ActiveListingSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `escrow_id` | `u64` |
+
+#### Return Type
+
+`ActiveListingSnapshot`
+
+### `expiry_delay`
+Seconds remaining before the escrow expires and the buyer may release.
+
+```rust
+pub fn expiry_delay(env: Env, escrow_id: u64) -> ExpiryDelay
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `escrow_id` | `u64` |
+
+#### Return Type
+
+`ExpiryDelay`
+

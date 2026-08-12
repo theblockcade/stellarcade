@@ -149,3 +149,39 @@ pub fn purchase_eligibility(env: Env, listing_id: u64, buyer: Address) -> Purcha
 
 `PurchaseEligibility`
 
+### `active_listing_snapshot`
+Returns a full snapshot of a single listing's active state.  Unknown listings return `exists = false` with zeroed fields. Expired listings are still returned with `is_active = false` so the UI can distinguish "expired" from "missing".
+
+```rust
+pub fn active_listing_snapshot(env: Env, listing_id: u64) -> ActiveListingSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `listing_id` | `u64` |
+
+#### Return Type
+
+`ActiveListingSnapshot`
+
+### `purchase_cooldown`
+Returns the purchase-cooldown state for a listing.  A cooldown of `PURCHASE_COOLDOWN_LEDGERS` ledgers applies after a listing is created — the listing cannot be purchased until the cooldown elapses. Unknown listings return `exists = false`.
+
+```rust
+pub fn purchase_cooldown(env: Env, listing_id: u64) -> PurchaseCooldown
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `listing_id` | `u64` |
+
+#### Return Type
+
+`PurchaseCooldown`
+

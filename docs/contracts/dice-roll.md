@@ -1,5 +1,7 @@
 # dice-roll
 
+Snapshot of recent rolling history.
+
 ## Public Methods
 
 ### `init`
@@ -118,4 +120,39 @@ pub fn get_wager_limits(env: Env) -> Result<WagerLimits, Error>
 #### Return Type
 
 `Result<WagerLimits, Error>`
+
+### `rolling_history_snapshot`
+Snapshot of resolved roll history (up to last 20 game IDs). Returns empty list and zero total when no rolls have been resolved yet.
+
+```rust
+pub fn rolling_history_snapshot(env: Env) -> RollingHistorySnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`RollingHistorySnapshot`
+
+### `cooldown_window`
+Per-player cooldown window accessor. Returns whether the player is currently in a cooldown period after their last roll. `cooldown_secs` is the configured cooldown window (DEFAULT_COOLDOWN_SECS = 30s).
+
+```rust
+pub fn cooldown_window(env: Env, player: Address) -> CooldownWindow
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `player` | `Address` |
+
+#### Return Type
+
+`CooldownWindow`
 

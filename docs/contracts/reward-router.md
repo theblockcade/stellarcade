@@ -82,6 +82,41 @@ pub fn update_route(env: Env, admin: Address, route_id: Symbol, allocated: i128)
 | `route_id` | `Symbol` |
 | `allocated` | `i128` |
 
+### `split_ratio`
+Return the split ratio for a specific route in basis points.  `split_ratio_bps = routed * 10_000 / allocated`, floored to 0 when `allocated == 0` or the route does not exist.
+
+```rust
+pub fn split_ratio(env: Env, route_id: Symbol) -> u32
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `route_id` | `Symbol` |
+
+#### Return Type
+
+`u32`
+
+### `routing_state_snapshot`
+Return an aggregate snapshot of routing state across all tracked routes.  `split_ratio_bps` reflects what fraction of total allocated rewards have been routed: `total_routed * 10_000 / total_allocated`. Returns zeroed snapshot before any routes are configured.
+
+```rust
+pub fn routing_state_snapshot(env: Env) -> RoutingStateSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`RoutingStateSnapshot`
+
 ### `route_reward`
 Route a reward. Updates routed amount or collects in fallback if route missing.
 

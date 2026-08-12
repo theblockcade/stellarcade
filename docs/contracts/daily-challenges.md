@@ -185,3 +185,38 @@ pub fn get_challenge_ids(env: Env) -> Vec<Symbol>
 
 `Vec<Symbol>`
 
+### `completion_status_summary`
+Return an aggregated completion status summary for a player.  Iterates over all registered challenge ids and counts how many the player has completed and how many rewards they have claimed. Zero-state: all counts zero when the player has no completion records.
+
+```rust
+pub fn completion_status_summary(env: Env, player: Address) -> CompletionStatusSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `player` | `Address` |
+
+#### Return Type
+
+`CompletionStatusSummary`
+
+### `reset_delay`
+Return reset delay information for the daily challenge refresh cycle.  Zero-state: `configured = false` and zeroed timing fields when no refresh interval has been set. `reset_due = true` once the refresh is overdue.
+
+```rust
+pub fn reset_delay(env: Env) -> ResetDelay
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ResetDelay`
+

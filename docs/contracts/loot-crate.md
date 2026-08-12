@@ -68,3 +68,41 @@ pub fn rarity_distribution_snapshot(env: Env, crate_id: u64) -> RarityDistributi
 
 `RarityDistributionSnapshot`
 
+### `contents_availability_snapshot`
+Returns a combined contents-availability snapshot with supply and rarity data.  `openable` is true when the crate exists, is not paused, and has remaining supply. Missing crates return zeroed rarity breakdowns and `openable = false`.
+
+```rust
+pub fn contents_availability_snapshot(env: Env, crate_id: u64) -> ContentsAvailabilitySnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `crate_id` | `u64` |
+
+#### Return Type
+
+`ContentsAvailabilitySnapshot`
+
+### `open_cooldown_accessor`
+Returns an open-cooldown accessor for a crate.  Callers supply `last_opened_at` (their own last open timestamp) and `cooldown_seconds`. `ready` is true when `now >= last_opened_at + cooldown_seconds` and the crate is openable. Zero `cooldown_seconds` disables the cooldown.
+
+```rust
+pub fn open_cooldown_accessor(env: Env, crate_id: u64, last_opened_at: u64, cooldown_seconds: u64) -> OpenCooldownAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `crate_id` | `u64` |
+| `last_opened_at` | `u64` |
+| `cooldown_seconds` | `u64` |
+
+#### Return Type
+
+`OpenCooldownAccessor`
+

@@ -75,3 +75,36 @@ pub fn get_expiry_risk_accessor(env: Env, player: Address) -> ExpiryRiskAccessor
 
 `ExpiryRiskAccessor`
 
+### `reward_streak_summary`
+```rust
+pub fn reward_streak_summary(env: Env, player: Address) -> RewardStreakSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `player` | `Address` |
+
+#### Return Type
+
+`RewardStreakSummary`
+
+### `multiplier_decay_accessor`
+```rust
+pub fn multiplier_decay_accessor(env: Env, player: Address, decay_threshold_bps: u32) -> MultiplierDecayAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `player` | `Address` |
+| `decay_threshold_bps` | `u32` |
+
+#### Return Type
+
+`MultiplierDecayAccessor`
+

@@ -64,6 +64,43 @@ pub fn drop_window_snapshot(env: Env, drop_id: u64) -> DropWindowSnapshot
 
 `DropWindowSnapshot`
 
+### `drop_allocation_snapshot`
+Return the supply allocation split for `drop_id`.  Both `claimed_bps` and `remaining_bps` use floor division in basis points. A missing or unconfigured drop returns zeroed fields with `exists: false`.
+
+```rust
+pub fn drop_allocation_snapshot(env: Env, drop_id: u64) -> DropAllocationSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `drop_id` | `u64` |
+
+#### Return Type
+
+`DropAllocationSnapshot`
+
+### `claim_window_accessor`
+Return claim-window details for `drop_id`.  The caller supplies `claim_window_secs` — the number of seconds after `ends_at` within which a late claim may still be processed off-chain. The contract does not store this threshold.
+
+```rust
+pub fn claim_window_accessor(env: Env, drop_id: u64, claim_window_secs: u64) -> DropClaimWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `drop_id` | `u64` |
+| `claim_window_secs` | `u64` |
+
+#### Return Type
+
+`DropClaimWindowAccessor`
+
 ### `claim_saturation`
 Return a compact claim-saturation view for `drop_id`.  `saturation_bps` uses floor division in basis points: `claimed_supply * 10_000 / total_supply`. Missing and zero-state reads return `saturation_bps = 0`.
 

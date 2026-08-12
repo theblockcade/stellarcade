@@ -76,3 +76,34 @@ pub fn claim_readiness(env: Env, inviter: Address) -> ClaimReadiness
 
 `ClaimReadiness`
 
+### `get_reward_tier_summary`
+```rust
+pub fn get_reward_tier_summary(_env: Env, _inviter: Address) -> RewardTierSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `_env` | `Env` |
+| `_inviter` | `Address` |
+
+#### Return Type
+
+`RewardTierSummary`
+
+### `get_payout_window`
+```rust
+pub fn get_payout_window(_env: Env) -> u32
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `_env` | `Env` |
+
+#### Return Type
+
+`u32`
+

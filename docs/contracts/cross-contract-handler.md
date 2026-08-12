@@ -119,6 +119,43 @@ pub fn get_call_status(env: Env, request_id: Symbol) -> Result<CallSnapshot, Err
 
 `Result<CallSnapshot, Error>`
 
+### `handler_status_snapshot`
+Return a snapshot of the handler's configuration state: whether it has been initialized, how many routes are registered, and whether a registry contract is set. This is a read-only accessor and does not mutate storage.
+
+```rust
+pub fn handler_status_snapshot(env: Env) -> HandlerStatusSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`HandlerStatusSnapshot`
+
+### `route_timeout_accessor`
+Compute timeout metadata for a route given caller-supplied dispatch ledger and timeout window. Returns whether the route exists and whether it has timed out. This is a read-only accessor and does not mutate storage.
+
+```rust
+pub fn route_timeout_accessor(env: Env, route_id: u32, dispatched_at: u32, timeout_ledgers: u32) -> RouteTimeoutAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `route_id` | `u32` |
+| `dispatched_at` | `u32` |
+| `timeout_ledgers` | `u32` |
+
+#### Return Type
+
+`RouteTimeoutAccessor`
+
 ### `mark_failed`
 Mark a pending request as failed. Caller must be admin or target_contract for that request's route.
 

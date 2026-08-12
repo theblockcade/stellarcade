@@ -36,11 +36,47 @@ pub fn active_perk_summary(env: Env, user: Address) -> ActivePerkSummary
 
 `ActivePerkSummary`
 
+### `active_perk_snapshot`
+Backwards-compatible alias for the active perk snapshot accessor.
+
+```rust
+pub fn active_perk_snapshot(env: Env, user: Address) -> ActivePerkSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`ActivePerkSummary`
+
 ### `unlock_gap`
 Returns unlock-gap info for the next perk in the active catalog.  Zero-value conventions: - Not-yet-configured catalogs return `configured = false`. - If all perks are unlocked, `points_to_unlock = 0` and `all_perks_unlocked = true`.
 
 ```rust
 pub fn unlock_gap(env: Env, user: Address) -> UnlockGapSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`UnlockGapSnapshot`
+
+### `expiration_gap`
+Backwards-compatible alias for the next-perk gap accessor.
+
+```rust
+pub fn expiration_gap(env: Env, user: Address) -> UnlockGapSnapshot
 ```
 
 #### Parameters

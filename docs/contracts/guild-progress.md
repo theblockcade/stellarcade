@@ -122,6 +122,42 @@ pub fn get_next_milestone_target(env: Env, guild_id: Address) -> NextMilestoneTa
 
 `NextMilestoneTarget`
 
+### `progress_milestone_snapshot`
+Concise alias for `get_milestone_coverage_snapshot`. Returns the current milestone-coverage snapshot for the guild.
+
+```rust
+pub fn progress_milestone_snapshot(env: Env, guild_id: Address) -> MilestoneCoverageSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `guild_id` | `Address` |
+
+#### Return Type
+
+`MilestoneCoverageSnapshot`
+
+### `update_delay`
+Returns the gap between the guild's current progress and its next uncompleted milestone target. When all milestones are completed `progress_gap` is 0 and `all_milestones_completed` is `true`.
+
+```rust
+pub fn update_delay(env: Env, guild_id: Address) -> UpdateDelay
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `guild_id` | `Address` |
+
+#### Return Type
+
+`UpdateDelay`
+
 ### `list_milestones`
 List all milestone IDs for a guild (paginated).
 

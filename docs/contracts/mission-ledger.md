@@ -124,3 +124,39 @@ pub fn reward_claim_ready(env: Env, mission_id: u64, player: Address) -> ClaimRe
 
 `ClaimReadiness`
 
+### `ledger_record_summary`
+Compact numeric-only summary of a single ledger record; no address fields, safe for indexers that poll without decoding complex types.
+
+```rust
+pub fn ledger_record_summary(env: Env, mission_id: u64) -> LedgerRecordSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `mission_id` | `u64` |
+
+#### Return Type
+
+`LedgerRecordSummary`
+
+### `validation_window`
+Timing information for the validation window of a mission.
+
+```rust
+pub fn validation_window(env: Env, mission_id: u64) -> ValidationWindow
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `mission_id` | `u64` |
+
+#### Return Type
+
+`ValidationWindow`
+

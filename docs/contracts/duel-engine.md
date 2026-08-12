@@ -84,3 +84,52 @@ pub fn resolution_readiness(env: Env, duel_id: u64) -> ResolutionReadiness
 
 `ResolutionReadiness`
 
+### `challenge_timeout`
+Returns the configured challenge timeout (defaults to 0 if not set).
+
+```rust
+pub fn challenge_timeout(env: Env) -> u64
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u64`
+
+### `set_challenge_timeout`
+Set the challenge timeout (in seconds). Admin only.
+
+```rust
+pub fn set_challenge_timeout(env: Env, admin: Address, timeout: u64)
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `timeout` | `u64` |
+
+### `duel_state_summary`
+Detailed summary of the current duel engine state.
+
+```rust
+pub fn duel_state_summary(env: Env) -> DuelStateSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`DuelStateSummary`
+

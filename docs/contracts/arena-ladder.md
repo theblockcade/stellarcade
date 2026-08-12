@@ -82,3 +82,58 @@ pub fn promotion_window(env: Env, bracket_id: u32) -> PromotionWindow
 
 `PromotionWindow`
 
+### `arena_ranking_summary`
+Return the arena ranking summary.  Aggregates data across all brackets. Returns zero-state when no brackets exist.
+
+```rust
+pub fn arena_ranking_summary(env: Env) -> ArenaRankingSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ArenaRankingSummary`
+
+### `season_cutoff_accessor`
+Return the season cutoff accessor for a given season.  Unknown seasons return `is_season_active = false` with zeroed fields.
+
+```rust
+pub fn season_cutoff_accessor(env: Env, season_id: u32) -> SeasonCutoffAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `season_id` | `u32` |
+
+#### Return Type
+
+`SeasonCutoffAccessor`
+
+### `set_season_cutoff`
+Set the season cutoff ledger for a season. Admin only.
+
+```rust
+pub fn set_season_cutoff(env: Env, admin: Address, season_id: u32, cutoff_ledger: u32) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `season_id` | `u32` |
+| `cutoff_ledger` | `u32` |
+
+#### Return Type
+
+`Result<(), Error>`
+

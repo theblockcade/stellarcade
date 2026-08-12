@@ -3,8 +3,6 @@
 ## Public Methods
 
 ### `init`
-Initialize the metadata registry with an admin.
-
 ```rust
 pub fn init(env: Env, admin: Address) -> Result<(), Error>
 ```
@@ -21,8 +19,6 @@ pub fn init(env: Env, admin: Address) -> Result<(), Error>
 `Result<(), Error>`
 
 ### `register_metadata`
-Register initial metadata for a contract.
-
 ```rust
 pub fn register_metadata(env: Env, contract_id: Address, version: u32, schema_hash: BytesN<32>, docs_uri: String) -> Result<(), Error>
 ```
@@ -42,8 +38,6 @@ pub fn register_metadata(env: Env, contract_id: Address, version: u32, schema_ha
 `Result<(), Error>`
 
 ### `update_metadata`
-Update metadata for an existing contract (incrementing version).
-
 ```rust
 pub fn update_metadata(env: Env, contract_id: Address, version: u32, schema_hash: BytesN<32>, docs_uri: String) -> Result<(), Error>
 ```
@@ -63,8 +57,6 @@ pub fn update_metadata(env: Env, contract_id: Address, version: u32, schema_hash
 `Result<(), Error>`
 
 ### `metadata_of`
-Query current metadata for a contract.
-
 ```rust
 pub fn metadata_of(env: Env, contract_id: Address) -> Option<MetadataRecord>
 ```
@@ -81,8 +73,6 @@ pub fn metadata_of(env: Env, contract_id: Address) -> Option<MetadataRecord>
 `Option<MetadataRecord>`
 
 ### `latest_published`
-Return the latest published metadata for a contract key.  This is a direct lookup that avoids scanning version lists. Returns `None` for unknown contract keys.
-
 ```rust
 pub fn latest_published(env: Env, contract_id: Address) -> Option<MetadataRecord>
 ```
@@ -99,8 +89,6 @@ pub fn latest_published(env: Env, contract_id: Address) -> Option<MetadataRecord
 `Option<MetadataRecord>`
 
 ### `history`
-Query the complete history of metadata for a contract.  Records are returned in ascending version order (oldest first).
-
 ```rust
 pub fn history(env: Env, contract_id: Address) -> Vec<MetadataRecord>
 ```
@@ -117,8 +105,6 @@ pub fn history(env: Env, contract_id: Address) -> Vec<MetadataRecord>
 `Vec<MetadataRecord>`
 
 ### `history_bounded`
-Query a bounded window of version history for a contract.  Returns at most `limit` records in ascending version order, starting from the most recent version and working backwards. If `limit` is 0 or the contract key is unknown, returns an empty vec.
-
 ```rust
 pub fn history_bounded(env: Env, contract_id: Address, limit: u32) -> Vec<MetadataRecord>
 ```
@@ -134,4 +120,98 @@ pub fn history_bounded(env: Env, contract_id: Address, limit: u32) -> Vec<Metada
 #### Return Type
 
 `Vec<MetadataRecord>`
+
+### `is_initialized`
+```rust
+pub fn is_initialized(env: Env) -> bool
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`bool`
+
+### `admin`
+```rust
+pub fn admin(env: Env) -> Option<Address>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`Option<Address>`
+
+### `is_registered`
+```rust
+pub fn is_registered(env: Env, contract_id: Address) -> bool
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `contract_id` | `Address` |
+
+#### Return Type
+
+`bool`
+
+### `metadata_summary`
+```rust
+pub fn metadata_summary(env: Env, contract_id: Address) -> MetadataSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `contract_id` | `Address` |
+
+#### Return Type
+
+`MetadataSummary`
+
+### `list_registered`
+```rust
+pub fn list_registered(env: Env, start: u32, limit: u32) -> Vec<Address>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `start` | `u32` |
+| `limit` | `u32` |
+
+#### Return Type
+
+`Vec<Address>`
+
+### `registry_config`
+```rust
+pub fn registry_config(env: Env) -> RegistryConfig
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`RegistryConfig`
 

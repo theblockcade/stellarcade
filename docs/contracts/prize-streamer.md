@@ -81,3 +81,93 @@ pub fn funding_gap(env: Env, stream_id: u32) -> FundingGap
 
 `FundingGap`
 
+### `stream_backlog_snapshot`
+Return a backlog snapshot for `stream_id`.  Unknown stream ids return `exists = false` with zeroed numeric fields.
+
+```rust
+pub fn stream_backlog_snapshot(env: Env, stream_id: u32) -> StreamBacklogSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `stream_id` | `u32` |
+
+#### Return Type
+
+`StreamBacklogSnapshot`
+
+### `settlement_readiness`
+Return whether a stream is ready to settle.  Unknown stream ids return `exists = false` with zeroed numeric fields.
+
+```rust
+pub fn settlement_readiness(env: Env, stream_id: u32) -> SettlementReadiness
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `stream_id` | `u32` |
+
+#### Return Type
+
+`SettlementReadiness`
+
+### `release_interval`
+Return the configured release interval (defaults to 0).
+
+```rust
+pub fn release_interval(env: Env) -> u64
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u64`
+
+### `set_release_interval`
+Set the release interval. Admin only.
+
+```rust
+pub fn set_release_interval(env: Env, admin: Address, interval: u64) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `interval` | `u64` |
+
+#### Return Type
+
+`Result<(), Error>`
+
+### `stream_disbursement_snapshot`
+Return a stream disbursement snapshot for `stream_id`.
+
+```rust
+pub fn stream_disbursement_snapshot(env: Env, stream_id: u32) -> StreamDisbursementSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `stream_id` | `u32` |
+
+#### Return Type
+
+`StreamDisbursementSnapshot`
+

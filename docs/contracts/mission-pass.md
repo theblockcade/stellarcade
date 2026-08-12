@@ -78,3 +78,57 @@ pub fn unlock_gap(env: Env, pass_id: u32) -> UnlockGap
 
 `UnlockGap`
 
+### `season_expiry`
+Return the configured season expiry sequence (defaults to 0).
+
+```rust
+pub fn season_expiry(env: Env) -> u64
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u64`
+
+### `set_season_expiry`
+Set the season expiry sequence. Admin only.
+
+```rust
+pub fn set_season_expiry(env: Env, admin: Address, expiry: u64) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `expiry` | `u64` |
+
+#### Return Type
+
+`Result<(), Error>`
+
+### `pass_tier_snapshot`
+Return a pass tier snapshot for `pass_id`.
+
+```rust
+pub fn pass_tier_snapshot(env: Env, pass_id: u32) -> PassTierSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `pass_id` | `u32` |
+
+#### Return Type
+
+`PassTierSnapshot`
+

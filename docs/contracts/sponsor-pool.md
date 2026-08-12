@@ -123,3 +123,52 @@ pub fn campaign_coverage(env: Env, campaign_id: u64) -> CampaignCoverage
 
 `CampaignCoverage`
 
+### `sponsorship_coverage_snapshot`
+Pool-level coverage snapshot.  `total_target`, `total_remaining`, and `aggregate_coverage_bps` are all 0 because the contract does not store an aggregate target — use `campaign_coverage(id)` for per-campaign detail. `total_committed` mirrors the live `OutstandingCommitted` counter.
+
+```rust
+pub fn sponsorship_coverage_snapshot(env: Env) -> SponsorshipCoverageSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`SponsorshipCoverageSnapshot`
+
+### `payout_delay`
+Return the configured payout delay in ledgers (defaults to 0 when unset).
+
+```rust
+pub fn payout_delay(env: Env) -> u64
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u64`
+
+### `set_payout_delay`
+Set the payout delay (in ledgers). Admin only.
+
+```rust
+pub fn set_payout_delay(env: Env, admin: Address, delay_ledgers: u64)
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `delay_ledgers` | `u64` |
+

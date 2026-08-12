@@ -176,3 +176,55 @@ pub fn settlement_preview(env: Env, round_id: u64) -> SettlementPreview
 
 `SettlementPreview`
 
+### `resolution_delay`
+Returns the configured resolution delay (defaults to 0 if not set).
+
+```rust
+pub fn resolution_delay(env: Env) -> u64
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u64`
+
+### `set_resolution_delay`
+Set the resolution delay (in seconds). Admin only.
+
+```rust
+pub fn set_resolution_delay(env: Env, delay: u64) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `delay` | `u64` |
+
+#### Return Type
+
+`Result<(), Error>`
+
+### `prediction_status_summary`
+Returns a structured status summary for the prediction contract.
+
+```rust
+pub fn prediction_status_summary(env: Env) -> PredictionStatusSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`PredictionStatusSummary`
+

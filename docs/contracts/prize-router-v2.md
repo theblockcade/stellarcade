@@ -160,3 +160,56 @@ pub fn queue_length(env: Env) -> u32
 
 `u32`
 
+### `fee_slippage`
+Return the configured fee slippage (defaults to 0).
+
+```rust
+pub fn fee_slippage(env: Env) -> u32
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u32`
+
+### `set_fee_slippage`
+Set the fee slippage. Admin only.
+
+```rust
+pub fn set_fee_slippage(env: Env, admin: Address, slippage: u32) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `admin` | `Address` |
+| `slippage` | `u32` |
+
+#### Return Type
+
+`Result<(), Error>`
+
+### `routing_paths_summary`
+Return a summary of routing paths and configuration.
+
+```rust
+pub fn routing_paths_summary(env: Env) -> RoutingPathsSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`RoutingPathsSummary`
+

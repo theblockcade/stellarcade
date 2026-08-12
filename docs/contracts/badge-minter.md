@@ -156,3 +156,39 @@ pub fn get_user_mint_records(env: Env, user: Address) -> Vec<UserMintRecord>
 
 `Vec<UserMintRecord>`
 
+### `holder_summary`
+Return a wallet holder summary for `user`.  Unknown users return zero counts. `last_minted_at` is the newest ledger sequence in the user's mint records, or 0 when there are no mints.
+
+```rust
+pub fn holder_summary(env: Env, user: Address) -> HolderSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`HolderSummary`
+
+### `expiry_risk_accessor`
+Return the badge expiry-risk view for `user`.  Badge expiry is not configured in this contract's current storage model, so the accessor returns `expiry_supported = false`, `risk_bps = 0`, and zero expiry counters for every state.
+
+```rust
+pub fn expiry_risk_accessor(env: Env, user: Address) -> ExpiryRiskAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`ExpiryRiskAccessor`
+

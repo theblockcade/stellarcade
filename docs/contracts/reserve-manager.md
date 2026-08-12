@@ -111,3 +111,37 @@ pub fn is_paused(env: Env) -> bool
 
 `bool`
 
+### `sweep_cooldown_ledgers`
+Return the sweep cooldown in ledgers.  The sweep cooldown is the minimum gap between successive treasury sweeps. It is a fixed contract constant so consumers share a single source of truth.
+
+```rust
+pub fn sweep_cooldown_ledgers(_env: Env) -> u32
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `_env` | `Env` |
+
+#### Return Type
+
+`u32`
+
+### `manager_threshold_summary`
+Return a threshold health summary across all managed reserves.  Counts healthy, below-target, and critical reserves, and the number that meet or exceed their target balance. Returns zero counts when uninitialized.
+
+```rust
+pub fn manager_threshold_summary(env: Env) -> ManagerThresholdSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ManagerThresholdSummary`
+

@@ -121,3 +121,34 @@ pub fn seller_summary(env: Env, seller: Address) -> SellerAuctionSummary
 
 `SellerAuctionSummary`
 
+### `set_bid_delay`
+```rust
+pub fn set_bid_delay(env: Env, blocks: u32) -> Result<(), Error>
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `blocks` | `u32` |
+
+#### Return Type
+
+`Result<(), Error>`
+
+### `bid_delay_config`
+```rust
+pub fn bid_delay_config(env: Env) -> BidDelayConfig
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`BidDelayConfig`
+

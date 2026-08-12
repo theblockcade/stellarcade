@@ -105,3 +105,39 @@ pub fn budget_exhaustion(env: Env, campaign_id: u64) -> BudgetExhaustion
 
 `BudgetExhaustion`
 
+### `claim_saturation_summary`
+Return a structured claim saturation summary for `campaign_id`.  Saturation uses floor division in basis points: `committed_budget * 10_000 / budget`. Unknown ids and unconfigured contracts return zero balances with `exists = false`.
+
+```rust
+pub fn claim_saturation_summary(env: Env, campaign_id: u64) -> ClaimSaturationSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `campaign_id` | `u64` |
+
+#### Return Type
+
+`ClaimSaturationSummary`
+
+### `cooldown_window_accessor`
+Return the claim cooldown/window timing for `campaign_id`.  Missing and not-yet-configured campaigns return zero timestamps and durations. Paused campaigns keep their configured times but `can_record_claims = false`.
+
+```rust
+pub fn cooldown_window_accessor(env: Env, campaign_id: u64) -> CooldownWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `campaign_id` | `u64` |
+
+#### Return Type
+
+`CooldownWindowAccessor`
+

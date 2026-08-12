@@ -93,3 +93,39 @@ pub fn funding_snapshot(env: Env) -> FundingSnapshot
 
 `FundingSnapshot`
 
+### `pool_balance_summary`
+Named pool-balance summary — combines funding and contributor data for a one-call dashboard view without requiring two separate reads.
+
+```rust
+pub fn pool_balance_summary(env: Env) -> PoolBalanceSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`PoolBalanceSummary`
+
+### `draw_interval_accessor`
+Draw-interval accessor — reports whether a new draw can be triggered now.  Callers supply `last_draw_at` and `interval_seconds`. `ready` is true when `now >= last_draw_at + interval_seconds` AND the pool is funded. Zero `interval_seconds` disables the interval gate (funded check only).
+
+```rust
+pub fn draw_interval_accessor(env: Env, last_draw_at: u64, interval_seconds: u64) -> DrawIntervalAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `last_draw_at` | `u64` |
+| `interval_seconds` | `u64` |
+
+#### Return Type
+
+`DrawIntervalAccessor`
+

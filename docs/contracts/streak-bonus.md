@@ -1,5 +1,7 @@
 # streak-bonus
 
+Summary of the bonus multiplier configuration returned by `bonus_multiplier_summary()`.  Provides a single-call view of the active streak rules so the frontend can render reward tiers without knowing the internal `StreakRules` layout. All fields are zero-valued when the contract has not been initialised.
+
 ## Public Methods
 
 ### `init`
@@ -153,4 +155,38 @@ pub fn reset_rules(env: Env, admin: Address, config: StreakRules) -> Result<(), 
 #### Return Type
 
 `Result<(), Error>`
+
+### `bonus_multiplier_summary`
+Return a summary of the active bonus multiplier configuration.  All fields are zero-valued when the contract has not been initialised (i.e. no `StreakRules` are stored yet).
+
+```rust
+pub fn bonus_multiplier_summary(env: Env) -> BonusMultiplierSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`BonusMultiplierSummary`
+
+### `decay_interval`
+Return the streak window duration in seconds (i.e. the decay interval).  Returns 0 when no rules have been configured.
+
+```rust
+pub fn decay_interval(env: Env) -> u64
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`u64`
 

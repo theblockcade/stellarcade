@@ -65,6 +65,43 @@ pub fn season_carryover_snapshot(env: Env, season_id: u32) -> SeasonCarryoverSna
 
 `SeasonCarryoverSnapshot`
 
+### `participation_summary`
+Return participation statistics for `season_id`.  Unknown season ids return `exists = false` with zeroed numeric fields.
+
+```rust
+pub fn participation_summary(env: Env, season_id: u32) -> ParticipationSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `season_id` | `u32` |
+
+#### Return Type
+
+`ParticipationSummary`
+
+### `transition_gap`
+Return the ledger gap between two seasons.  Uses `season_end_ledger` of `to_season_id` as a proxy for its start ledger. `gap_ledgers` is 0 when either season is missing or the result would underflow.
+
+```rust
+pub fn transition_gap(env: Env, from_season_id: u32, to_season_id: u32) -> TransitionGap
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `from_season_id` | `u32` |
+| `to_season_id` | `u32` |
+
+#### Return Type
+
+`TransitionGap`
+
 ### `roster_lock`
 Return the roster-lock state for `season_id`.  Unknown season ids return `exists = false` with zeroed numeric fields. `lock_reason_code`: 0 = not locked, 1 = season-end lock, 2 = admin lock.
 

@@ -73,3 +73,33 @@ pub fn next_rollover_at(env: Env) -> u64
 
 `u64`
 
+### `rotator_status_summary`
+```rust
+pub fn rotator_status_summary(env: Env) -> RotatorStatusSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`RotatorStatusSummary`
+
+### `cycle_delay`
+```rust
+pub fn cycle_delay(env: Env) -> CycleDelay
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`CycleDelay`
+

@@ -59,6 +59,42 @@ pub fn utilization_snapshot(env: Env) -> UtilizationSnapshot
 
 `UtilizationSnapshot`
 
+### `pool_utilization_snapshot`
+Named pool-utilization snapshot extending `utilization_snapshot` with a `healthy` flag comparing utilization to the liquidation buffer threshold.
+
+```rust
+pub fn pool_utilization_snapshot(env: Env) -> PoolUtilizationSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`PoolUtilizationSnapshot`
+
+### `interest_cooldown_accessor`
+Returns an interest-cooldown accessor.  Callers supply `last_accrued_at` and `cooldown_seconds`. `ready` is true when `now >= last_accrued_at + cooldown_seconds`. Zero disables cooldown.
+
+```rust
+pub fn interest_cooldown_accessor(env: Env, last_accrued_at: u64, cooldown_seconds: u64) -> InterestCooldownAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `last_accrued_at` | `u64` |
+| `cooldown_seconds` | `u64` |
+
+#### Return Type
+
+`InterestCooldownAccessor`
+
 ### `liquidation_buffer_snapshot`
 ```rust
 pub fn liquidation_buffer_snapshot(env: Env) -> LiquidationBufferSnapshot

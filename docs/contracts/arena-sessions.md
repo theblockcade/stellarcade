@@ -118,3 +118,39 @@ pub fn player_summary(env: Env, player: Address) -> PlayerArenaSessionSummary
 
 `PlayerArenaSessionSummary`
 
+### `active_session_summary`
+Returns a compact summary of the player's current active session, or a zero-state if none.
+
+```rust
+pub fn active_session_summary(env: Env, player: Address) -> ActiveSessionSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `player` | `Address` |
+
+#### Return Type
+
+`ActiveSessionSummary`
+
+### `expiration_delay`
+Returns the expiration delay for a session: how many ledgers remain until it expires, zero if already expired or not active.
+
+```rust
+pub fn expiration_delay(env: Env, session_id: u64) -> ExpirationDelay
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `session_id` | `u64` |
+
+#### Return Type
+
+`ExpirationDelay`
+

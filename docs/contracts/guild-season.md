@@ -75,3 +75,37 @@ pub fn reward_threshold(env: Env, season_id: u64) -> u64
 
 `u64`
 
+### `season_performance_summary`
+Return a performance summary for the active season including whether the season is currently active (within its time window) and how many seconds remain until it ends.
+
+```rust
+pub fn season_performance_summary(env: Env) -> SeasonPerformanceSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`SeasonPerformanceSummary`
+
+### `tier_cutoff_accessor`
+Return the tier cutoff in basis points: reward_threshold * 10_000 / guild_count. Returns 0 when there is no active season or guild_count is 0.
+
+```rust
+pub fn tier_cutoff_accessor(env: Env) -> TierCutoffAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`TierCutoffAccessor`
+

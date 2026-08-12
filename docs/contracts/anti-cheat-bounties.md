@@ -115,6 +115,42 @@ pub fn open_bounty_summary(env: Env) -> OpenBountySummary
 
 `OpenBountySummary`
 
+### `active_bounty_summary`
+Returns a compact summary of all active bounties (Open + UnderReview). `live_count` excludes bounties whose report deadline has already passed.
+
+```rust
+pub fn active_bounty_summary(env: Env) -> ActiveBountySummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ActiveBountySummary`
+
+### `claim_window_accessor`
+Returns claim-window details for a single bounty.  The caller supplies `claim_window_ledgers` — the number of ledgers after the report deadline within which adjudication must begin. The contract does not store this value, so different callers may use different thresholds.
+
+```rust
+pub fn claim_window_accessor(env: Env, bounty_id: u64, claim_window_ledgers: u32) -> BountyClaimWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `bounty_id` | `u64` |
+| `claim_window_ledgers` | `u32` |
+
+#### Return Type
+
+`BountyClaimWindowAccessor`
+
 ### `adjudication_readiness`
 Returns adjudication-readiness details for a single bounty. Returns a not-found struct when the bounty_id is unknown.
 

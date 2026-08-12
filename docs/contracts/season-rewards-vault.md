@@ -70,7 +70,7 @@ pub fn add_reward(env: Env, admin: Address, season_id: u64, user: Address, amoun
 Claim a pending reward for a user.
 
 ```rust
-pub fn claim_reward(env: Env, user: Address, season_id: u64, reward_index: usize) -> Result<(), Error>
+pub fn claim_reward(env: Env, user: Address, season_id: u64, reward_index: u32) -> Result<(), Error>
 ```
 
 #### Parameters
@@ -80,7 +80,7 @@ pub fn claim_reward(env: Env, user: Address, season_id: u64, reward_index: usize
 | `env` | `Env` |
 | `user` | `Address` |
 | `season_id` | `u64` |
-| `reward_index` | `usize` |
+| `reward_index` | `u32` |
 
 #### Return Type
 
@@ -195,4 +195,41 @@ pub fn get_current_season(env: Env) -> Option<u64>
 #### Return Type
 
 `Option<u64>`
+
+### `get_vault_allocation_summary`
+Return vault allocation summary for a season.  `utilization_bps = floor(total_claimed.min(reward_pool) * 10_000 / reward_pool)` when `reward_pool > 0`, otherwise 0. Unknown season IDs return `season_found = false` with all zeros.
+
+```rust
+pub fn get_vault_allocation_summary(env: Env, season_id: u64) -> VaultAllocationSummary
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `season_id` | `u64` |
+
+#### Return Type
+
+`VaultAllocationSummary`
+
+### `get_claim_window_accessor`
+Return claim-window details for a season.  `window_open` is true when `is_active && now >= start_time && now <= end_time`. `is_expired` is true when `now > end_time`. Unknown season IDs return `season_found = false`.
+
+```rust
+pub fn get_claim_window_accessor(env: Env, season_id: u64, now: u64) -> ClaimWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `season_id` | `u64` |
+| `now` | `u64` |
+
+#### Return Type
+
+`ClaimWindowAccessor`
 

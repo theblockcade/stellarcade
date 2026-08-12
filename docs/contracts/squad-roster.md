@@ -134,6 +134,23 @@ pub fn lineup_readiness_summary(env: Env) -> LineupReadinessSummary
 
 `LineupReadinessSummary`
 
+### `participation_coverage_snapshot`
+Return a coverage snapshot for roster participation.  Zero-state (no slots registered): all counts 0, `ready` false. `coverage_bps` is floored basis-point coverage of filled slots over registered slots.
+
+```rust
+pub fn participation_coverage_snapshot(env: Env) -> ParticipationCoverageSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+
+#### Return Type
+
+`ParticipationCoverageSnapshot`
+
 ### `vacancy_for_role`
 Return vacancy information for a specific role.  Zero-state: `exists` false when the role has no registered slot.
 
@@ -151,6 +168,24 @@ pub fn vacancy_for_role(env: Env, role: Symbol) -> RoleVacancy
 #### Return Type
 
 `RoleVacancy`
+
+### `lock_window_accessor`
+Return the current lock-window state for a specific role.  Zero-state: `exists` false when the role has no registered slot.
+
+```rust
+pub fn lock_window_accessor(env: Env, role: Symbol) -> LockWindowAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `role` | `Symbol` |
+
+#### Return Type
+
+`LockWindowAccessor`
 
 ### `get_roles`
 Return all registered role names.

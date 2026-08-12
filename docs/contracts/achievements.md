@@ -73,3 +73,48 @@ pub fn set_next_unlock(env: Env, user: Address, unlock: NextUnlock)
 | `user` | `Address` |
 | `unlock` | `NextUnlock` |
 
+### `get_achievement_unlock_snapshot`
+```rust
+pub fn get_achievement_unlock_snapshot(env: Env, user: Address) -> AchievementUnlockSnapshot
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`AchievementUnlockSnapshot`
+
+### `get_claim_grace_accessor`
+```rust
+pub fn get_claim_grace_accessor(env: Env, user: Address) -> ClaimGraceAccessor
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+
+#### Return Type
+
+`ClaimGraceAccessor`
+
+### `set_claim_grace_period`
+```rust
+pub fn set_claim_grace_period(env: Env, user: Address, grace_ledger: u32)
+```
+
+#### Parameters
+
+| Name | Type |
+|------|------|
+| `env` | `Env` |
+| `user` | `Address` |
+| `grace_ledger` | `u32` |
+
