@@ -3,7 +3,6 @@
 import React, { Suspense, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { I18nProvider, useI18n } from "../i18n/provider";
-import LocaleSwitcher from "./LocaleSwitcher";
 import HeaderWalletControl from "./HeaderWalletControl";
 import Breadcrumbs from "./BreadCrumbs";
 import { AppSidebar, type AppRoute } from "./AppSidebar";
@@ -255,7 +254,6 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </button>
           </div>
           <div className="app-header__actions">
-            <LocaleSwitcher />
             <HeaderWalletControl />
           </div>
         </header>
