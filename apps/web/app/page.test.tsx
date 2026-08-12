@@ -13,13 +13,14 @@ describe("LandingPage", () => {
   it("links to the arcade app and the games list", () => {
     render(<LandingPage />);
     // "Enter the arcade" and "Browse games" each appear twice (hero + the
-    // cinematic footer's own CTA pair) — all must point at /app. No
-    // dedicated /games route (see AppShell's routeToPath).
+    // cinematic footer's own CTA pair). A dedicated /games route now
+    // exists, so "Browse games" points there rather than falling back to
+    // /app the way it did before that route was added.
     for (const link of screen.getAllByRole("link", { name: "Enter the arcade" })) {
       expect(link).toHaveAttribute("href", "/app");
     }
     for (const link of screen.getAllByRole("link", { name: "Browse games" })) {
-      expect(link).toHaveAttribute("href", "/app");
+      expect(link).toHaveAttribute("href", "/games");
     }
   });
 

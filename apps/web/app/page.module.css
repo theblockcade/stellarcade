@@ -356,49 +356,6 @@
   line-height: 1.6;
 }
 
-/* ── Stats Strip ───────────────────────────────────────────────────────── */
-
-/* Wrapper for the metrics band now that it sits between the hero and the
-   first content section rather than inside the hero. */
-.statsSection {
-  position: relative;
-  padding: 0 24px 8px;
-}
-
-.statsStrip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-top: 0;
-  padding: 24px;
-  border-radius: 20px;
-  border: 1px solid var(--glass-border);
-  background: rgba(10, 10, 10, 0.85);
-  backdrop-filter: blur(16px);
-}
-
-.statItem {
-  text-align: center;
-  padding: 8px 12px;
-}
-
-.statNumber {
-  font-size: clamp(1.5rem, 2.5vw, 2rem);
-  font-weight: 800;
-  color: var(--accent);
-  letter-spacing: -0.02em;
-  font-family: var(--sc-font-mono, monospace);
-}
-
-.statLabel {
-  font-size: 12px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 4px;
-  font-weight: 600;
-}
-
 /* ── Games Arena Cards ─────────────────────────────────────────────────── */
 
 .gamesGrid {

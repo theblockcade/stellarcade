@@ -38,14 +38,6 @@ import {
 } from "@/components/ui/motion-primitives";
 import styles from "./page.module.css";
 
-const PROTOCOL_METRICS = [
-  { value: "250,000+", label: "XLM Wager Volume" },
-  { value: "12,450", label: "Active Prize Vault (XLM)" },
-  { value: "89,400+", label: "Provably Fair Rounds" },
-  { value: "~3.2s", label: "Soroban Settlement" },
-  { value: "100%", label: "Client-Signed & Non-Custodial" },
-];
-
 const FEATURED_GAMES = [
   {
     id: "coinflip-duel",
@@ -223,24 +215,6 @@ export default function LandingPage() {
             </MotionFloating>
           </div>
 
-        </section>
-
-        {/* PROTOCOL METRICS STRIP — its own band, not part of the hero.
-            Inside the hero it added ~200px on top of an already-100vh
-            section, which is what pushed the mockups and CTA below the
-            fold. As a separate strip it also reads correctly: a summary
-            band between the pitch and the explainer, not hero content. */}
-        <section className={styles.statsSection}>
-          <div className={styles.wrap}>
-            <MotionStaggerContainer staggerChildren={0.08} className={styles.statsStrip}>
-              {PROTOCOL_METRICS.map((m) => (
-                <MotionStaggerItem key={m.label} className={styles.statItem}>
-                  <div className={styles.statNumber}>{m.value}</div>
-                  <div className={styles.statLabel}>{m.label}</div>
-                </MotionStaggerItem>
-              ))}
-            </MotionStaggerContainer>
-          </div>
         </section>
 
         {/* STORYTELLING NARRATIVE: THE TRUST CRISIS & DECOUPLED ENTROPY */}
