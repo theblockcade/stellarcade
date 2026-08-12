@@ -2,6 +2,7 @@ const express = require('express');
 const gamesRoutes = require('./games.routes');
 const usersRoutes = require('./users.routes');
 const walletRoutes = require('./wallet.routes');
+const leaderboardRoutes = require('./leaderboard.routes');
 const webhookRoutes = require('./webhook');
 const { getDeepHealth } = require('../controllers/health.controller');
 
@@ -24,6 +25,7 @@ v1Router.get('/health/deep', getDeepHealth);
 v1Router.use('/games', gamesRoutes);
 v1Router.use('/users', usersRoutes);
 v1Router.use('/wallet', walletRoutes);
+v1Router.use('/leaderboard', leaderboardRoutes);
 v1Router.use('/webhook', webhookRoutes);
 
 // Mount V1 router under /v1
@@ -35,6 +37,7 @@ router.get('/health/deep', getDeepHealth);
 router.use('/games', gamesRoutes);
 router.use('/users', usersRoutes);
 router.use('/wallet', walletRoutes);
+router.use('/leaderboard', leaderboardRoutes);
 router.use('/webhook', webhookRoutes);
 
 module.exports = router;

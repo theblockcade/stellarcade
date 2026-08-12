@@ -48,6 +48,23 @@ const gameService = {
   },
 
   /**
+   * Ranks players by total payout (winnings), optionally scoped to one game type.
+   *
+   * @param {Object} params
+   * @param {string} [params.gameType]
+   * @param {number} [params.limit=10]
+   * @returns {Promise<Array<{rank: number, playerAddress: string, score: string}>>}
+   */
+  getLeaderboard: async ({ gameType, limit = 10 } = {}) => {
+    const rows = await GameModel.getLeaderboard({ gameType, limit });
+    return rows.map((row, index) => ({
+      rank: index + 1,
+      playerAddress: row.walletAddress,
+      score: String(row.score),
+    }));
+  },
+
+  /**
    * Placeholder for simple play flow until contract + persistence are integrated.
    *
    * @param {Object} payload

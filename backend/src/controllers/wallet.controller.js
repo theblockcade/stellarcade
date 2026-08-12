@@ -4,11 +4,33 @@
 const logger = require('../utils/logger');
 const audit = require('../services/audit.service');
 const { assertWalletNetwork } = require('../services/stellar.service');
+const User = require('../models/User.model');
 
 const validateWalletNetwork = (req) => {
   const expectedNetwork = process.env.STELLAR_NETWORK || 'testnet';
   const walletNetwork = req.headers['x-wallet-network'];
   assertWalletNetwork({ walletNetwork, expectedNetwork });
+};
+
+const getBalance = async (req, res, next) => {
+  try {
+    const { address } = req.params;
+    const user = await User.findByWallet(address);
+
+    if (!user) {
+      const error = new Error(`No account found for wallet address ${address}.`);
+      error.statusCode = 404;
+      error.code = 'WALLET_NOT_FOUND';
+      throw error;
+    }
+
+    res.status(200).json({
+      address: user.wallet_address,
+      balances: { XLM: String(user.balance) },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const deposit = async (req, res, next) => {
@@ -64,6 +86,7 @@ const withdraw = async (req, res, next) => {
 };
 
 module.exports = {
+  getBalance,
   deposit,
   withdraw,
 };

@@ -51,6 +51,23 @@ const getRecentGames = async (req, res, next) => {
   }
 };
 
+const getLeaderboard = async (req, res, next) => {
+  try {
+    const rawLimit = req.query.limit;
+    const parsedLimit = rawLimit === undefined ? 10 : parseInt(rawLimit, 10);
+    const limit = Number.isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
+
+    const result = await gameService.getLeaderboard({
+      gameType: req.query.game,
+      limit,
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const playSimpleGame = async (req, res, next) => {
   try {
     const { gameType, _amount, _choice } = req.body;
@@ -81,5 +98,6 @@ const playSimpleGame = async (req, res, next) => {
 module.exports = {
   getGames,
   getRecentGames,
+  getLeaderboard,
   playSimpleGame,
 };
