@@ -328,11 +328,19 @@ mod test {
     use super::*;
     use soroban_sdk::testutils::{Address as _, Ledger};
 
+    fn setup(env: &Env) -> (Address, AttendancePassClient<'_>) {
+        env.mock_all_auths();
+        let contract_id = env.register(AttendancePass, ());
+        let client = AttendancePassClient::new(env, &contract_id);
+        let admin = Address::generate(env);
+        client.init(&admin);
+        (admin, client)
+    }
+
     #[test]
     fn test_init() {
         let env = Env::default();
-        let admin = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin);
+        let _ = setup(&env);
     }
 
     #[test]
@@ -340,19 +348,18 @@ mod test {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
 
-        let admin = Address::generate(&env);
+        let (admin, client) = setup(&env);
         let holder = Address::generate(&env);
 
-        AttendancePass::init(env.clone(), admin.clone());
-        AttendancePass::issue_pass(env.clone(), admin.clone(), 1, holder.clone(), 2000);
+        client.issue_pass(&admin, &1, &holder, &2000);
 
-        let summary = AttendancePass::holder_coverage_summary(env.clone());
+        let summary = client.holder_coverage_summary();
         assert_eq!(summary.total_holders, 1);
         assert_eq!(summary.active_holders, 1);
 
-        AttendancePass::expire_pass(env.clone(), admin, 1);
+        client.expire_pass(&admin, &1);
 
-        let summary = AttendancePass::holder_coverage_summary(env);
+        let summary = client.holder_coverage_summary();
         assert_eq!(summary.expired_passes, 1);
         assert_eq!(summary.active_holders, 0);
     }
@@ -360,10 +367,9 @@ mod test {
     #[test]
     fn test_expiry_band_missing() {
         let env = Env::default();
-        let admin = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin);
+        let (_admin, client) = setup(&env);
 
-        let band = AttendancePass::expiry_band(env, 999);
+        let band = client.expiry_band(&999);
         assert_eq!(band.exists, false);
         assert_eq!(band.configured, true);
     }
@@ -372,16 +378,15 @@ mod test {
     fn test_check_in_coverage_summary_updates() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::generate(&env);
+        let (admin, client) = setup(&env);
         let holder_a = Address::generate(&env);
         let holder_b = Address::generate(&env);
 
-        AttendancePass::init(env.clone(), admin.clone());
-        AttendancePass::issue_pass(env.clone(), admin.clone(), 1, holder_a, 2000);
-        AttendancePass::issue_pass(env.clone(), admin.clone(), 2, holder_b, 2500);
-        AttendancePass::mark_checked_in(env.clone(), admin, 1);
+        client.issue_pass(&admin, &1, &holder_a, &2000);
+        client.issue_pass(&admin, &2, &holder_b, &2500);
+        client.mark_checked_in(&admin, &1);
 
-        let summary = AttendancePass::check_in_coverage_summary(env);
+        let summary = client.check_in_coverage_summary();
         assert_eq!(summary.configured, true);
         assert_eq!(summary.total_issued, 2);
         assert_eq!(summary.checked_in_count, 1);
@@ -392,10 +397,9 @@ mod test {
     #[test]
     fn test_resale_lock_status_missing_is_predictable() {
         let env = Env::default();
-        let admin = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin);
+        let (_admin, client) = setup(&env);
 
-        let status = AttendancePass::resale_lock_status(env, 999);
+        let status = client.resale_lock_status(&999);
         assert_eq!(status.configured, true);
         assert_eq!(status.exists, false);
         assert_eq!(status.active, false);
@@ -408,12 +412,11 @@ mod test {
     fn test_pass_validity_snapshot_active_pass() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::generate(&env);
+        let (admin, client) = setup(&env);
         let holder = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin.clone());
-        AttendancePass::issue_pass(env.clone(), admin, 1, holder, 5000);
+        client.issue_pass(&admin, &1, &holder, &5000);
 
-        let snap = AttendancePass::pass_validity_snapshot(env.clone(), 1);
+        let snap = client.pass_validity_snapshot(&1);
         assert_eq!(snap.exists, true);
         assert_eq!(snap.valid, true);
         assert_eq!(snap.status, PassStatus::Active);
@@ -425,13 +428,12 @@ mod test {
     fn test_pass_validity_snapshot_expired_pass() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::generate(&env);
+        let (admin, client) = setup(&env);
         let holder = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin.clone());
-        AttendancePass::issue_pass(env.clone(), admin.clone(), 2, holder, 2000);
-        AttendancePass::expire_pass(env.clone(), admin, 2);
+        client.issue_pass(&admin, &2, &holder, &2000);
+        client.expire_pass(&admin, &2);
 
-        let snap = AttendancePass::pass_validity_snapshot(env.clone(), 2);
+        let snap = client.pass_validity_snapshot(&2);
         assert_eq!(snap.valid, false);
         assert_eq!(snap.status, PassStatus::Expired);
         assert_eq!(snap.time_remaining, 0);
@@ -440,10 +442,9 @@ mod test {
     #[test]
     fn test_pass_validity_snapshot_missing_pass() {
         let env = Env::default();
-        let admin = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin);
+        let (_admin, client) = setup(&env);
 
-        let snap = AttendancePass::pass_validity_snapshot(env, 999);
+        let snap = client.pass_validity_snapshot(&999);
         assert_eq!(snap.exists, false);
         assert_eq!(snap.valid, false);
         assert_eq!(snap.time_remaining, 0);
@@ -455,19 +456,18 @@ mod test {
     fn test_grace_period_accessor_within_grace() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::generate(&env);
+        let (admin, client) = setup(&env);
         let holder = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin.clone());
         // Pass expires at 1500; advance time to 1600 (100s past expiry)
-        AttendancePass::issue_pass(env.clone(), admin.clone(), 3, holder, 1500);
-        AttendancePass::expire_pass(env.clone(), admin, 3);
+        client.issue_pass(&admin, &3, &holder, &1500);
+        client.expire_pass(&admin, &3);
 
         let mut ledger = env.ledger().get();
         ledger.timestamp = 1600;
         env.ledger().set(ledger);
 
         // Grace window of 200s → grace_deadline = 1700; now=1600 is inside
-        let acc = AttendancePass::grace_period_accessor(env.clone(), 3, 200);
+        let acc = client.grace_period_accessor(&3, &200);
         assert_eq!(acc.exists, true);
         assert_eq!(acc.in_grace_period, true);
         assert_eq!(acc.grace_deadline, 1700);
@@ -477,47 +477,48 @@ mod test {
     fn test_grace_period_accessor_outside_grace() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::generate(&env);
+        let (admin, client) = setup(&env);
         let holder = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin.clone());
-        AttendancePass::issue_pass(env.clone(), admin.clone(), 4, holder, 1500);
-        AttendancePass::expire_pass(env.clone(), admin, 4);
+        client.issue_pass(&admin, &4, &holder, &1500);
+        client.expire_pass(&admin, &4);
 
         let mut ledger = env.ledger().get();
         ledger.timestamp = 1800; // past grace_deadline (1500 + 200 = 1700)
         env.ledger().set(ledger);
 
-        let acc = AttendancePass::grace_period_accessor(env.clone(), 4, 200);
+        let acc = client.grace_period_accessor(&4, &200);
         assert_eq!(acc.in_grace_period, false);
     }
 
     #[test]
     fn test_grace_period_accessor_zero_grace_never_in_period() {
         let env = Env::default();
+        env.mock_all_auths();
         env.ledger().set_timestamp(2000); // past expiry
+        let contract_id = env.register(AttendancePass, ());
+        let client = AttendancePassClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
         let holder = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin.clone());
         // expires_at must be > now at issuance — issue at t=1000 then advance
         let mut ledger = env.ledger().get();
         ledger.timestamp = 1000;
         env.ledger().set(ledger.clone());
-        AttendancePass::issue_pass(env.clone(), admin.clone(), 5, holder, 1500);
-        AttendancePass::expire_pass(env.clone(), admin, 5);
+        client.init(&admin);
+        client.issue_pass(&admin, &5, &holder, &1500);
+        client.expire_pass(&admin, &5);
         ledger.timestamp = 2000;
         env.ledger().set(ledger);
 
-        let acc = AttendancePass::grace_period_accessor(env.clone(), 5, 0);
+        let acc = client.grace_period_accessor(&5, &0);
         assert_eq!(acc.in_grace_period, false);
     }
 
     #[test]
     fn test_grace_period_accessor_missing_pass() {
         let env = Env::default();
-        let admin = Address::generate(&env);
-        AttendancePass::init(env.clone(), admin);
+        let (_admin, client) = setup(&env);
 
-        let acc = AttendancePass::grace_period_accessor(env, 999, 300);
+        let acc = client.grace_period_accessor(&999, &300);
         assert_eq!(acc.exists, false);
         assert_eq!(acc.in_grace_period, false);
     }

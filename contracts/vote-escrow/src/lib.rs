@@ -152,11 +152,19 @@ mod test {
     use super::*;
     use soroban_sdk::testutils::{Address as _, Ledger};
 
+    fn setup(env: &Env) -> (Address, VoteEscrowClient<'_>) {
+        env.mock_all_auths();
+        let contract_id = env.register(VoteEscrow, ());
+        let client = VoteEscrowClient::new(env, &contract_id);
+        let admin = Address::generate(env);
+        client.init(&admin);
+        (admin, client)
+    }
+
     #[test]
     fn test_init() {
         let env = Env::default();
-        let admin = Address::generate(&env);
-        VoteEscrow::init(env.clone(), admin);
+        let _ = setup(&env);
     }
 
     #[test]
@@ -164,31 +172,32 @@ mod test {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
 
-        let admin = Address::generate(&env);
+        let (admin, client) = setup(&env);
         let locker = Address::generate(&env);
 
-        VoteEscrow::init(env.clone(), admin.clone());
-        VoteEscrow::lock(env.clone(), locker.clone(), 1, 1000, 3000);
+        client.lock(&locker, &1, &1000, &3000);
 
-        let breakdown = VoteEscrow::lock_duration_breakdown(env.clone());
+        let breakdown = client.lock_duration_breakdown();
         assert_eq!(breakdown.total_locked_amount, 1000);
         assert_eq!(breakdown.total_locks, 1);
 
-        env.ledger().set_timestamp(3100);
-        let unlocked_amount = VoteEscrow::unlock(env.clone(), admin, 1);
+        let mut ledger = env.ledger().get();
+        ledger.timestamp = 3100;
+        env.ledger().set(ledger);
+
+        let unlocked_amount = client.unlock(&admin, &1);
         assert_eq!(unlocked_amount, 1000);
 
-        let breakdown = VoteEscrow::lock_duration_breakdown(env);
+        let breakdown = client.lock_duration_breakdown();
         assert_eq!(breakdown.unlocked_amount, 1000);
     }
 
     #[test]
     fn test_unlock_pressure_missing() {
         let env = Env::default();
-        let admin = Address::generate(&env);
-        VoteEscrow::init(env.clone(), admin);
+        let (_admin, client) = setup(&env);
 
-        let pressure = VoteEscrow::unlock_pressure(env, 999);
+        let pressure = client.unlock_pressure(&999);
         assert_eq!(pressure.exists, false);
         assert_eq!(pressure.configured, true);
     }
