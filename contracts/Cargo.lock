@@ -2289,7 +2289,7 @@ dependencies = [
 name = "stellarcade-badge-minter"
 version = "0.1.0"
 dependencies = [
- "soroban-sdk 21.7.7",
+ "soroban-sdk 25.3.2",
 ]
 
 [[package]]
@@ -2975,7 +2975,7 @@ dependencies = [
 name = "stellarcade-season-rewards-vault"
 version = "0.1.0"
 dependencies = [
- "soroban-sdk 21.7.7",
+ "soroban-sdk 25.3.2",
 ]
 
 [[package]]

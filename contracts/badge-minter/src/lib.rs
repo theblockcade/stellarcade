@@ -202,7 +202,7 @@ impl BadgeMinter {
 
         // Update user's minted badges
         let mut user_badges = get_user_minted_badges(&env, &user);
-        if !user_badges.iter().any(|id| id == &badge_id) {
+        if !user_badges.iter().any(|id| id == badge_id) {
             user_badges.push_back(badge_id);
             set_user_minted_badges(&env, &user, &user_badges);
         }
