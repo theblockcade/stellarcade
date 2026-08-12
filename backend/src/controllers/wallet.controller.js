@@ -55,6 +55,20 @@ const deposit = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid deposit amount.' });
     }
 
+    // VAULT_ADDRESS must be a real, configured Stellar address. The old
+    // fallback here ('GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY')
+    // was 53 characters, not the 56 a real G-address requires — a fabricated
+    // value dressed up to look real rather than an honest "not configured"
+    // signal. Erroring here is preferable to handing back an address nobody
+    // can actually send funds to.
+    const vaultAddress = process.env.VAULT_ADDRESS;
+    if (!vaultAddress) {
+      const error = new Error('Deposits are not available: no vault address is configured.');
+      error.statusCode = 503;
+      error.code = 'VAULT_NOT_CONFIGURED';
+      throw error;
+    }
+
     logger.info(`Deposit request: ${amount} ${asset} for user ${user.id}`);
 
     // Create Transaction Record
@@ -75,7 +89,7 @@ const deposit = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      depositAddress: process.env.VAULT_ADDRESS || 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY',
+      depositAddress: vaultAddress,
       amount: numAmount,
       balance: newBalance,
       transaction: tx
