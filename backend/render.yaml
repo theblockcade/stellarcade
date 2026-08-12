@@ -1,30 +1,15 @@
-# Render Blueprint — backend API + its own Postgres (free tier).
+# Render Blueprint — backend API (free tier).
 #
-# Deliberately a SEPARATE database from stellarcade-arbiter-db: this
-# service's schema (users, games, transactions) has nothing to do with
-# settlement/audit data, and keeping them apart means a backend migration
-# mistake can't touch the arbiter's data or vice versa.
-#
-# REDIS_URL is NOT wired below — Render's Blueprint spec for a managed
-# Redis/Key Value instance wasn't verified against current docs before
-# writing this file, so it's deliberately left out rather than guessed.
-# Add a Redis instance via the Render dashboard and set REDIS_URL as a
-# secret afterward. Without it the service still boots (src/config/redis.js
-# falls back to redis://localhost:6379 and the rate-limit middleware fails
-# open — see rate-limit.middleware.js's catch block) but with rate limiting
-# silently disabled, which is not acceptable long-term for a service that
-# credits/debits balances.
-#
-# Free-tier caveats: same as stellarcade-arbiter's — web service sleeps
-# after 15 min idle, free Postgres expires after 30 days.
+# Shared Postgres Instance: Render free tier allows 1 free database per account.
+# We point DATABASE_URL at the existing Postgres database (stellarcade-arbiter-db).
+# Knex migrations create backend-specific tables (users, leaderboard, transactions, etc.)
+# without conflicting with arbiter tables.
 
 services:
   - type: web
     name: stellarcade-backend
     runtime: docker
     plan: free
-    # Deploy manually after CI is green — matches the autoDeploy: false
-    # pattern in stellarcade-arbiter and stellarcade-bot's Blueprints.
     autoDeploy: false
     healthCheckPath: /api/health
     envVars:
@@ -39,20 +24,10 @@ services:
       - key: NETWORK_PASSPHRASE
         value: "Test SDF Network ; September 2015"
       - key: DATABASE_URL
-        fromDatabase:
-          name: stellarcade-backend-db
-          property: connectionString
-      # Required — startupValidation.js refuses to boot without it.
+        sync: false
       - key: JWT_SECRET
         sync: false
-      # Optional. Deposits 503 with VAULT_NOT_CONFIGURED until this is set
-      # to a real funded Stellar address (see wallet.controller.js).
       - key: VAULT_ADDRESS
         sync: false
-      # Set after adding a Render Redis/Key Value instance — see note above.
       - key: REDIS_URL
         sync: false
-
-databases:
-  - name: stellarcade-backend-db
-    plan: free
