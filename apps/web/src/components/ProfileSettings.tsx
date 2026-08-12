@@ -76,6 +76,14 @@ const ProfileSettings: React.FC = () => {
         setProfile(result.data);
         setUsername(result.data.username ?? '');
         store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
+      } else if (walletStatus.address) {
+        const localProfile: UserProfile = {
+          address: walletStatus.address,
+          username: `Player_${walletStatus.address.slice(-4)}`,
+          createdAt: new Date().toISOString(),
+        };
+        setProfile(localProfile);
+        setUsername(localProfile.username);
       } else {
         setError(result.error.message);
       }
@@ -84,7 +92,7 @@ const ProfileSettings: React.FC = () => {
     };
 
     loadProfile();
-  }, []);
+  }, [walletStatus.address]);
 
   const walletMeta = useMemo(() => {
     const providerInfo = walletStatus.provider;

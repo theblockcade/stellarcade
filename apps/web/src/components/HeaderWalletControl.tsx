@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2, LogOut, Wallet } from "lucide-react";
 import { useWalletStatus } from "../hooks/useWalletStatus";
 import defaultFreighterAdapter from "../services/freighter-adapter";
@@ -49,6 +49,44 @@ export const HeaderWalletControl: React.FC = () => {
     }
   }, [wallet.address]);
 
+  const [xlmBalance, setXlmBalance] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!wallet.capabilities.isConnected || !wallet.address) {
+      setXlmBalance(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchBalance = async () => {
+      try {
+        const network = (wallet.network || "").toUpperCase();
+        const isTestnet = network.includes("TEST");
+        const horizonUrl = isTestnet
+          ? "https://horizon-testnet.stellar.org"
+          : "https://horizon.stellar.org";
+
+        const res = await fetch(`${horizonUrl}/accounts/${wallet.address}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { balances?: Array<{ asset_type: string; balance: string }> };
+        const native = data.balances?.find((b) => b.asset_type === "native");
+        if (native && isMounted) {
+          const num = parseFloat(native.balance);
+          setXlmBalance(num.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+        }
+      } catch {
+        // Non-fatal degradation if horizon fails or account uncreated
+      }
+    };
+
+    void fetchBalance();
+    const interval = setInterval(() => void fetchBalance(), 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [wallet.capabilities.isConnected, wallet.address, wallet.network]);
+
   if (wallet.capabilities.isConnected && wallet.address) {
     return (
       <div className="hwc" data-testid="header-wallet-connected">
@@ -63,6 +101,23 @@ export const HeaderWalletControl: React.FC = () => {
             <span>{shortenAddress(wallet.address)}</span>
             {copied ? <Check size={13} /> : <Copy size={13} />}
           </button>
+          {xlmBalance !== null && (
+            <span
+              className="hwc__balance"
+              style={{
+                fontWeight: 600,
+                fontSize: "0.82rem",
+                color: "#10b981",
+                padding: "2px 8px",
+                background: "rgba(16, 185, 129, 0.1)",
+                borderRadius: "12px",
+                border: "1px solid rgba(16, 185, 129, 0.2)",
+              }}
+              data-testid="header-wallet-balance"
+            >
+              {xlmBalance} XLM
+            </span>
+          )}
           {wallet.network && (
             <span className="hwc__network" data-testid="header-wallet-network">
               <span className="hwc__pulse" aria-hidden="true" />
