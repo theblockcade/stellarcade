@@ -325,7 +325,7 @@ export function CinematicFooter() {
 
                 <MagneticButton
                   as={Link}
-                  href="/app"
+                  href="/games"
                   className="footer-glass-pill px-10 py-5 rounded-full text-foreground font-bold text-sm md:text-base flex items-center gap-3 group"
                 >
                   <Trophy className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
