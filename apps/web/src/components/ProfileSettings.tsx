@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient } from '../services/typed-api-sdk';
-import { SkeletonPreset } from './LoadingSkeletonSet';
+
 import { AccountSwitcher } from './AccountSwitcher';
 import { DraftPresenceIndicator } from './DraftPresenceIndicator';
 import SensitiveActionChecklist from './SensitiveActionChecklist';
@@ -218,14 +218,7 @@ const ProfileSettings: React.FC = () => {
     }
   }, [hasDraftChanges]);
 
-  if (loading) {
-    return (
-      <div data-testid="profile-settings-loading" role="status" aria-live="polite">
-        <p>Loading profile settings...</p>
-        <SkeletonPreset type="detail" />
-      </div>
-    );
-  }
+
 
   return (
     <section className="profile-settings" aria-labelledby="profile-settings-heading">
