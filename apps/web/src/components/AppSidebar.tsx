@@ -63,7 +63,7 @@ const SECTION_CONFIGS: SidebarSectionConfig[] = [
   {
     id: "play",
     titleKey: "section.play",
-    defaultTitle: "Play & Compete",
+    defaultTitle: "Play",
     items: [
       { route: "lobby", labelKey: "nav.lobby", defaultLabel: "Arcade Lobby", icon: <Gamepad2 size={16} /> },
       { route: "games", labelKey: "nav.games", defaultLabel: "Games Arena", icon: <Dices size={16} /> },
@@ -77,22 +77,22 @@ const SECTION_CONFIGS: SidebarSectionConfig[] = [
   {
     id: "account",
     titleKey: "section.vault",
-    defaultTitle: "Vault & Assets",
+    defaultTitle: "Account",
     items: [
-      { route: "portfolio", labelKey: "nav.portfolio", defaultLabel: "Portfolio Vault", icon: <Wallet size={16} /> },
+      { route: "portfolio", labelKey: "nav.portfolio", defaultLabel: "Portfolio", icon: <Wallet size={16} /> },
       { route: "rewards", labelKey: "nav.rewards", defaultLabel: "Claim Rewards", icon: <Coins size={16} /> },
-      { route: "cleanup", labelKey: "nav.cleanup", defaultLabel: "Account Hygiene", icon: <Sparkles size={16} /> },
+      { route: "cleanup", labelKey: "nav.cleanup", defaultLabel: "Cleanup", icon: <Sparkles size={16} /> },
     ],
   },
   {
     id: "system",
     titleKey: "section.system",
-    defaultTitle: "System & Info",
+    defaultTitle: "More",
     items: [
       { route: "settings", labelKey: "nav.settings", defaultLabel: "Settings", icon: <Settings size={16} /> },
-      { route: "about", labelKey: "nav.about", defaultLabel: "Architecture & About", icon: <Layers size={16} /> },
-      { route: "terms", labelKey: "nav.terms", defaultLabel: "Terms of Protocol", icon: <FileText size={16} /> },
-      { route: "privacy", labelKey: "nav.privacy", defaultLabel: "Privacy Architecture", icon: <Lock size={16} /> },
+      { route: "about", labelKey: "nav.about", defaultLabel: "About", icon: <Layers size={16} /> },
+      { route: "terms", labelKey: "nav.terms", defaultLabel: "Terms", icon: <FileText size={16} /> },
+      { route: "privacy", labelKey: "nav.privacy", defaultLabel: "Privacy", icon: <Lock size={16} /> },
     ],
   },
 ];

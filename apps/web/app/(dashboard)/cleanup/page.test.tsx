@@ -7,7 +7,7 @@ describe("CleanupPage", () => {
   it("renders page title and scan input", () => {
     render(<CleanupPage />);
     expect(
-      screen.getByRole("heading", { level: 1, name: /Account Hygiene & Reserve Recovery/i })
+      screen.getByRole("heading", { level: 1, name: /Cleanup & Reserve Recovery/i })
     ).toBeInTheDocument();
     expect(screen.getByTestId("input-hygiene-address")).toBeInTheDocument();
     expect(screen.getByTestId("btn-scan-account")).toBeInTheDocument();

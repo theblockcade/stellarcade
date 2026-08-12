@@ -22,14 +22,14 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-sidebar-link-lobby")).toHaveAttribute("aria-current", "page");
   });
 
-  it("highlights the profile link when on /profile", () => {
-    currentPathname = "/profile";
+  it("highlights the settings link when on /settings", () => {
+    currentPathname = "/settings";
     render(
       <AppShell>
         <div>content</div>
       </AppShell>,
     );
-    expect(screen.getByTestId("app-sidebar-link-profile")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("app-sidebar-link-settings")).toHaveAttribute("aria-current", "page");
   });
 
   it("highlights the portfolio link when on /portfolio", () => {
@@ -50,8 +50,8 @@ describe("AppShell", () => {
         <div>content</div>
       </AppShell>,
     );
-    screen.getByTestId("app-sidebar-link-profile").click();
-    expect(push).toHaveBeenCalledWith("/profile");
+    screen.getByTestId("app-sidebar-link-settings").click();
+    expect(push).toHaveBeenCalledWith("/settings");
   });
 
   it("renders the page content inside the main region", () => {

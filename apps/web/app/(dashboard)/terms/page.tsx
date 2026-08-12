@@ -36,7 +36,7 @@ export default function TermsPage() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
             <FileText size={28} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>Terms of Protocol & Participation</h1>
+            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>Terms & Participation</h1>
           </div>
           <p style={{ color: "var(--sc-text-dim, #94a3b8)", margin: 0, fontSize: "0.875rem" }}>
             Last updated: August 2026 · Decentralized protocol on Stellar Network

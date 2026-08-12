@@ -19,6 +19,6 @@ test.describe("Landing & Navigation", () => {
 
     // Verify cleanup page directly
     await page.goto("/cleanup");
-    await expect(page.locator("h1").first()).toContainText(/Account Hygiene & Reserve Recovery/i);
+    await expect(page.locator("h1").first()).toContainText(/Cleanup & Reserve Recovery/i);
   });
 });

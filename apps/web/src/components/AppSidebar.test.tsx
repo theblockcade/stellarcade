@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppSidebar } from "./AppSidebar";
+import { I18nProvider } from "../i18n/provider";
 
 function mockMatchMedia(matches: boolean) {
   Object.defineProperty(window, "matchMedia", {
@@ -18,6 +19,14 @@ function mockMatchMedia(matches: boolean) {
   });
 }
 
+function renderSidebar(props: Parameters<typeof AppSidebar>[0]) {
+  return render(
+    <I18nProvider>
+      <AppSidebar {...props} />
+    </I18nProvider>,
+  );
+}
+
 describe("AppSidebar", () => {
   afterEach(() => {
     mockMatchMedia(false);
@@ -26,7 +35,7 @@ describe("AppSidebar", () => {
   it("renders as a single named primary navigation landmark", () => {
     const onNavigate = vi.fn();
 
-    render(<AppSidebar currentRoute="lobby" onNavigate={onNavigate} />);
+    renderSidebar({ currentRoute: "lobby", onNavigate });
 
     expect(screen.getByRole("navigation", { name: /primary dashboard/i })).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: /sidebar navigation/i })).not.toBeInTheDocument();
@@ -35,12 +44,14 @@ describe("AppSidebar", () => {
   it("renders grouped navigation and highlights the active route", () => {
     const onNavigate = vi.fn();
 
-    render(<AppSidebar currentRoute="profile" onNavigate={onNavigate} />);
+    // AppSidebar's account-settings nav item was renamed profile -> settings
+    // (see AppShell's routeToPath) — this was "profile" before that rename.
+    renderSidebar({ currentRoute: "settings", onNavigate });
 
     expect(screen.getByText("Play")).toBeInTheDocument();
     expect(screen.getByText("Account")).toBeInTheDocument();
-    expect(screen.getByText("About")).toBeInTheDocument();
-    expect(screen.getByTestId("app-sidebar-link-profile")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("More")).toBeInTheDocument();
+    expect(screen.getByTestId("app-sidebar-link-settings")).toHaveAttribute("aria-current", "page");
     expect(screen.getByTestId("app-sidebar-link-lobby")).not.toHaveAttribute("aria-current");
     expect(screen.getByTestId("app-sidebar-link-verify")).toBeInTheDocument();
     expect(screen.getByTestId("app-sidebar-link-cleanup")).toBeInTheDocument();
@@ -50,7 +61,7 @@ describe("AppSidebar", () => {
   it("supports mobile open/close toggle behavior", () => {
     const onNavigate = vi.fn();
 
-    render(<AppSidebar currentRoute="lobby" onNavigate={onNavigate} />);
+    renderSidebar({ currentRoute: "lobby", onNavigate });
 
     const sidebar = screen.getByTestId("app-sidebar");
     expect(sidebar).not.toHaveClass("is-mobile-open");
@@ -65,7 +76,7 @@ describe("AppSidebar", () => {
   it("supports desktop collapse and calls onNavigate when selecting a route", () => {
     const onNavigate = vi.fn();
 
-    render(<AppSidebar currentRoute="lobby" onNavigate={onNavigate} />);
+    renderSidebar({ currentRoute: "lobby", onNavigate });
 
     const sidebar = screen.getByTestId("app-sidebar");
     expect(sidebar).not.toHaveClass("is-collapsed");
@@ -81,7 +92,7 @@ describe("AppSidebar", () => {
     mockMatchMedia(true);
     const onNavigate = vi.fn();
 
-    render(<AppSidebar currentRoute="lobby" onNavigate={onNavigate} />);
+    renderSidebar({ currentRoute: "lobby", onNavigate });
 
     const toggle = screen.getByTestId("app-sidebar-mobile-toggle");
     const sidebar = screen.getByTestId("app-sidebar");
