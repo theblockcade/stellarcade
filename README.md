@@ -16,6 +16,19 @@
 - **Multiple Games**: Coin Flip, Trivia, and more—all on-chain.
 - **Open Source**: Built by the community, for the community.
 
+## 🌐 Live Environment & Deployed Services (Stellar Testnet)
+
+| Service / Contract | Type / Hosting | Live Endpoint / Address |
+|---|---|---|
+| **Backend API** | Render Web Service | `https://stellarcade-backend.onrender.com/api` |
+| **Arbiter Engine** | Render Web Service | `https://stellarcade-arbiter.onrender.com` |
+| **Telegram Bot** | Render Web Service | Active via `@StellarcadeOfficialBot` |
+| **Coin Flip Contract** | Soroban Testnet | `CDP77TELLHACC46EHR3N4ISRWJME446AGK5RM7D4D42YKDCB4LXICKTE` |
+| **Prize Pool Contract** | Soroban Testnet | `CBVNIITX42KQA3MKNUBKG4YIK4FCASZQWKWGHY3YYMM4ANGZ6MOZI2EC` |
+| **Random Generator Contract** | Soroban Testnet | `CAMYBISVQSSVJ3EPAZQWKPTTPGTYY5XIS2BZAG4TYFWTUKHQNPVXAV4O` |
+| **Access Control Contract** | Soroban Testnet | `CC2IRAYC3CT5KAV4PZKXKCE45Z3QAJQSJH7P5J3GITJT4T3KZ6634R7K` |
+| **Achievement Badge Contract** | Soroban Testnet | `CC7SDE6RRV4X7XRHU6OM6GLDIKBC6EZYNHTRGDLEHYNVUWWO3LUJLA5M` |
+
 ## 🛠 Tech Stack
 
 - **Smart Contracts**: Rust & Soroban SDK
