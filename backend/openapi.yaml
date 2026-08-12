@@ -440,6 +440,73 @@
         ]
       }
     },
+    "/api/wallet/:address/balance": {
+      "get": {
+        "operationId": "getWalletBalance",
+        "summary": "Fetch a wallet's balance by Stellar address",
+        "tags": [
+          "Wallet"
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "address",
+                    "balances"
+                  ],
+                  "properties": {
+                    "address": {
+                      "type": "string"
+                    },
+                    "balances": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No account found for that wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Stellar wallet address (G...)."
+          }
+        ]
+      }
+    },
     "/api/wallet/deposit": {
       "post": {
         "operationId": "createDeposit",
@@ -598,6 +665,78 @@
         "security": [
           {
             "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/leaderboard": {
+      "get": {
+        "operationId": "getLeaderboard",
+        "summary": "Rank players by total payout, optionally scoped to one game type",
+        "tags": [
+          "Leaderboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard entries returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rank",
+                      "playerAddress",
+                      "score"
+                    ],
+                    "properties": {
+                      "rank": {
+                        "type": "integer"
+                      },
+                      "playerAddress": {
+                        "type": "string"
+                      },
+                      "score": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "game",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional game_type filter (e.g. coin-flip)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            },
+            "description": "Maximum number of entries returned."
           }
         ]
       }
