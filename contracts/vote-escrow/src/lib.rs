@@ -155,7 +155,7 @@ mod test {
     #[test]
     fn test_init() {
         let env = Env::default();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         VoteEscrow::init(env.clone(), admin);
     }
 
@@ -164,8 +164,8 @@ mod test {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
 
-        let admin = Address::random(&env);
-        let locker = Address::random(&env);
+        let admin = Address::generate(&env);
+        let locker = Address::generate(&env);
 
         VoteEscrow::init(env.clone(), admin.clone());
         VoteEscrow::lock(env.clone(), locker.clone(), 1, 1000, 3000);
@@ -185,7 +185,7 @@ mod test {
     #[test]
     fn test_unlock_pressure_missing() {
         let env = Env::default();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         VoteEscrow::init(env.clone(), admin);
 
         let pressure = VoteEscrow::unlock_pressure(env, 999);

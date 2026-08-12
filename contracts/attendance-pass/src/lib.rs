@@ -331,7 +331,7 @@ mod test {
     #[test]
     fn test_init() {
         let env = Env::default();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         AttendancePass::init(env.clone(), admin);
     }
 
@@ -340,8 +340,8 @@ mod test {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
 
-        let admin = Address::random(&env);
-        let holder = Address::random(&env);
+        let admin = Address::generate(&env);
+        let holder = Address::generate(&env);
 
         AttendancePass::init(env.clone(), admin.clone());
         AttendancePass::issue_pass(env.clone(), admin.clone(), 1, holder.clone(), 2000);
@@ -360,7 +360,7 @@ mod test {
     #[test]
     fn test_expiry_band_missing() {
         let env = Env::default();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         AttendancePass::init(env.clone(), admin);
 
         let band = AttendancePass::expiry_band(env, 999);
@@ -372,9 +372,9 @@ mod test {
     fn test_check_in_coverage_summary_updates() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::random(&env);
-        let holder_a = Address::random(&env);
-        let holder_b = Address::random(&env);
+        let admin = Address::generate(&env);
+        let holder_a = Address::generate(&env);
+        let holder_b = Address::generate(&env);
 
         AttendancePass::init(env.clone(), admin.clone());
         AttendancePass::issue_pass(env.clone(), admin.clone(), 1, holder_a, 2000);
@@ -392,7 +392,7 @@ mod test {
     #[test]
     fn test_resale_lock_status_missing_is_predictable() {
         let env = Env::default();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         AttendancePass::init(env.clone(), admin);
 
         let status = AttendancePass::resale_lock_status(env, 999);
@@ -408,8 +408,8 @@ mod test {
     fn test_pass_validity_snapshot_active_pass() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::random(&env);
-        let holder = Address::random(&env);
+        let admin = Address::generate(&env);
+        let holder = Address::generate(&env);
         AttendancePass::init(env.clone(), admin.clone());
         AttendancePass::issue_pass(env.clone(), admin, 1, holder, 5000);
 
@@ -425,8 +425,8 @@ mod test {
     fn test_pass_validity_snapshot_expired_pass() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::random(&env);
-        let holder = Address::random(&env);
+        let admin = Address::generate(&env);
+        let holder = Address::generate(&env);
         AttendancePass::init(env.clone(), admin.clone());
         AttendancePass::issue_pass(env.clone(), admin.clone(), 2, holder, 2000);
         AttendancePass::expire_pass(env.clone(), admin, 2);
@@ -440,7 +440,7 @@ mod test {
     #[test]
     fn test_pass_validity_snapshot_missing_pass() {
         let env = Env::default();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         AttendancePass::init(env.clone(), admin);
 
         let snap = AttendancePass::pass_validity_snapshot(env, 999);
@@ -455,8 +455,8 @@ mod test {
     fn test_grace_period_accessor_within_grace() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::random(&env);
-        let holder = Address::random(&env);
+        let admin = Address::generate(&env);
+        let holder = Address::generate(&env);
         AttendancePass::init(env.clone(), admin.clone());
         // Pass expires at 1500; advance time to 1600 (100s past expiry)
         AttendancePass::issue_pass(env.clone(), admin.clone(), 3, holder, 1500);
@@ -477,8 +477,8 @@ mod test {
     fn test_grace_period_accessor_outside_grace() {
         let env = Env::default();
         env.ledger().set_timestamp(1000);
-        let admin = Address::random(&env);
-        let holder = Address::random(&env);
+        let admin = Address::generate(&env);
+        let holder = Address::generate(&env);
         AttendancePass::init(env.clone(), admin.clone());
         AttendancePass::issue_pass(env.clone(), admin.clone(), 4, holder, 1500);
         AttendancePass::expire_pass(env.clone(), admin, 4);
@@ -495,8 +495,8 @@ mod test {
     fn test_grace_period_accessor_zero_grace_never_in_period() {
         let env = Env::default();
         env.ledger().set_timestamp(2000); // past expiry
-        let admin = Address::random(&env);
-        let holder = Address::random(&env);
+        let admin = Address::generate(&env);
+        let holder = Address::generate(&env);
         AttendancePass::init(env.clone(), admin.clone());
         // expires_at must be > now at issuance — issue at t=1000 then advance
         let mut ledger = env.ledger().get();
@@ -514,7 +514,7 @@ mod test {
     #[test]
     fn test_grace_period_accessor_missing_pass() {
         let env = Env::default();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         AttendancePass::init(env.clone(), admin);
 
         let acc = AttendancePass::grace_period_accessor(env, 999, 300);
