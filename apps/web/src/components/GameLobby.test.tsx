@@ -86,8 +86,6 @@ test("renders GameLobby and fetches games", async () => {
 
   render(<GameLobby />);
 
-  expect(screen.getByText(/loading elite games/i)).toBeDefined();
-
   await waitFor(() => {
     expect(screen.getAllByText(/Elite Clash/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/50 XLM/i).length).toBeGreaterThan(0);

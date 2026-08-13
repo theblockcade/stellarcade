@@ -118,8 +118,8 @@ function readStoredLobbyContext(): LobbyContext | null {
 }
 
 export const GameLobby: React.FC = () => {
-  const [games, setGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [games, setGames] = useState<Game[]>(ONCHAIN_GAMES_CATALOG);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [lastGamesSyncAt, setLastGamesSyncAt] = useState<number | null>(null);
@@ -861,14 +861,7 @@ export const GameLobby: React.FC = () => {
     wallet.provider?.name,
   ]);
 
-  if (loading) {
-    return (
-      <div className="lobby-loading" role="status" aria-live="polite">
-        <p>Loading elite games...</p>
-        <SkeletonPreset type="detail" />
-      </div>
-    );
-  }
+
 
   if (error) {
     return (
