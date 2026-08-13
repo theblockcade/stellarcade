@@ -1223,24 +1223,20 @@ export const GameLobby: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div className="flex flex-col gap-4">
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.5rem" }}>
+                  <label className="block text-xs font-semibold mb-2 text-slate-300">
                     Choose Your Pick:
                   </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setPlaySide(CoinFlipSide.Heads)}
-                      style={{
-                        padding: "0.75rem",
-                        borderRadius: "8px",
-                        border: playSide === CoinFlipSide.Heads ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
-                        background: playSide === CoinFlipSide.Heads ? "rgba(56, 189, 248, 0.15)" : "transparent",
-                        color: "#fff",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
+                      className={`p-3 rounded-lg border font-bold transition-all ${
+                        playSide === CoinFlipSide.Heads
+                          ? "border-sky-400 bg-sky-400/15 text-white"
+                          : "border-white/10 bg-transparent text-slate-300 hover:border-white/20"
+                      }`}
                       data-testid="btn-pick-heads"
                     >
                       🪙 Heads
@@ -1248,15 +1244,11 @@ export const GameLobby: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setPlaySide(CoinFlipSide.Tails)}
-                      style={{
-                        padding: "0.75rem",
-                        borderRadius: "8px",
-                        border: playSide === CoinFlipSide.Tails ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
-                        background: playSide === CoinFlipSide.Tails ? "rgba(56, 189, 248, 0.15)" : "transparent",
-                        color: "#fff",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
+                      className={`p-3 rounded-lg border font-bold transition-all ${
+                        playSide === CoinFlipSide.Tails
+                          ? "border-sky-400 bg-sky-400/15 text-white"
+                          : "border-white/10 bg-transparent text-slate-300 hover:border-white/20"
+                      }`}
                       data-testid="btn-pick-tails"
                     >
                       🪙 Tails
@@ -1265,24 +1257,20 @@ export const GameLobby: React.FC = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.5rem" }}>
+                  <label className="block text-xs font-semibold mb-2 text-slate-300">
                     Wager Amount (XLM):
                   </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.4rem" }}>
+                  <div className="grid grid-cols-4 gap-2">
                     {[5, 10, 25, 50].map((w) => (
                       <button
                         key={w}
                         type="button"
                         onClick={() => setPlayWager(w)}
-                        style={{
-                          padding: "0.5rem",
-                          borderRadius: "6px",
-                          border: playWager === w ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
-                          background: playWager === w ? "rgba(56, 189, 248, 0.15)" : "transparent",
-                          color: "#fff",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                        }}
+                        className={`p-2 rounded-lg border text-xs font-semibold transition-all ${
+                          playWager === w
+                            ? "border-sky-400 bg-sky-400/15 text-white"
+                            : "border-white/10 bg-transparent text-slate-300 hover:border-white/20"
+                        }`}
                       >
                         {w} XLM
                       </button>
@@ -1290,23 +1278,12 @@ export const GameLobby: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ marginTop: "1rem" }}>
+                <div className="mt-2">
                   <button
                     type="button"
                     onClick={handleExecutePlay}
                     disabled={isExecutingPlay}
-                    style={{
-                      width: "100%",
-                      padding: "0.875rem",
-                      borderRadius: "8px",
-                      background: "var(--sc-accent, #38bdf8)",
-                      color: "#000",
-                      fontWeight: 700,
-                      fontSize: "1rem",
-                      border: "none",
-                      cursor: isExecutingPlay ? "not-allowed" : "pointer",
-                      opacity: isExecutingPlay ? 0.7 : 1,
-                    }}
+                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-sky-400 to-teal-400 text-black font-bold text-base shadow-lg shadow-sky-400/20 hover:brightness-110 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                     data-testid="btn-confirm-bet"
                   >
                     {isExecutingPlay
