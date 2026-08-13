@@ -17,6 +17,7 @@
   "nav.terms": "Terms",
   "nav.privacy": "Privacy",
   "section.play": "Play",
+  "section.account": "Account",
   "section.vault": "Account",
   "section.system": "More",
   "common.connect_wallet": "Connect Wallet",
@@ -43,6 +44,7 @@
   "lobby.welcome": "Welcome to StellarCade",
   "lobby.description": "Decentralized, provably fair gaming on Stellar and Soroban",
   "footer.copyright": "© 2026 StellarCade. All rights reserved.",
+  "footer.about": "About",
   "footer.terms": "Terms",
   "footer.privacy": "Privacy",
   "locale.reset": "Reset to Default"
