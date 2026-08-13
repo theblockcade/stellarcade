@@ -144,7 +144,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
     <>
       <button
         type="button"
-        className="app-sidebar__mobile-toggle"
+        className="lg:hidden fixed top-3 left-3 z-40 px-3 py-1.5 rounded-lg bg-slate-900/90 border border-white/10 text-white font-bold text-xs shadow-lg app-sidebar__mobile-toggle"
         aria-label="Open navigation menu"
         aria-controls="primary-dashboard-navigation"
         aria-expanded={isMobileOpen}
@@ -157,23 +157,25 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
       <nav
         id="primary-dashboard-navigation"
         role="navigation"
-        className={`app-sidebar ${isCollapsed ? "is-collapsed" : ""} ${isMobileOpen ? "is-mobile-open" : ""}`.trim()}
+        className={`fixed lg:sticky top-0 left-0 h-screen bg-slate-950/90 backdrop-blur-xl border-r border-white/10 flex flex-col z-50 transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} app-sidebar ${isCollapsed ? "is-collapsed" : ""} ${isMobileOpen ? "is-mobile-open" : ""}`.trim()}
         aria-label="Primary dashboard"
         aria-hidden={isClosedMobileNavigation ? true : undefined}
         data-testid="app-sidebar"
         inert={isClosedMobileNavigation || undefined}
       >
-        <div className="app-sidebar__header">
-          <div className="app-sidebar__brand">
-            <div className="app-sidebar__logo-badge">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 app-sidebar__header">
+          <div className="flex items-center gap-2.5 app-sidebar__brand">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center text-black font-extrabold shadow-md shadow-teal-500/20 app-sidebar__logo-badge">
               <Sparkles size={16} />
             </div>
-            <h2 className="app-sidebar__title">StellarCade</h2>
+            {!isCollapsed && (
+              <h2 className="text-base font-extrabold tracking-tight text-white app-sidebar__title">StellarCade</h2>
+            )}
           </div>
-          <div className="app-sidebar__controls">
+          <div className="flex items-center gap-1 app-sidebar__controls">
             <button
               type="button"
-              className="app-sidebar__icon-button app-sidebar__desktop-collapse"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors app-sidebar__icon-button app-sidebar__desktop-collapse"
               onClick={() => setIsCollapsed((prev) => !prev)}
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               data-testid="app-sidebar-collapse-toggle"
@@ -182,7 +184,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
             </button>
             <button
               type="button"
-              className="app-sidebar__icon-button app-sidebar__mobile-close"
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors app-sidebar__icon-button app-sidebar__mobile-close"
               onClick={() => setIsMobileOpen(false)}
               aria-label="Close navigation menu"
               data-testid="app-sidebar-mobile-close"
@@ -194,24 +196,24 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
 
         {/* PROMINENT TOP PLAYER PROFILE CARD */}
         {!isCollapsed && (
-          <div className="app-sidebar__profile-container">
+          <div className="p-3 app-sidebar__profile-container">
             <button
               type="button"
               onClick={() => handleNavigate("profile")}
-              className={`app-sidebar__profile-card ${currentRoute === "profile" ? "is-active" : ""}`}
+              className={`w-full flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-white/10 hover:border-teal-400/50 hover:bg-slate-900 transition-all text-left group app-sidebar__profile-card ${currentRoute === "profile" ? "border-teal-400 bg-teal-400/10 is-active" : ""}`}
               data-testid="sidebar-profile-card"
             >
-              <div className="app-sidebar__profile-identity">
-                <div className="app-sidebar__profile-avatar">
+              <div className="flex items-center gap-3 app-sidebar__profile-identity">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center text-black font-bold shrink-0 app-sidebar__profile-avatar">
                   <User size={18} />
                 </div>
-                <div className="app-sidebar__profile-meta">
-                  <strong className="app-sidebar__profile-name">
+                <div className="flex flex-col min-w-0 app-sidebar__profile-meta">
+                  <strong className="text-sm font-semibold text-white truncate app-sidebar__profile-name">
                     {profileDisplayName}
                   </strong>
-                  <span className="app-sidebar__profile-status">
+                  <span className="flex items-center gap-1.5 text-xs text-slate-400 app-sidebar__profile-status">
                     {mounted && wallet.capabilities.isConnected && (
-                      <span className="app-sidebar__profile-dot" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse app-sidebar__profile-dot" />
                     )}
                     {mounted && wallet.capabilities.isConnected
                       ? t("common.connected", "Connected")
@@ -219,18 +221,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                   </span>
                 </div>
               </div>
-              <ChevronRight size={14} className="app-sidebar__profile-arrow" />
+              <ChevronRight size={14} className="text-slate-400 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all app-sidebar__profile-arrow" />
             </button>
           </div>
         )}
 
-        <div className="app-sidebar__nav-groups">
+        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4 app-sidebar__nav-groups">
           {SECTION_CONFIGS.map((section) => (
-            <div key={section.id} className="app-sidebar__section">
-              <h3 className="app-sidebar__section-title">
-                {t(section.titleKey, section.defaultTitle)}
-              </h3>
-              <ul className="app-sidebar__list">
+            <div key={section.id} className="flex flex-col gap-1 app-sidebar__section">
+              {!isCollapsed && (
+                <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 app-sidebar__section-title">
+                  {t(section.titleKey, section.defaultTitle)}
+                </h3>
+              )}
+              <ul className="flex flex-col gap-1 app-sidebar__list">
                 {section.items.map((item) => {
                   const isActive = item.route === currentRoute;
                   const label = t(item.labelKey, item.defaultLabel);
@@ -238,16 +242,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                     <li key={item.route}>
                       <button
                         type="button"
-                        className={`app-sidebar__link ${isActive ? "is-active" : ""}`.trim()}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${isActive ? "bg-teal-400/15 text-teal-300 font-semibold border border-teal-400/30 is-active" : "text-slate-400 hover:text-white hover:bg-white/5"} app-sidebar__link`.trim()}
                         onClick={() => handleNavigate(item.route)}
                         aria-current={isActive ? "page" : undefined}
                         title={label}
                         data-testid={`app-sidebar-link-${item.route}`}
                       >
-                        <span className="app-sidebar__icon">
+                        <span className="shrink-0 app-sidebar__icon">
                           {item.icon}
                         </span>
-                        <span className="app-sidebar__label">{label}</span>
+                        {!isCollapsed && (
+                          <span className="truncate app-sidebar__label">{label}</span>
+                        )}
                       </button>
                     </li>
                   );
