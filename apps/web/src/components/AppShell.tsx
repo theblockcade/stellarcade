@@ -249,13 +249,13 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
   ];
 
   return (
-    <div className="app-container">
+    <div className="flex min-h-screen bg-slate-950 text-slate-100 app-container">
       <CommandPalette commands={commands} />
       <NotificationCenter />
 
       <a
         href={`#${MAIN_CONTENT_ID}`}
-        className="skip-link"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-teal-400 focus:text-black focus:font-bold focus:rounded-lg skip-link"
         onClick={(event) => {
           const mainContent = document.getElementById(MAIN_CONTENT_ID);
           if (!mainContent) return;
@@ -270,38 +270,38 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       <AppSidebar currentRoute={route} onNavigate={handleNavigate} />
 
-      <div className="app-main-layout">
-        <header className="app-header" role="banner">
-          <div className="app-header__left">
+      <div className="flex-1 flex flex-col min-w-0 app-main-layout">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-slate-950/80 backdrop-blur-md border-b border-white/10 app-header" role="banner">
+          <div className="flex items-center gap-4 app-header__left">
             <Breadcrumbs />
             <button
               type="button"
               onClick={() => commandStore.dispatch({ type: "COMMAND_PALETTE_OPEN" })}
-              className="app-header__search-btn"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 hover:border-teal-400/40 transition-colors text-xs text-slate-400 app-header__search-btn"
               aria-label="Open command palette (⌘K)"
             >
-              <Search size={14} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-              <span className="app-header__search-placeholder">Quick search...</span>
-              <kbd className="app-header__search-kbd">⌘K</kbd>
+              <Search size={14} className="text-teal-300" />
+              <span className="hidden sm:inline app-header__search-placeholder">Quick search...</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-slate-300 app-header__search-kbd">⌘K</kbd>
             </button>
           </div>
-          <div className="app-header__actions">
+          <div className="flex items-center gap-3 app-header__actions">
             <HeaderWalletControl />
           </div>
         </header>
 
-        <main className="app-content" id={MAIN_CONTENT_ID} tabIndex={-1}>
+        <main className="flex-1 p-6 outline-none app-content" id={MAIN_CONTENT_ID} tabIndex={-1}>
           <RouteErrorBoundary>{children}</RouteErrorBoundary>
         </main>
 
-        <footer className="app-footer" role="contentinfo">
-          <div className="footer-content">
+        <footer className="px-6 py-4 border-t border-white/10 text-xs text-slate-500 app-footer" role="contentinfo">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 max-w-7xl mx-auto footer-content">
             <p>{t("footer.copyright", "© 2026 StellarCade. All rights reserved.")}</p>
 
-            <div className="footer-links">
-              <a href="/about">{t("footer.about", "About")}</a>
-              <a href="/terms">{t("footer.terms", "Terms")}</a>
-              <a href="/privacy">{t("footer.privacy", "Privacy")}</a>
+            <div className="flex items-center gap-4 font-semibold text-slate-400 footer-links">
+              <a href="/about" className="hover:text-teal-300 transition-colors">{t("footer.about", "About")}</a>
+              <a href="/terms" className="hover:text-teal-300 transition-colors">{t("footer.terms", "Terms")}</a>
+              <a href="/privacy" className="hover:text-teal-300 transition-colors">{t("footer.privacy", "Privacy")}</a>
             </div>
           </div>
         </footer>
