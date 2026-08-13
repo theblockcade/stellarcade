@@ -32,14 +32,14 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-sidebar-link-settings")).toHaveAttribute("aria-current", "page");
   });
 
-  it("highlights the portfolio link when on /portfolio", () => {
-    currentPathname = "/portfolio";
+  it("highlights the profile link when on /profile", () => {
+    currentPathname = "/profile";
     render(
       <AppShell>
         <div>content</div>
       </AppShell>,
     );
-    expect(screen.getByTestId("app-sidebar-link-portfolio")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("app-sidebar-link-profile")).toHaveAttribute("aria-current", "page");
   });
 
   it("navigates via router.push when a sidebar link is clicked", () => {
