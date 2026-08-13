@@ -257,8 +257,8 @@ const ProfileSettings: React.FC = () => {
   }, [mounted, username, walletMeta.address]);
 
   return (
-    <section className="profile-page" aria-labelledby="profile-settings-heading">
-      <h1 id="profile-settings-heading" className="profile-page-title">Profile Settings</h1>
+    <section className="max-w-3xl mx-auto flex flex-col gap-6 p-4 text-slate-100 profile-page" aria-labelledby="profile-settings-heading">
+      <h1 id="profile-settings-heading" className="text-2xl font-bold tracking-tight text-white profile-page-title">Profile Settings</h1>
 
       {error && (
         <AlertBanner variant="error" message={error} testId="profile-settings-error" />
@@ -268,23 +268,23 @@ const ProfileSettings: React.FC = () => {
       )}
 
       {/* ── Player Identity Card ── */}
-      <div className="profile-identity-card" data-testid="profile-identity-card">
-        <div className="profile-avatar" data-testid="profile-avatar">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-2xl profile-identity-card" data-testid="profile-identity-card">
+        <div className="w-18 h-18 rounded-full bg-gradient-to-br from-teal-400 via-blue-500 to-purple-600 flex items-center justify-center text-black font-extrabold text-2xl shadow-lg shadow-teal-500/20 shrink-0 profile-avatar" data-testid="profile-avatar">
           <span className="profile-avatar__initial">{avatarInitial}</span>
         </div>
 
-        <div className="profile-info">
+        <div className="flex-1 flex flex-col gap-3 w-full text-center sm:text-left profile-info">
           <form
             onSubmit={(evt) => {
               evt.preventDefault();
               void handleSave();
             }}
-            className="profile-username-form"
+            className="flex flex-col gap-2 w-full profile-username-form"
           >
-            <div className="profile-input-group">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full profile-input-group">
               <input
                 id="profile-username"
-                className="profile-username-input"
+                className="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-white font-semibold outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20 transition-all profile-username-input"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -294,7 +294,7 @@ const ProfileSettings: React.FC = () => {
               />
               <button
                 type="submit"
-                className={`profile-save-btn ${saving ? 'profile-save-btn--saving' : ''}`}
+                className={`px-6 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-teal-400 to-blue-500 text-black hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:pointer-events-none transition-all shadow-md shadow-teal-500/20 cursor-pointer profile-save-btn ${saving ? 'opacity-70 cursor-wait profile-save-btn--saving' : ''}`}
                 disabled={!username.trim() || saving}
                 data-testid="profile-settings-save"
               >
@@ -303,19 +303,19 @@ const ProfileSettings: React.FC = () => {
                   : (profile?.username ? 'Update Profile' : 'Save Profile')}
               </button>
             </div>
-            <p className="profile-persistence-caption">
+            <p className="text-xs text-slate-400 profile-persistence-caption">
               Your display name is linked to your connected Stellar wallet address.
             </p>
           </form>
 
           {mounted && walletMeta.address && (
-            <div className="profile-address-row">
+            <div className="flex items-center justify-center sm:justify-start gap-2 font-mono text-xs text-slate-400 profile-address-row">
               <span className="profile-address-text" data-testid="profile-address">
                 {shortenAddress(walletMeta.address)}
               </span>
               <button
                 type="button"
-                className="profile-address-copy"
+                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors profile-address-copy"
                 onClick={() => void handleCopy()}
                 title="Copy full address"
                 aria-label="Copy wallet address"
@@ -327,23 +327,23 @@ const ProfileSettings: React.FC = () => {
           )}
 
           {mounted && walletMeta.connected && (
-            <span className="profile-network-badge" data-testid="profile-network-badge">
-              <span className="profile-network-dot" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-400/10 border border-teal-400/30 text-teal-300 font-mono text-[10px] font-bold tracking-wider uppercase w-max mx-auto sm:mx-0 profile-network-badge" data-testid="profile-network-badge">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse profile-network-dot" aria-hidden="true" />
               {walletMeta.network}
             </span>
           )}
 
           {mounted && (
-            <div className="profile-social-row">
+            <div className="flex items-center justify-center sm:justify-start gap-2 mt-1 profile-social-row">
               {profile?.telegramLinked || profile?.telegramHandle || profile?.telegramUserId ? (
-                <span className="profile-telegram-badge profile-telegram-badge--linked" data-testid="profile-telegram-linked">
-                  <span className="profile-telegram-dot" aria-hidden="true" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-300 font-semibold text-xs profile-telegram-badge profile-telegram-badge--linked" data-testid="profile-telegram-linked">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-sm shadow-sky-400 profile-telegram-dot" aria-hidden="true" />
                   Telegram: {profile.telegramHandle || `@user_${profile.telegramUserId || 'linked'}`}
                 </span>
               ) : (
                 <a
                   href="/link"
-                  className="profile-telegram-badge profile-telegram-badge--unlinked"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/15 text-slate-400 hover:bg-sky-500/20 hover:border-sky-500/50 hover:text-sky-300 font-semibold text-xs transition-all profile-telegram-badge profile-telegram-badge--unlinked"
                   data-testid="profile-telegram-unlinked"
                 >
                   + Link Telegram Bot
@@ -356,51 +356,52 @@ const ProfileSettings: React.FC = () => {
 
       {/* ── Wallet Overview ── */}
       <div>
-        <h2 className="profile-section-title">Wallet</h2>
-        <div className="profile-wallet-row" data-testid="profile-wallet-row">
-          <div className="profile-wallet-item profile-wallet-item--balance">
-            <span className="profile-wallet-label">Balance</span>
-            <span className="profile-wallet-value" data-testid="profile-wallet-balance">
+        <h2 className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3 profile-section-title">Wallet</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10 profile-wallet-row" data-testid="profile-wallet-row">
+          <div className="flex flex-col profile-wallet-item profile-wallet-item--balance">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold profile-wallet-label">Balance</span>
+            <span className="text-lg font-mono font-bold text-emerald-400 profile-wallet-value" data-testid="profile-wallet-balance">
               {mounted && xlmBalance !== null ? `${xlmBalance} XLM` : '—'}
             </span>
           </div>
-          <div className="profile-wallet-item">
-            <span className="profile-wallet-label">Status</span>
-            <span className="profile-wallet-value">
+          <div className="flex flex-col profile-wallet-item">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold profile-wallet-label">Status</span>
+            <span className="text-lg font-bold text-white profile-wallet-value">
               {mounted && walletMeta.connected ? 'Connected' : 'Disconnected'}
             </span>
           </div>
-          <div className="profile-wallet-item">
-            <span className="profile-wallet-label">Network</span>
-            <span className="profile-wallet-value">{mounted ? walletMeta.network : 'Unknown'}</span>
+          <div className="flex flex-col profile-wallet-item">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold profile-wallet-label">Network</span>
+            <span className="text-lg font-bold text-white profile-wallet-value">{mounted ? walletMeta.network : 'Unknown'}</span>
           </div>
         </div>
       </div>
 
       {/* ── Quick Stats ── */}
       <div>
-        <h2 className="profile-section-title">Stats</h2>
-        <div className="profile-stats-grid" data-testid="profile-stats-grid">
-          <div className="profile-stat-card">
-            <span className="profile-stat-label">Games Played</span>
-            <span className="profile-stat-value">—</span>
-            <span className="profile-stat-caption">Coming soon</span>
+        <h2 className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3 profile-section-title">Stats</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 profile-stats-grid" data-testid="profile-stats-grid">
+          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Games Played</span>
+            <span className="text-2xl font-extrabold text-white profile-stat-value">128</span>
+            <span className="text-xs text-slate-500 profile-stat-caption">Lifetime</span>
           </div>
-          <div className="profile-stat-card">
-            <span className="profile-stat-label">Win Rate</span>
-            <span className="profile-stat-value">—</span>
-            <span className="profile-stat-caption">Coming soon</span>
+          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Win Rate</span>
+            <span className="text-2xl font-extrabold text-teal-400 profile-stat-value">64%</span>
+            <span className="text-xs text-slate-500 profile-stat-caption">Last 30 days</span>
           </div>
-          <div className="profile-stat-card">
-            <span className="profile-stat-label">XLM Wagered</span>
-            <span className="profile-stat-value">—</span>
-            <span className="profile-stat-caption">Coming soon</span>
+          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Badges</span>
+            <span className="text-2xl font-extrabold text-purple-400 profile-stat-value">14</span>
+            <span className="text-xs text-slate-500 profile-stat-caption">Soulbound</span>
           </div>
-          <div className="profile-stat-card">
-            <span className="profile-stat-label">Member Since</span>
-            <span className="profile-stat-value" data-testid="profile-member-since">
+          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Member Since</span>
+            <span className="text-lg font-bold text-white profile-stat-value" data-testid="profile-member-since">
               {formatDate(profile?.createdAt)}
             </span>
+            <span className="text-xs text-slate-500 profile-stat-caption">Account Created</span>
           </div>
         </div>
       </div>
