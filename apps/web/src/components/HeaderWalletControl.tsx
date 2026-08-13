@@ -29,6 +29,13 @@ function shortenAddress(address: string): string {
 export const HeaderWalletControl: React.FC = () => {
   const wallet = useWalletStatus();
   const [copied, setCopied] = useState(false);
+  // Prevents hydration mismatch: SSR always renders the disconnected view,
+  // then the client switches to the connected view after mount.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleConnect = useCallback(() => {
     // The adapter has to be passed explicitly — useWalletStatus only installs
@@ -90,7 +97,7 @@ export const HeaderWalletControl: React.FC = () => {
     };
   }, [wallet.capabilities.isConnected, wallet.address, wallet.network]);
 
-  if (wallet.capabilities.isConnected && wallet.address) {
+  if (mounted && wallet.capabilities.isConnected && wallet.address) {
     return (
       <div className="hwc" data-testid="header-wallet-connected">
         <div className="hwc__identity">
@@ -107,7 +114,7 @@ export const HeaderWalletControl: React.FC = () => {
             data-testid="header-wallet-address"
           >
             <span>{shortenAddress(wallet.address)}</span>
-            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="hwc__icon-success" /> : <Copy size={13} />}
           </button>
           {wallet.network && (
             <span className="hwc__network" data-testid="header-wallet-network">
@@ -115,19 +122,19 @@ export const HeaderWalletControl: React.FC = () => {
               {wallet.network}
             </span>
           )}
+          <span className="hwc__divider" aria-hidden="true" />
+          <button
+            type="button"
+            className="hwc__disconnect-btn"
+            onClick={() => void wallet.disconnect()}
+            aria-label="Disconnect wallet"
+            title="Disconnect wallet"
+            data-testid="header-wallet-disconnect"
+          >
+            <LogOut size={14} />
+            <span className="hwc__disconnect-label">Disconnect</span>
+          </button>
         </div>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={() => void wallet.disconnect()}
-          aria-label="Disconnect wallet"
-          data-testid="header-wallet-disconnect"
-        >
-          <LogOut size={15} />
-          <span className="hwc__disconnect-label">Disconnect</span>
-        </Button>
       </div>
     );
   }
@@ -167,3 +174,4 @@ export const HeaderWalletControl: React.FC = () => {
 };
 
 export default HeaderWalletControl;
+
