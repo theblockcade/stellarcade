@@ -338,12 +338,11 @@ export class ApiClient {
     let timedOut = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    if (opts.timeout !== undefined) {
-      timeoutId = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-      }, opts.timeout);
-    }
+    const effectiveTimeout = opts.timeout ?? 5000;
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, effectiveTimeout);
 
     if (opts.signal) {
       opts.signal.addEventListener('abort', () => {
