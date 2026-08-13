@@ -99,40 +99,40 @@ export const HeaderWalletControl: React.FC = () => {
 
   if (mounted && wallet.capabilities.isConnected && wallet.address) {
     return (
-      <div className="hwc" data-testid="header-wallet-connected">
-        <div className="hwc__identity">
+      <div className="flex items-center gap-2 p-1.5 rounded-full bg-slate-900/80 border border-white/10 text-slate-100 hwc" data-testid="header-wallet-connected">
+        <div className="flex items-center gap-2 text-xs font-semibold hwc__identity">
           {xlmBalance !== null && (
-            <span className="hwc__balance" data-testid="header-wallet-balance">
+            <span className="font-mono text-emerald-400 font-bold px-2 py-0.5 rounded-md bg-emerald-400/10 hwc__balance" data-testid="header-wallet-balance">
               {xlmBalance} XLM
             </span>
           )}
           <button
             type="button"
-            className="hwc__address"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 hover:border-teal-400/50 hover:bg-black/60 transition-all font-mono text-slate-200 hwc__address"
             onClick={() => void handleCopy()}
             title={`${wallet.address} — click to copy`}
             data-testid="header-wallet-address"
           >
             <span>{shortenAddress(wallet.address)}</span>
-            {copied ? <Check size={13} className="hwc__icon-success" /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="text-emerald-400 hwc__icon-success" /> : <Copy size={13} />}
           </button>
           {wallet.network && (
-            <span className="hwc__network" data-testid="header-wallet-network">
-              <span className="hwc__pulse" aria-hidden="true" />
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-400/10 border border-teal-400/30 text-teal-300 font-mono text-[10px] font-bold tracking-wider uppercase hwc__network" data-testid="header-wallet-network">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse hwc__pulse" aria-hidden="true" />
               {wallet.network}
             </span>
           )}
-          <span className="hwc__divider" aria-hidden="true" />
+          <span className="w-px h-4 bg-white/15 hwc__divider" aria-hidden="true" />
           <button
             type="button"
-            className="hwc__disconnect-btn"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors hwc__disconnect-btn"
             onClick={() => void wallet.disconnect()}
             aria-label="Disconnect wallet"
             title="Disconnect wallet"
             data-testid="header-wallet-disconnect"
           >
             <LogOut size={14} />
-            <span className="hwc__disconnect-label">Disconnect</span>
+            <span className="hidden sm:inline hwc__disconnect-label">Disconnect</span>
           </button>
         </div>
       </div>
@@ -142,7 +142,7 @@ export const HeaderWalletControl: React.FC = () => {
   const isBusy = wallet.capabilities.isConnecting || wallet.capabilities.isReconnecting;
 
   return (
-    <div className="hwc" data-testid="header-wallet-disconnected">
+    <div className="flex items-center gap-2 hwc" data-testid="header-wallet-disconnected">
       {wallet.status === "PROVIDER_MISSING" ? (
         <Button asChild size="sm" variant="brand-outline" data-testid="header-wallet-install">
           <a href="https://www.freighter.app/" target="_blank" rel="noreferrer noopener">
@@ -165,7 +165,7 @@ export const HeaderWalletControl: React.FC = () => {
       )}
 
       {wallet.error && wallet.error.recoverable && (
-        <span className="hwc__error" role="status" data-testid="header-wallet-error">
+        <span className="text-xs text-red-400 hwc__error" role="status" data-testid="header-wallet-error">
           {wallet.error.message}
         </span>
       )}
