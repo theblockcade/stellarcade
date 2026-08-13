@@ -48,7 +48,9 @@ export const Drawer: React.FC<DrawerProps> = ({
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.6)",
+          background: "rgba(0, 0, 0, 0.75)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
           zIndex: 9000,
         }}
         aria-hidden="true"
@@ -64,11 +66,12 @@ export const Drawer: React.FC<DrawerProps> = ({
           top: 0,
           bottom: 0,
           [side]: 0,
-          width: "360px",
+          width: "380px",
           maxWidth: "90vw",
-          background: "var(--sc-bg-card, #11161e)",
-          borderLeft: side === "right" ? "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))" : "none",
-          borderRight: side === "left" ? "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))" : "none",
+          background: "#0d0f17",
+          boxShadow: side === "right" ? "-10px 0 35px rgba(0, 0, 0, 0.6)" : "10px 0 35px rgba(0, 0, 0, 0.6)",
+          borderLeft: side === "right" ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
+          borderRight: side === "left" ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
           zIndex: 9001,
           display: "flex",
           flexDirection: "column",
