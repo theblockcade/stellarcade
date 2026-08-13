@@ -16,7 +16,7 @@ const walletStatusState = vi.hoisted((): any => ({
   isRefreshing: false,
 }));
 
-vi.mock('@/hooks/v1/useWalletStatus', () => ({
+vi.mock('@/hooks/useWalletStatus', () => ({
   useWalletStatus: () => walletStatusState,
 }));
 
@@ -48,7 +48,7 @@ describe('ProfileSettings page', () => {
     profileStore.dispatch({ type: 'PROFILE_CLEAR' });
   });
 
-  it('loads profile data and displays values', async () => {
+  it('loads profile data and displays username in the input', async () => {
     mockGetProfile.mockResolvedValueOnce({
       success: true,
       data: {
@@ -61,7 +61,6 @@ describe('ProfileSettings page', () => {
     render(<ProfileSettings />);
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('GABC123')).toBeInTheDocument();
       expect(screen.getByDisplayValue('alice')).toBeInTheDocument();
     });
   });
@@ -83,21 +82,15 @@ describe('ProfileSettings page', () => {
         screen.getByRole('heading', { level: 1, name: 'Profile Settings' }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('region', { name: 'Profile Settings' }),
+        screen.getByTestId('profile-identity-card'),
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId('profile-settings-actions-footer'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('profile-settings-reward-trend-grid'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('profile-settings-overview-stats'),
+        screen.getByTestId('profile-stats-grid'),
       ).toBeInTheDocument();
     });
   });
 
-  it('renders mini reward trend cards with empty fallback when wallet is disconnected', async () => {
+  it('renders wallet info and stats grid when connected', async () => {
     mockGetProfile.mockResolvedValueOnce({
       success: true,
       data: {
@@ -107,22 +100,16 @@ describe('ProfileSettings page', () => {
       },
     });
 
-    walletStatusState.address = null;
-    walletStatusState.network = null;
-    walletStatusState.provider = null;
-    walletStatusState.capabilities = { isConnected: false };
-    walletStatusState.status = 'disconnected';
-    walletStatusState.lastUpdatedAt = null;
-
     render(<ProfileSettings />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('profile-settings-reward-earned')).toBeInTheDocument();
-      expect(screen.getByTestId('profile-settings-reward-bonus-empty')).toBeInTheDocument();
+      expect(screen.getByTestId('profile-wallet-row')).toBeInTheDocument();
+      expect(screen.getByTestId('profile-network-badge')).toBeInTheDocument();
+      expect(screen.getByText('Connected')).toBeInTheDocument();
     });
   });
 
-  it('saves successfully with optimism and shows success state', async () => {
+  it('saves successfully and shows success state', async () => {
     mockGetProfile.mockResolvedValueOnce({
       success: true,
       data: {
@@ -144,15 +131,12 @@ describe('ProfileSettings page', () => {
 
     await waitFor(() => expect(screen.getByDisplayValue('alice')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByLabelText(/username/i), {
+    fireEvent.change(screen.getByTestId('profile-username-input'), {
       target: { value: 'alice_updated' },
     });
     expect(screen.getByDisplayValue('alice_updated')).toBeInTheDocument();
-    expect(screen.getByTestId('profile-settings-draft-indicator')).toBeInTheDocument();
-    expect(screen.getByTestId('profile-settings-save')).toBeDisabled();
-    fireEvent.click(screen.getByLabelText('I reviewed the username change.'));
-    fireEvent.click(screen.getByLabelText('I verified wallet ownership and profile identity.'));
 
+    // Save button appears when there are draft changes — no checklist needed
     fireEvent.click(screen.getByTestId('profile-settings-save'));
 
     await waitFor(() => {
@@ -162,31 +146,7 @@ describe('ProfileSettings page', () => {
     });
   });
 
-  it('supports discarding the draft marker state', async () => {
-    mockGetProfile.mockResolvedValueOnce({
-      success: true,
-      data: {
-        address: 'GABC123',
-        username: 'alice',
-        createdAt: '2025-01-01T12:00:00Z',
-      },
-    });
-
-    render(<ProfileSettings />);
-
-    await waitFor(() => expect(screen.getByDisplayValue('alice')).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText(/username/i), {
-      target: { value: 'alice_changed' },
-    });
-    fireEvent.click(screen.getByTestId('profile-settings-draft-indicator-discard'));
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue('alice')).toBeInTheDocument();
-      expect(screen.queryByTestId('profile-settings-review-checklist')).not.toBeInTheDocument();
-    });
-  });
-
-  it('reverts on save failure and shows error', async () => {
+  it('shows error banner when cloud update fails', async () => {
     mockGetProfile.mockResolvedValueOnce({
       success: true,
       data: {
@@ -209,17 +169,50 @@ describe('ProfileSettings page', () => {
 
     await waitFor(() => expect(screen.getByDisplayValue('alice')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByLabelText(/username/i), {
-      target: { value: 'alice_fail' },
+    fireEvent.change(screen.getByTestId('profile-username-input'), {
+      target: { value: 'alice_offline' },
     });
-    fireEvent.click(screen.getByLabelText('I reviewed the username change.'));
-    fireEvent.click(screen.getByLabelText('I verified wallet ownership and profile identity.'));
 
     fireEvent.click(screen.getByTestId('profile-settings-save'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('profile-settings-error')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('alice')).toBeInTheDocument();
+      expect(screen.getByTestId('profile-settings-error')).toHaveTextContent(/Server failure/i);
+    });
+  });
+
+  it('shows avatar initial from username', async () => {
+    mockGetProfile.mockResolvedValueOnce({
+      success: true,
+      data: {
+        address: 'GABC123',
+        username: 'alice',
+        createdAt: '2025-01-01T12:00:00Z',
+      },
+    });
+
+    render(<ProfileSettings />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-avatar')).toHaveTextContent('A');
+    });
+  });
+
+  it('displays member since date from profile createdAt', async () => {
+    mockGetProfile.mockResolvedValueOnce({
+      success: true,
+      data: {
+        address: 'GABC123',
+        username: 'alice',
+        createdAt: '2025-01-01T12:00:00Z',
+      },
+    });
+
+    render(<ProfileSettings />);
+
+    await waitFor(() => {
+      const memberSince = screen.getByTestId('profile-member-since');
+      // Should show a formatted date, not "—"
+      expect(memberSince.textContent).not.toBe('—');
     });
   });
 });
