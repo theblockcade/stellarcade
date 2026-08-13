@@ -91,7 +91,7 @@ const ProfileSettings: React.FC = () => {
           createdAt: new Date().toISOString(),
         };
         setProfile(localProfile);
-        setUsername(localProfile.username);
+        setUsername(localProfile.username ?? '');
       } else {
         setError(result.error.message);
       }
@@ -171,7 +171,7 @@ const ProfileSettings: React.FC = () => {
           };
           console.log('[ProfileSettings] Using default wallet profile:', defaultProfile);
           setProfile(defaultProfile);
-          setUsername(defaultProfile.username);
+          setUsername(defaultProfile.username ?? '');
         }
       }
 
