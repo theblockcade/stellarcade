@@ -8,7 +8,8 @@
  */
 :root {
   --sc-bg-dark: #050505;
-  --sc-bg-card: rgba(255, 255, 255, 0.05);
+  --sc-bg-card: rgba(18, 22, 34, 0.95);
+  --sc-bg-surface: #0d0f17;
 
   --sc-accent: #00ffcc;
   --sc-accent-glow: rgba(0, 255, 204, 0.4);

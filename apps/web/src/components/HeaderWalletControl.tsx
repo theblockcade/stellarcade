@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2, LogOut, Wallet } from "lucide-react";
 import { useWalletStatus } from "../hooks/useWalletStatus";
 import defaultFreighterAdapter from "../services/freighter-adapter";
@@ -29,12 +29,22 @@ function shortenAddress(address: string): string {
 export const HeaderWalletControl: React.FC = () => {
   const wallet = useWalletStatus();
   const [copied, setCopied] = useState(false);
+  // Prevents hydration mismatch: SSR always renders the disconnected view,
+  // then the client switches to the connected view after mount.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleConnect = useCallback(() => {
     // The adapter has to be passed explicitly — useWalletStatus only installs
     // a provider when one is supplied, which is why bare connect() calls
     // elsewhere in the app silently did nothing.
-    void wallet.connect(defaultFreighterAdapter);
+    const res = wallet.connect(defaultFreighterAdapter);
+    if (res && typeof (res as unknown as Promise<void>).catch === "function") {
+      void (res as unknown as Promise<void>).catch(() => {});
+    }
   }, [wallet]);
 
   const handleCopy = useCallback(async () => {
@@ -49,10 +59,53 @@ export const HeaderWalletControl: React.FC = () => {
     }
   }, [wallet.address]);
 
-  if (wallet.capabilities.isConnected && wallet.address) {
+  const [xlmBalance, setXlmBalance] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!wallet.capabilities.isConnected || !wallet.address) {
+      setXlmBalance(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchBalance = async () => {
+      try {
+        const network = (wallet.network || "").toUpperCase();
+        const isTestnet = network.includes("TEST");
+        const horizonUrl = isTestnet
+          ? "https://horizon-testnet.stellar.org"
+          : "https://horizon.stellar.org";
+
+        const res = await fetch(`${horizonUrl}/accounts/${wallet.address}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { balances?: Array<{ asset_type: string; balance: string }> };
+        const native = data.balances?.find((b) => b.asset_type === "native");
+        if (native && isMounted) {
+          const num = parseFloat(native.balance);
+          setXlmBalance(num.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+        }
+      } catch {
+        // Non-fatal degradation if horizon fails or account uncreated
+      }
+    };
+
+    void fetchBalance();
+    const interval = setInterval(() => void fetchBalance(), 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [wallet.capabilities.isConnected, wallet.address, wallet.network]);
+
+  if (mounted && wallet.capabilities.isConnected && wallet.address) {
     return (
       <div className="hwc" data-testid="header-wallet-connected">
         <div className="hwc__identity">
+          {xlmBalance !== null && (
+            <span className="hwc__balance" data-testid="header-wallet-balance">
+              {xlmBalance} XLM
+            </span>
+          )}
           <button
             type="button"
             className="hwc__address"
@@ -61,7 +114,7 @@ export const HeaderWalletControl: React.FC = () => {
             data-testid="header-wallet-address"
           >
             <span>{shortenAddress(wallet.address)}</span>
-            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="hwc__icon-success" /> : <Copy size={13} />}
           </button>
           {wallet.network && (
             <span className="hwc__network" data-testid="header-wallet-network">
@@ -69,19 +122,19 @@ export const HeaderWalletControl: React.FC = () => {
               {wallet.network}
             </span>
           )}
+          <span className="hwc__divider" aria-hidden="true" />
+          <button
+            type="button"
+            className="hwc__disconnect-btn"
+            onClick={() => void wallet.disconnect()}
+            aria-label="Disconnect wallet"
+            title="Disconnect wallet"
+            data-testid="header-wallet-disconnect"
+          >
+            <LogOut size={14} />
+            <span className="hwc__disconnect-label">Disconnect</span>
+          </button>
         </div>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={() => void wallet.disconnect()}
-          aria-label="Disconnect wallet"
-          data-testid="header-wallet-disconnect"
-        >
-          <LogOut size={15} />
-          <span className="hwc__disconnect-label">Disconnect</span>
-        </Button>
       </div>
     );
   }
@@ -121,3 +174,4 @@ export const HeaderWalletControl: React.FC = () => {
 };
 
 export default HeaderWalletControl;
+

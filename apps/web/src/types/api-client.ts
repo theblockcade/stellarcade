@@ -100,6 +100,9 @@ export interface PlayGameResponse {
 export interface UserProfile {
   address: string;
   username?: string;
+  telegramHandle?: string;
+  telegramUserId?: string;
+  telegramLinked?: boolean;
   createdAt: string;
 }
 

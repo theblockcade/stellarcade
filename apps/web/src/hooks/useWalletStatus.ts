@@ -123,38 +123,40 @@ function mapToStatusError(error: Error | null): WalletStatusError | null {
   };
 }
 
+const defaultService = new WalletSessionService();
+
 export function useWalletStatus(
   service?: WalletSessionService,
 ): UseWalletStatusReturn {
-  const svcRef = useRef<WalletSessionService | null>(service ?? null);
-  if (!svcRef.current) {
-    svcRef.current = new WalletSessionService();
-  }
+  const svc = service ?? defaultService;
 
-  const [sessionState, setSessionState] = useState<WalletSessionState>(
-    svcRef.current.getState(),
+  const [sessionState, setSessionState] = useState<WalletSessionState>(() =>
+    svc.getState(),
   );
-  const [meta, setMeta] = useState<WalletSessionMeta | null>(
-    svcRef.current.getMeta(),
+  const [meta, setMeta] = useState<WalletSessionMeta | null>(() =>
+    svc.getMeta(),
   );
   const [error, setError] = useState<Error | null>(null);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(
-    svcRef.current.getMeta()?.lastActiveAt ?? null,
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(() =>
+    svc.getMeta()?.lastActiveAt ?? null,
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshState, setRefreshState] = useState<WalletSessionRefreshState>(
-    svcRef.current.getRefreshState?.() ?? DEFAULT_REFRESH_STATE,
+  const [refreshState, setRefreshState] = useState<WalletSessionRefreshState>(() =>
+    svc.getRefreshState?.() ?? DEFAULT_REFRESH_STATE,
   );
-  const [sessionDropped, setSessionDropped] = useState(
-    svcRef.current.getSessionDropped?.() ?? false,
+  const [sessionDropped, setSessionDropped] = useState(() =>
+    svc.getSessionDropped?.() ?? false,
   );
-  const [lastReconnectAt, setLastReconnectAt] = useState<number | null>(
-    (svcRef.current.getRefreshState?.() ?? DEFAULT_REFRESH_STATE).lastSucceededAt ??
-      null,
+  const [lastReconnectAt, setLastReconnectAt] = useState<number | null>(() =>
+    (svc.getRefreshState?.() ?? DEFAULT_REFRESH_STATE).lastSucceededAt ?? null,
   );
 
   useEffect(() => {
-    const unsubscribe = svcRef.current!.subscribe(
+    // Sync current state on mount/service change
+    setSessionState(svc.getState());
+    setMeta(svc.getMeta());
+
+    const unsubscribe = svc.subscribe(
       (state, nextMeta, nextError, nextRefreshState, dropped) => {
         setSessionState(state);
         setMeta(nextMeta ?? null);
@@ -179,7 +181,7 @@ export function useWalletStatus(
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [svc]);
 
   const status = useMemo(
     () => deriveStatus(sessionState, error),
@@ -194,25 +196,30 @@ export function useWalletStatus(
       opts?: { network?: string },
     ): Promise<void> => {
       const activeAdapter = adapter ?? defaultFreighterAdapter;
-      svcRef.current!.setProviderAdapter(activeAdapter);
-      await svcRef.current!.connect(opts);
+      svc.setProviderAdapter(activeAdapter);
+      try {
+        await svc.connect(opts);
+      } catch (err) {
+        // Error state is broadcasted to subscribers by WalletSessionService
+        throw err;
+      }
     },
-    [],
+    [svc],
   );
 
   const disconnect = useCallback(async (): Promise<void> => {
-    await svcRef.current!.disconnect();
-  }, []);
+    await svc.disconnect();
+  }, [svc]);
 
   const refresh = useCallback(async (): Promise<void> => {
     setIsRefreshing(true);
     try {
-      await svcRef.current!.reconnect();
+      await svc.reconnect();
       setLastUpdatedAt(Date.now());
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [svc]);
 
   return {
     status,

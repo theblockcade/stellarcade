@@ -3,24 +3,22 @@
 import React from "react";
 import {
   User,
-  ShieldCheck,
-  Trophy,
   Gamepad2,
-  Coins,
   Settings,
-  Layers,
-  FileText,
-  Lock,
   Dices,
   Flame,
   Award,
-  History,
-  Wallet,
-  Sparkles,
   ChevronRight,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+  History,
+  ShieldCheck,
 } from "lucide-react";
 import { useWalletStatus } from "../hooks/useWalletStatus";
 import { useI18n } from "../i18n/provider";
+import { profileStore } from "./ProfileSettings";
 import "./AppSidebar.css";
 
 export type AppRoute =
@@ -67,32 +65,19 @@ const SECTION_CONFIGS: SidebarSectionConfig[] = [
     items: [
       { route: "lobby", labelKey: "nav.lobby", defaultLabel: "Arcade Lobby", icon: <Gamepad2 size={16} /> },
       { route: "games", labelKey: "nav.games", defaultLabel: "Games Arena", icon: <Dices size={16} /> },
-      { route: "tournaments", labelKey: "nav.tournaments", defaultLabel: "Tournaments", icon: <Trophy size={16} /> },
-      { route: "quests", labelKey: "nav.quests", defaultLabel: "Quests & Badges", icon: <Award size={16} /> },
-      { route: "leaderboard", labelKey: "nav.leaderboard", defaultLabel: "Leaderboard", icon: <Flame size={16} /> },
       { route: "history", labelKey: "nav.history", defaultLabel: "Match History", icon: <History size={16} /> },
       { route: "verify", labelKey: "nav.verify", defaultLabel: "Fairness Verifier", icon: <ShieldCheck size={16} /> },
+      { route: "leaderboard", labelKey: "nav.leaderboard", defaultLabel: "Leaderboard", icon: <Flame size={16} /> },
+      { route: "quests", labelKey: "nav.quests", defaultLabel: "Quests & Badges", icon: <Award size={16} /> },
     ],
   },
   {
     id: "account",
-    titleKey: "section.vault",
+    titleKey: "section.account",
     defaultTitle: "Account",
     items: [
-      { route: "portfolio", labelKey: "nav.portfolio", defaultLabel: "Portfolio", icon: <Wallet size={16} /> },
-      { route: "rewards", labelKey: "nav.rewards", defaultLabel: "Claim Rewards", icon: <Coins size={16} /> },
-      { route: "cleanup", labelKey: "nav.cleanup", defaultLabel: "Cleanup", icon: <Sparkles size={16} /> },
-    ],
-  },
-  {
-    id: "system",
-    titleKey: "section.system",
-    defaultTitle: "More",
-    items: [
+      { route: "profile", labelKey: "nav.profile", defaultLabel: "Profile", icon: <User size={16} /> },
       { route: "settings", labelKey: "nav.settings", defaultLabel: "Settings", icon: <Settings size={16} /> },
-      { route: "about", labelKey: "nav.about", defaultLabel: "About", icon: <Layers size={16} /> },
-      { route: "terms", labelKey: "nav.terms", defaultLabel: "Terms", icon: <FileText size={16} /> },
-      { route: "privacy", labelKey: "nav.privacy", defaultLabel: "Privacy", icon: <Lock size={16} /> },
     ],
   },
 ];
@@ -114,6 +99,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
     return !!getMobileNavigationMediaQuery()?.matches;
   });
 
+  const [profile, setProfile] = React.useState(() => profileStore.selectProfile());
+
+  React.useEffect(() => {
+    return profileStore.subscribe(() => {
+      setProfile(profileStore.selectProfile());
+    });
+  }, []);
+
   React.useEffect(() => {
     const mediaQuery = getMobileNavigationMediaQuery();
 
@@ -134,9 +127,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
     setIsMobileOpen(false);
   };
 
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isClosedMobileNavigation = isMobileViewport && !isMobileOpen;
 
-  const compactAddress = wallet.address
+  const profileDisplayName = mounted && profile?.username
+    ? profile.username
+    : mounted && wallet.address
     ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
     : t("common.guest_player", "Guest Player");
 
@@ -164,7 +164,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
         inert={isClosedMobileNavigation || undefined}
       >
         <div className="app-sidebar__header">
-          <h2 className="app-sidebar__title">StellarCade</h2>
+          <div className="app-sidebar__brand">
+            <div className="app-sidebar__logo-badge">
+              <Sparkles size={16} />
+            </div>
+            <h2 className="app-sidebar__title">StellarCade</h2>
+          </div>
           <div className="app-sidebar__controls">
             <button
               type="button"
@@ -173,7 +178,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               data-testid="app-sidebar-collapse-toggle"
             >
-              {isCollapsed ? "→" : "←"}
+              {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
             </button>
             <button
               type="button"
@@ -182,61 +187,39 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
               aria-label="Close navigation menu"
               data-testid="app-sidebar-mobile-close"
             >
-              ✕
+              <X size={16} />
             </button>
           </div>
         </div>
 
         {/* PROMINENT TOP PLAYER PROFILE CARD */}
         {!isCollapsed && (
-          <div style={{ padding: "0 1rem 1rem 1rem" }}>
+          <div className="app-sidebar__profile-container">
             <button
               type="button"
               onClick={() => handleNavigate("profile")}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "10px 12px",
-                borderRadius: "12px",
-                background: currentRoute === "profile" ? "rgba(0, 255, 204, 0.15)" : "rgba(255, 255, 255, 0.04)",
-                border: currentRoute === "profile" ? "1px solid var(--sc-accent, #00ffcc)" : "1px solid rgba(255, 255, 255, 0.08)",
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "all 0.15s ease",
-              }}
+              className={`app-sidebar__profile-card ${currentRoute === "profile" ? "is-active" : ""}`}
               data-testid="sidebar-profile-card"
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #00ffcc, #3b82f6)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#000",
-                    fontWeight: 800,
-                    fontSize: "14px",
-                  }}
-                >
+              <div className="app-sidebar__profile-identity">
+                <div className="app-sidebar__profile-avatar">
                   <User size={18} />
                 </div>
-                <div>
-                  <strong style={{ display: "block", fontSize: "13px", color: "#fff", lineHeight: 1.2 }}>
-                    {compactAddress}
+                <div className="app-sidebar__profile-meta">
+                  <strong className="app-sidebar__profile-name">
+                    {profileDisplayName}
                   </strong>
-                  <span style={{ fontSize: "11px", color: "var(--sc-accent, #00ffcc)", fontWeight: 600 }}>
-                    {wallet.capabilities.isConnected
+                  <span className="app-sidebar__profile-status">
+                    {mounted && wallet.capabilities.isConnected && (
+                      <span className="app-sidebar__profile-dot" />
+                    )}
+                    {mounted && wallet.capabilities.isConnected
                       ? t("common.connected", "Connected")
                       : t("common.view_profile", "View Profile")}
                   </span>
                 </div>
               </div>
-              <ChevronRight size={14} style={{ color: "var(--sc-text-dim, #94a3b8)" }} />
+              <ChevronRight size={14} className="app-sidebar__profile-arrow" />
             </button>
           </div>
         )}
@@ -258,23 +241,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                         className={`app-sidebar__link ${isActive ? "is-active" : ""}`.trim()}
                         onClick={() => handleNavigate(item.route)}
                         aria-current={isActive ? "page" : undefined}
+                        title={label}
                         data-testid={`app-sidebar-link-${item.route}`}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                        }}
                       >
-                        <span
-                          style={{
-                            color: isActive ? "var(--sc-accent, #00ffcc)" : "var(--sc-text-dim, #94a3b8)",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
+                        <span className="app-sidebar__icon">
                           {item.icon}
                         </span>
-                        <span>{label}</span>
+                        <span className="app-sidebar__label">{label}</span>
                       </button>
                     </li>
                   );

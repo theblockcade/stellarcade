@@ -1,29 +1,25 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Copy, User } from 'lucide-react';
 import { ApiClient } from '../services/typed-api-sdk';
-import { SkeletonPreset } from './LoadingSkeletonSet';
-import { AccountSwitcher } from './AccountSwitcher';
-import { DraftPresenceIndicator } from './DraftPresenceIndicator';
-import SensitiveActionChecklist from './SensitiveActionChecklist';
-import { StickyActionsFooter } from './StickyActionsFooter';
-import { CollapsibleStatsGroup } from './CollapsibleStatsGroup';
-import { RewardBalanceSparklineCard } from './RewardBalanceSparklineCard';
 import { AlertBanner } from './AlertBanner';
-import { CopyButton } from './CopyButton';
 import GlobalStateStore from '../services/global-state-store';
 import { useWalletStatus } from '../hooks/useWalletStatus';
-import defaultFreighterAdapter from '../services/freighter-adapter';
-import type { RecentAccount } from './AccountSwitcher.types';
 import type { UserProfile } from '../types/api-client';
+import './ProfileSettings.css';
 
 export const profileStore = new GlobalStateStore();
 
-const formatDateTime = (value?: string): string => {
-  if (!value) return 'N/A';
+const formatDate = (value?: string): string => {
+  if (!value) return '—';
   const parsed = Date.parse(value);
   if (Number.isNaN(parsed)) return value;
-  return new Date(parsed).toLocaleString();
+  return new Date(parsed).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 };
 
 const getStoreToken = () => {
@@ -37,25 +33,37 @@ const getStoreToken = () => {
 
 const createApiClient = () => {
   return new ApiClient({
+    baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
     sessionStore: {
       getToken: () => getStoreToken(),
     },
   });
 };
 
+function shortenAddress(address: string): string {
+  if (address.length <= 14) return address;
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
 const ProfileSettings: React.FC = () => {
   const walletStatus = useWalletStatus();
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [username, setUsername] = useState('');
-  const [checkedReviewIds, setCheckedReviewIds] = useState<string[]>([]);
-  const [lastDraftEditedAt, setLastDraftEditedAt] = useState<number | undefined>();
+  const [copied, setCopied] = useState(false);
+  const [xlmBalance, setXlmBalance] = useState<string | null>(null);
 
   const store = useRef<GlobalStateStore>(profileStore);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // --- Load profile ---
   useEffect(() => {
     const loadProfile = async () => {
       setLoading(true);
@@ -76,6 +84,14 @@ const ProfileSettings: React.FC = () => {
         setProfile(result.data);
         setUsername(result.data.username ?? '');
         store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
+      } else if (walletStatus.address) {
+        const localProfile: UserProfile = {
+          address: walletStatus.address,
+          username: `Player_${walletStatus.address.slice(-4)}`,
+          createdAt: new Date().toISOString(),
+        };
+        setProfile(localProfile);
+        setUsername(localProfile.username);
       } else {
         setError(result.error.message);
       }
@@ -84,144 +100,165 @@ const ProfileSettings: React.FC = () => {
     };
 
     loadProfile();
-  }, []);
+  }, [walletStatus.address]);
 
-  const walletMeta = useMemo(() => {
-    const providerInfo = walletStatus.provider;
-    const providerLabel = providerInfo
-      ? `${providerInfo.name} (${providerInfo.id})${providerInfo.version ? ` v${providerInfo.version}` : ''}`
-      : 'Unknown';
-
-    return {
-      connected: walletStatus.capabilities.isConnected,
-      address: walletStatus.address || 'Not connected',
-      network: walletStatus.network || 'Unknown',
-      provider: providerLabel,
-      lastUpdatedAt: walletStatus.lastUpdatedAt
-        ? new Date(walletStatus.lastUpdatedAt).toLocaleString()
-        : 'Never',
-    };
-  }, [walletStatus]);
-
-  const handleSelectAccount = useCallback((_account: RecentAccount) => {
-    // Parent would reconnect wallet using the selected account address.
-    // Actual wallet re-connection is delegated to the wallet provider layer.
-  }, []);
-
-  const handleSave = async () => {
-    setError(null);
-    setSuccess(null);
-
-    if (!profile) {
-      setError('Profile data is not loaded.');
+  // --- Fetch XLM balance ---
+  useEffect(() => {
+    if (!walletStatus.capabilities.isConnected || !walletStatus.address) {
+      setXlmBalance(null);
       return;
     }
 
+    let isMounted = true;
+    const fetchBalance = async () => {
+      try {
+        const network = (walletStatus.network || '').toUpperCase();
+        const isTestnet = network.includes('TEST');
+        const horizonUrl = isTestnet
+          ? 'https://horizon-testnet.stellar.org'
+          : 'https://horizon.stellar.org';
+
+        const res = await fetch(`${horizonUrl}/accounts/${walletStatus.address}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { balances?: Array<{ asset_type: string; balance: string }> };
+        const native = data.balances?.find((b) => b.asset_type === 'native');
+        if (native && isMounted) {
+          const num = parseFloat(native.balance);
+          setXlmBalance(num.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+        }
+      } catch {
+        // Non-fatal — horizon may be unreachable or account may not exist yet
+      }
+    };
+
+    void fetchBalance();
+    const interval = setInterval(() => void fetchBalance(), 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [walletStatus.capabilities.isConnected, walletStatus.address, walletStatus.network]);
+
+  // --- Load profile from Cloud API ---
+  useEffect(() => {
+    const loadProfile = async () => {
+      console.log('[ProfileSettings] loadProfile starting for address:', walletStatus.address);
+      setLoading(true);
+      setError(null);
+
+      const client = createApiClient();
+      console.log('[ProfileSettings] Calling client.getProfile()...');
+      const result = await client.getProfile();
+      console.log('[ProfileSettings] client.getProfile() result:', result);
+
+      if (result?.success && result?.data) {
+        console.log('[ProfileSettings] Cloud profile loaded successfully:', result.data);
+        setProfile(result.data);
+        setUsername(result.data.username ?? '');
+        store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
+      } else {
+        console.log('[ProfileSettings] Cloud profile not found or returned error, checking local fallback...');
+        const persisted = store.current.selectProfile();
+        if (persisted) {
+          console.log('[ProfileSettings] Using local persisted profile:', persisted);
+          setProfile(persisted);
+          setUsername(persisted.username ?? '');
+        } else if (walletStatus.address) {
+          const defaultProfile: UserProfile = {
+            address: walletStatus.address,
+            username: `Player_${walletStatus.address.slice(-4)}`,
+            createdAt: new Date().toISOString(),
+          };
+          console.log('[ProfileSettings] Using default wallet profile:', defaultProfile);
+          setProfile(defaultProfile);
+          setUsername(defaultProfile.username);
+        }
+      }
+
+      setLoading(false);
+    };
+
+    loadProfile();
+  }, [walletStatus.address]);
+
+  // --- Derived state ---
+  const walletMeta = useMemo(() => ({
+    connected: walletStatus.capabilities.isConnected,
+    address: walletStatus.address || '',
+    network: walletStatus.network || 'Unknown',
+  }), [walletStatus]);
+
+  const hasDraftChanges = Boolean(profile && username.trim() !== (profile.username ?? '').trim());
+
+  // --- Handlers ---
+  const handleSave = async () => {
+    console.log('[ProfileSettings] handleSave triggered!');
+    setError(null);
+    setSuccess(null);
+
     const trimmed = username.trim();
     if (!trimmed) {
+      console.warn('[ProfileSettings] Username input is empty!');
       setError('Username is required.');
       return;
     }
 
-    const nextProfile: UserProfile = {
-      ...profile,
-      username: trimmed,
-    };
-
-    const previousProfile = profile;
-    setProfile(nextProfile);
+    const targetAddress = profile?.address || walletStatus.address || 'G_GUEST_PLAYER';
+    console.log('[ProfileSettings] Preparing update profile payload -> Address:', targetAddress, '| Username:', trimmed);
     setSaving(true);
 
-    const client = createApiClient();
-    const result = await client.updateProfile({
-      address: profile.address,
-      username: trimmed,
-    });
+    try {
+      const client = createApiClient();
+      console.log('[ProfileSettings] Sending updateProfile API POST request...');
+      const result = await client.updateProfile({
+        address: targetAddress,
+        username: trimmed,
+      });
 
-    if (result.success) {
-      setProfile(result.data);
-      setUsername(result.data.username ?? '');
-      store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
-      setSuccess('Profile saved successfully.');
-    } else {
-      setProfile(previousProfile);
-      setUsername(previousProfile.username ?? '');
-      setError(result.error.message);
+      console.log('[ProfileSettings] API updateProfile response received:', result);
+
+      if (result?.success) {
+        console.log('[ProfileSettings] Profile successfully updated in cloud:', result.data);
+        setProfile(result.data);
+        setUsername(result.data.username ?? trimmed);
+        store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
+        setSuccess('Profile saved successfully to cloud.');
+      } else {
+        const errMsg = result?.error?.message || 'Failed to save to cloud API.';
+        console.error('[ProfileSettings] updateProfile failed with error:', errMsg);
+        setError(errMsg);
+      }
+    } catch (err) {
+      console.error('[ProfileSettings] updateProfile caught unexpected exception:', err);
+      setError('Failed to update cloud profile.');
+    } finally {
+      console.log('[ProfileSettings] handleSave finished. Setting saving to false.');
+      setSaving(false);
     }
-
-    setSaving(false);
   };
 
-  const hasDraftChanges = Boolean(profile && username.trim() !== (profile.username ?? '').trim());
-  const draftStatus = saving ? 'saving' : hasDraftChanges ? 'stale' : success ? 'saved' : 'idle';
-  const reviewChecklist = [
-    { id: 'username-review', label: 'I reviewed the username change.' },
-    { id: 'wallet-review', label: 'I verified wallet ownership and profile identity.' },
-  ];
-  const isReviewComplete = checkedReviewIds.length === reviewChecklist.length;
-  const profileSummaryStats = useMemo(
-    () => [
-      {
-        id: 'wallet-connected',
-        label: 'Wallet',
-        value: walletMeta.connected ? 'Connected' : 'Disconnected',
-        caption: walletMeta.address,
-      },
-      {
-        id: 'network',
-        label: 'Network',
-        value: walletMeta.network,
-      },
-      {
-        id: 'provider',
-        label: 'Provider',
-        value: walletMeta.provider,
-      },
-      {
-        id: 'draft-state',
-        label: 'Draft state',
-        value: draftStatus,
-        caption: hasDraftChanges ? 'Unsaved updates present' : 'No pending profile edits',
-      },
-    ],
-    [draftStatus, hasDraftChanges, walletMeta],
-  );
-  const rewardTrendStatus = loading ? 'loading' : error ? 'error' : profile ? 'idle' : 'idle';
-  const primaryRewardSeries = useMemo(
-    () => {
-      const seed = (profile?.username?.length ?? 2) + (walletMeta.connected ? 3 : 1);
-      return [seed, seed + 1, seed + 2, seed + 1, seed + 3];
-    },
-    [profile?.username?.length, walletMeta.connected],
-  );
-  const bonusRewardSeries = useMemo(
-    () => {
-      const base = walletMeta.connected ? 8 : 3;
-      return [base, base + 1, base + 1, base + 2];
-    },
-    [walletMeta.connected],
-  );
-
-  useEffect(() => {
-    if (hasDraftChanges) {
-      setLastDraftEditedAt(Date.now());
-    } else {
-      setCheckedReviewIds([]);
+  const handleCopy = async () => {
+    if (!walletMeta.address) return;
+    try {
+      await navigator.clipboard.writeText(walletMeta.address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Non-fatal
     }
-  }, [hasDraftChanges]);
+  };
 
-  if (loading) {
-    return (
-      <div data-testid="profile-settings-loading" role="status" aria-live="polite">
-        <p>Loading profile settings...</p>
-        <SkeletonPreset type="detail" />
-      </div>
-    );
-  }
+  // --- Avatar initials ---
+  const avatarInitial = useMemo(() => {
+    if (!mounted) return '?';
+    if (username) return username.charAt(0).toUpperCase();
+    if (walletMeta.address) return walletMeta.address.charAt(0).toUpperCase();
+    return '?';
+  }, [mounted, username, walletMeta.address]);
 
   return (
-    <section className="profile-settings" aria-labelledby="profile-settings-heading">
-      <h1 id="profile-settings-heading">Profile Settings</h1>
+    <section className="profile-page" aria-labelledby="profile-settings-heading">
+      <h1 id="profile-settings-heading" className="profile-page-title">Profile Settings</h1>
 
       {error && (
         <AlertBanner variant="error" message={error} testId="profile-settings-error" />
@@ -230,163 +267,142 @@ const ProfileSettings: React.FC = () => {
         <AlertBanner variant="success" message={success} testId="profile-settings-success" />
       )}
 
-      <form
-        onSubmit={(evt) => {
-          evt.preventDefault();
-          void handleSave();
-        }}
-      >
-        <div className="form-row">
-          <label htmlFor="profile-address">Wallet Address</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              id="profile-address"
-              type="text"
-              value={profile?.address ?? ''}
-              readOnly
-              aria-readonly
-            />
-            {profile?.address && (
-              <CopyButton text={profile.address} testId="profile-address-copy" />
-            )}
+      {/* ── Player Identity Card ── */}
+      <div className="profile-identity-card" data-testid="profile-identity-card">
+        <div className="profile-avatar" data-testid="profile-avatar">
+          <span className="profile-avatar__initial">{avatarInitial}</span>
+        </div>
+
+        <div className="profile-info">
+          <form
+            onSubmit={(evt) => {
+              evt.preventDefault();
+              void handleSave();
+            }}
+            className="profile-username-form"
+          >
+            <div className="profile-input-group">
+              <input
+                id="profile-username"
+                className="profile-username-input"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter display name"
+                aria-label="Username"
+                data-testid="profile-username-input"
+              />
+              <button
+                type="submit"
+                className={`profile-save-btn ${saving ? 'profile-save-btn--saving' : ''}`}
+                disabled={!username.trim() || saving}
+                data-testid="profile-settings-save"
+              >
+                {saving
+                  ? (profile?.username ? 'Updating…' : 'Saving…')
+                  : (profile?.username ? 'Update Profile' : 'Save Profile')}
+              </button>
+            </div>
+            <p className="profile-persistence-caption">
+              Your display name is linked to your connected Stellar wallet address.
+            </p>
+          </form>
+
+          {mounted && walletMeta.address && (
+            <div className="profile-address-row">
+              <span className="profile-address-text" data-testid="profile-address">
+                {shortenAddress(walletMeta.address)}
+              </span>
+              <button
+                type="button"
+                className="profile-address-copy"
+                onClick={() => void handleCopy()}
+                title="Copy full address"
+                aria-label="Copy wallet address"
+                data-testid="profile-address-copy"
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+              </button>
+            </div>
+          )}
+
+          {mounted && walletMeta.connected && (
+            <span className="profile-network-badge" data-testid="profile-network-badge">
+              <span className="profile-network-dot" aria-hidden="true" />
+              {walletMeta.network}
+            </span>
+          )}
+
+          {mounted && (
+            <div className="profile-social-row">
+              {profile?.telegramLinked || profile?.telegramHandle || profile?.telegramUserId ? (
+                <span className="profile-telegram-badge profile-telegram-badge--linked" data-testid="profile-telegram-linked">
+                  <span className="profile-telegram-dot" aria-hidden="true" />
+                  Telegram: {profile.telegramHandle || `@user_${profile.telegramUserId || 'linked'}`}
+                </span>
+              ) : (
+                <a
+                  href="/link"
+                  className="profile-telegram-badge profile-telegram-badge--unlinked"
+                  data-testid="profile-telegram-unlinked"
+                >
+                  + Link Telegram Bot
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Wallet Overview ── */}
+      <div>
+        <h2 className="profile-section-title">Wallet</h2>
+        <div className="profile-wallet-row" data-testid="profile-wallet-row">
+          <div className="profile-wallet-item profile-wallet-item--balance">
+            <span className="profile-wallet-label">Balance</span>
+            <span className="profile-wallet-value" data-testid="profile-wallet-balance">
+              {mounted && xlmBalance !== null ? `${xlmBalance} XLM` : '—'}
+            </span>
+          </div>
+          <div className="profile-wallet-item">
+            <span className="profile-wallet-label">Status</span>
+            <span className="profile-wallet-value">
+              {mounted && walletMeta.connected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+          <div className="profile-wallet-item">
+            <span className="profile-wallet-label">Network</span>
+            <span className="profile-wallet-value">{mounted ? walletMeta.network : 'Unknown'}</span>
           </div>
         </div>
+      </div>
 
-        <div className="form-row">
-          <label htmlFor="profile-username">Username</label>
-          <input
-            id="profile-username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter your display name"
-          />
+      {/* ── Quick Stats ── */}
+      <div>
+        <h2 className="profile-section-title">Stats</h2>
+        <div className="profile-stats-grid" data-testid="profile-stats-grid">
+          <div className="profile-stat-card">
+            <span className="profile-stat-label">Games Played</span>
+            <span className="profile-stat-value">—</span>
+            <span className="profile-stat-caption">Coming soon</span>
+          </div>
+          <div className="profile-stat-card">
+            <span className="profile-stat-label">Win Rate</span>
+            <span className="profile-stat-value">—</span>
+            <span className="profile-stat-caption">Coming soon</span>
+          </div>
+          <div className="profile-stat-card">
+            <span className="profile-stat-label">XLM Wagered</span>
+            <span className="profile-stat-value">—</span>
+            <span className="profile-stat-caption">Coming soon</span>
+          </div>
+          <div className="profile-stat-card">
+            <span className="profile-stat-label">Member Since</span>
+            <span className="profile-stat-value" data-testid="profile-member-since">
+              {formatDate(profile?.createdAt)}
+            </span>
+          </div>
         </div>
-
-        <div className="form-row">
-          <label htmlFor="profile-createdAt">Created At</label>
-          <input
-            id="profile-createdAt"
-            type="text"
-            value={formatDateTime(profile?.createdAt)}
-            readOnly
-            aria-readonly
-          />
-        </div>
-        <DraftPresenceIndicator
-          draftId={profile?.address ?? ''}
-          moduleName="Profile settings"
-          status={draftStatus}
-          lastEditedAt={lastDraftEditedAt}
-          onDiscard={
-            hasDraftChanges
-              ? () => {
-                  setUsername(profile?.username ?? '');
-                  setSuccess(null);
-                  setError(null);
-                  setCheckedReviewIds([]);
-                }
-              : undefined
-          }
-          testId="profile-settings-draft-indicator"
-        />
-
-        {hasDraftChanges ? (
-          <SensitiveActionChecklist
-            items={reviewChecklist}
-            checkedIds={checkedReviewIds}
-            onToggle={(id) =>
-              setCheckedReviewIds((prev) =>
-                prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id],
-              )
-            }
-            testId="profile-settings-review-checklist"
-          />
-        ) : null}
-
-        <StickyActionsFooter testId="profile-settings-actions-footer">
-          <button
-            type="submit"
-            disabled={saving || (hasDraftChanges && !isReviewComplete)}
-            data-testid="profile-settings-save"
-          >
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </StickyActionsFooter>
-      </form>
-
-      <div className="wallet-metadata" data-testid="profile-settings-wallet-meta">
-        <h3>Wallet</h3>
-        <div
-          data-testid="profile-settings-reward-trend-grid"
-          style={{
-            display: 'grid',
-            gap: '0.75rem',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            marginBottom: '1rem',
-          }}
-        >
-          <RewardBalanceSparklineCard
-            label="Earned rewards"
-            status={rewardTrendStatus}
-            error={error ?? undefined}
-            onRetry={() => undefined}
-            balance={profile ? `${(profile.username?.length ?? 0) * 12} XP` : undefined}
-            balanceEquivalent={profile ? `Profile: ${profile.username || 'Unnamed'}` : undefined}
-            dataPoints={primaryRewardSeries}
-            change={walletMeta.connected ? '+6%' : '0%'}
-            trend={walletMeta.connected ? 'up' : 'flat'}
-            testId="profile-settings-reward-earned"
-          />
-          <RewardBalanceSparklineCard
-            label="Bonus momentum"
-            status={rewardTrendStatus}
-            error={error ?? undefined}
-            onRetry={() => undefined}
-            balance={walletMeta.connected ? 'Ready' : undefined}
-            balanceEquivalent={walletMeta.connected ? walletMeta.network : undefined}
-            dataPoints={bonusRewardSeries}
-            change={walletMeta.connected ? '+3%' : '0%'}
-            trend={walletMeta.connected ? 'up' : 'down'}
-            testId="profile-settings-reward-bonus"
-          />
-        </div>
-        <CollapsibleStatsGroup
-          title="Profile overview stats"
-          summary={`${profileSummaryStats.length} metrics`}
-          items={profileSummaryStats}
-          defaultExpanded={false}
-          testId="profile-settings-overview-stats"
-        />
-        <div style={{ marginBottom: '1rem' }}>
-          <AccountSwitcher
-            currentAddress={walletStatus.address}
-            currentNetwork={walletStatus.network}
-            currentProvider={walletStatus.provider?.name}
-            onSelectAccount={handleSelectAccount}
-            onDisconnect={walletStatus.capabilities.isConnected ? walletStatus.disconnect : undefined}
-            // Bare connect() installs no provider (useWalletStatus only wires
-            // one up when passed explicitly), so this was silently a no-op —
-            // same bug fixed for the header's wallet control (see
-            // HeaderWalletControl.tsx) and for the connect button this
-            // component used to have before the destructive rewrite.
-            onConnectNew={() => void walletStatus.connect(defaultFreighterAdapter)}
-            testId="profile-account-switcher"
-          />
-        </div>
-        <dl>
-          <dt>Connected</dt>
-          <dd>{String(walletMeta.connected)}</dd>
-
-          <dt>Network</dt>
-          <dd>{walletMeta.network}</dd>
-
-          <dt>Provider</dt>
-          <dd>{walletMeta.provider}</dd>
-
-          <dt>Last Sync</dt>
-          <dd>{walletMeta.lastUpdatedAt}</dd>
-        </dl>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useCallback, useMemo } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { I18nProvider, useI18n } from "../i18n/provider";
 import HeaderWalletControl from "./HeaderWalletControl";
@@ -12,6 +12,9 @@ import { FeatureFlagsProvider } from "../services/feature-flags";
 import { Search } from "lucide-react";
 import CommandPalette, { commandStore, type Command } from "./CommandPalette";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
+import { useWalletStatus } from "../hooks/useWalletStatus";
+import { ApiClient } from "../services/typed-api-sdk";
+import { profileStore } from "./ProfileSettings";
 import "./AppShell.css";
 
 /**
@@ -115,6 +118,35 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const pathname = usePathname();
   const router = useRouter();
   const route = useMemo(() => getAppRoute(pathname), [pathname]);
+  const walletStatus = useWalletStatus();
+
+  // Automatic Cloud Profile Sync on Login / Connect / Disconnect
+  useEffect(() => {
+    if (!walletStatus.capabilities.isConnected || !walletStatus.address) {
+      profileStore.dispatch({ type: 'PROFILE_CLEAR' });
+      return;
+    }
+
+    let isMounted = true;
+    const syncCloudProfile = async () => {
+      try {
+        const client = new ApiClient({
+          baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
+        });
+        const result = await client.getProfile();
+        if (result?.success && result?.data && isMounted) {
+          profileStore.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
+        }
+      } catch {
+        // Non-fatal background sync
+      }
+    };
+
+    void syncCloudProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [walletStatus.capabilities.isConnected, walletStatus.address]);
 
   const handleNavigate = useCallback(
     (nextRoute: AppRoute) => {
@@ -267,6 +299,7 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <p>{t("footer.copyright", "© 2026 StellarCade. All rights reserved.")}</p>
 
             <div className="footer-links">
+              <a href="/about">{t("footer.about", "About")}</a>
               <a href="/terms">{t("footer.terms", "Terms")}</a>
               <a href="/privacy">{t("footer.privacy", "Privacy")}</a>
             </div>
