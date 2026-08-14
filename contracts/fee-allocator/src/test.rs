@@ -5,7 +5,7 @@ use soroban_sdk::{symbol_short, testutils::Address as _, Address, Env};
 
 fn setup(env: &Env) -> (FeeAllocatorClient<'_>, Address) {
     let admin = Address::generate(env);
-    let contract_id = env.register(FeeAllocator);
+    let contract_id = env.register(FeeAllocator, ());
     let client = FeeAllocatorClient::new(env, &contract_id);
     env.mock_all_auths();
     client.init(&admin);
@@ -54,7 +54,7 @@ fn empty_routes_return_zero_state() {
 #[test]
 fn uninitialized_allocator_reads_are_predictable() {
     let env = Env::default();
-    let contract_id = env.register(FeeAllocator);
+    let contract_id = env.register(FeeAllocator, ());
     let client = FeeAllocatorClient::new(&env, &contract_id);
 
     let summary = client.allocation_drift_summary();

@@ -5,7 +5,7 @@ fn setup(env: &Env) -> (TicketMarketClient<'_>, Address, Address, Address) {
     let admin = Address::generate(env);
     let token = Address::generate(env);
     let seller = Address::generate(env);
-    let contract_id = env.register(TicketMarket);
+    let contract_id = env.register(TicketMarket, ());
     let client = TicketMarketClient::new(env, &contract_id);
     client.init(&admin, &token);
     (client, admin, token, seller)
