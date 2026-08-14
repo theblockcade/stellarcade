@@ -343,7 +343,7 @@ mod test {
         
         let state = s.client.task_state(&task_id).unwrap();
         assert_eq!(state.epoch, 2);
-        assert_eq!(state.executed, false);
+        assert!(!state.executed);
 
         // Attempt to execute in epoch 1 - should fail
         s.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -373,7 +373,7 @@ mod test {
         s.client.mark_executed(&task_id);
 
         let state = s.client.task_state(&task_id).unwrap();
-        assert_eq!(state.executed, true);
+        assert!(state.executed);
     }
 
     #[test]

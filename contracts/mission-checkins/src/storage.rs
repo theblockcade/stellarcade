@@ -15,7 +15,9 @@ pub fn get_mission(env: &Env, id: u64) -> Option<Mission> {
 }
 
 pub fn set_mission(env: &Env, id: u64, mission: &Mission) {
-    env.storage().persistent().set(&DataKey::Mission(id), mission);
+    env.storage()
+        .persistent()
+        .set(&DataKey::Mission(id), mission);
 }
 
 pub fn get_participant_window(env: &Env, id: u64, user: Address) -> Option<u64> {

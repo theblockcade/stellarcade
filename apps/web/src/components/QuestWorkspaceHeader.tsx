@@ -83,7 +83,7 @@ export const QuestWorkspaceHeader: React.FC<QuestWorkspaceHeaderProps> = ({
                 100% Complete - Claim your certificate
               </span>
               <span className="quest-workspace-header__cta-subtitle">
-                Congratulations! You've completed all milestones.
+                {"Congratulations! You've completed all milestones."}
               </span>
             </div>
           </div>

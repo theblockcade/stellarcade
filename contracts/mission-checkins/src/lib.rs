@@ -7,10 +7,10 @@ pub mod types;
 #[cfg(test)]
 mod test;
 
-use crate::storage::{
-    get_mission, get_participant_window, set_mission, set_participant_window,
+use crate::storage::{get_mission, get_participant_window, set_mission, set_participant_window};
+use crate::types::{
+    CheckInFrequencySnapshot, Mission, ParticipationSummary, ResetWindow, StreakDecay,
 };
-use crate::types::{CheckInFrequencySnapshot, Mission, ParticipationSummary, ResetWindow, StreakDecay};
 
 #[contract]
 pub struct MissionCheckins;
@@ -133,16 +133,15 @@ impl MissionCheckins {
         match get_mission(&env, id) {
             Some(m) => {
                 let window_duration_secs = now.saturating_sub(m.window_start);
-                let checkins_per_1k_secs = if window_duration_secs == 0 {
-                    0
-                } else {
-                    m.total_checkins.saturating_mul(1_000) / window_duration_secs
-                };
-                let unique_ratio_bps = if m.total_checkins == 0 {
-                    0
-                } else {
-                    (m.unique_participants as u64 * 10_000 / m.total_checkins) as u32
-                };
+                let checkins_per_1k_secs = m
+                    .total_checkins
+                    .saturating_mul(1_000)
+                    .checked_div(window_duration_secs)
+                    .unwrap_or(0);
+                let unique_ratio_bps = (m.unique_participants as u64)
+                    .saturating_mul(10_000)
+                    .checked_div(m.total_checkins)
+                    .unwrap_or(0) as u32;
                 CheckInFrequencySnapshot {
                     mission_exists: true,
                     total_checkins: m.total_checkins,

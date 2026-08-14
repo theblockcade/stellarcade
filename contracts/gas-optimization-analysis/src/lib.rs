@@ -1,7 +1,9 @@
 #![no_std]
 #![allow(unexpected_cfgs)]
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, vec, Address, Env, Symbol, Vec};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, vec, Address, Env, Symbol, Vec,
+};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -57,7 +59,9 @@ impl GasOptimizationAnalysis {
         }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::Methods, &Vec::<Symbol>::new(&env));
+        env.storage()
+            .instance()
+            .set(&DataKey::Methods, &Vec::<Symbol>::new(&env));
         Ok(())
     }
 
@@ -95,18 +99,33 @@ impl GasOptimizationAnalysis {
     }
 
     pub fn get_hotspots(env: Env, limit: u32) -> Vec<MethodHotspot> {
-        let methods: Vec<Symbol> = env.storage().instance().get(&DataKey::Methods).unwrap_or(vec![&env]);
+        let methods: Vec<Symbol> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Methods)
+            .unwrap_or(vec![&env]);
         let mut out = vec![&env];
-        let max = if limit == 0 { methods.len() } else { core::cmp::min(limit, methods.len()) };
+        let max = if limit == 0 {
+            methods.len()
+        } else {
+            core::cmp::min(limit, methods.len())
+        };
 
         let mut i = 0;
         while i < methods.len() && out.len() < max {
             let method = methods.get(i).unwrap();
             let profile = Self::get_method_profile(env.clone(), method.clone());
-            if profile.calls > 0 {
-                let avg_cpu = profile.total_cpu / profile.calls;
-                let score = avg_cpu.saturating_add(profile.total_write_bytes / profile.calls);
-                out.push_back(MethodHotspot { method, score, avg_cpu });
+            if let Some(avg_cpu) = profile.total_cpu.checked_div(profile.calls) {
+                let avg_write_bytes = profile
+                    .total_write_bytes
+                    .checked_div(profile.calls)
+                    .unwrap_or(0);
+                let score = avg_cpu.saturating_add(avg_write_bytes);
+                out.push_back(MethodHotspot {
+                    method,
+                    score,
+                    avg_cpu,
+                });
             }
             i += 1;
         }
@@ -146,7 +165,11 @@ fn require_admin(env: &Env, admin: &Address) -> Result<(), Error> {
 }
 
 fn register_method(env: &Env, method: Symbol) {
-    let mut methods: Vec<Symbol> = env.storage().instance().get(&DataKey::Methods).unwrap_or(vec![env]);
+    let mut methods: Vec<Symbol> = env
+        .storage()
+        .instance()
+        .get(&DataKey::Methods)
+        .unwrap_or(vec![env]);
     if !methods.contains(&method) {
         methods.push_back(method);
         env.storage().instance().set(&DataKey::Methods, &methods);

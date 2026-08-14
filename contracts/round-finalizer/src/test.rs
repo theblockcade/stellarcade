@@ -2,8 +2,8 @@
 
 use soroban_sdk::{testutils::Address as _, Address, Env};
 
-use crate::{RoundFinalizerContract, RoundFinalizerContractClient};
 use crate::DISPUTE_WINDOW_LEDGERS;
+use crate::{RoundFinalizerContract, RoundFinalizerContractClient};
 
 #[test]
 fn unresolved_summary_and_readiness_happy_path() {

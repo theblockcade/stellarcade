@@ -188,14 +188,12 @@ impl TeamPrizes {
             .eligible_member_count
             .saturating_sub(pool.claimed_member_count);
 
-        let coverage_bps = if pool.total_amount == 0 {
-            0
-        } else {
-            // 10_000 fits in a u128 easily; the multiplication is safe.
-            let bps_u128 = pool.claimed_amount.saturating_mul(10_000) / pool.total_amount;
-            // Clamp into u32 — bps are bounded to 10_000 by definition.
-            core::cmp::min(bps_u128, 10_000) as u32
-        };
+        let bps_u128 = pool
+            .claimed_amount
+            .saturating_mul(10_000)
+            .checked_div(pool.total_amount)
+            .unwrap_or(0);
+        let coverage_bps = core::cmp::min(bps_u128, 10_000) as u32;
 
         PrizePoolCoverage {
             pool_id,
