@@ -2,6 +2,12 @@
 resolver = "2"
 
 members = [
+    "achievements",
+    "auction-house",
+    "clan-registry",
+    "map-rotation",
+    "player-rating",
+    "quest-board",
     "access-control",
     "arena-sessions",
     "asset-escrow-v3",
