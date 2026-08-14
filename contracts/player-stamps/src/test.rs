@@ -23,14 +23,14 @@ fn stamp_progress_summary_reports_completion() {
     client.add_stamps(&admin, &player, &7u32, &2u32);
 
     let partial = client.stamp_progress_summary(&player, &7u32);
-    assert_eq!(partial.exists, true);
+    assert!(partial.exists);
     assert_eq!(partial.earned_stamps, 2);
     assert_eq!(partial.remaining_stamps, 1);
-    assert_eq!(partial.completed, false);
+    assert!(!partial.completed);
 
     client.add_stamps(&admin, &player, &7u32, &1u32);
     let completed = client.stamp_progress_summary(&player, &7u32);
-    assert_eq!(completed.completed, true);
+    assert!(completed.completed);
     assert_eq!(completed.remaining_stamps, 0);
 }
 
@@ -60,10 +60,10 @@ fn missing_campaign_returns_predictable_defaults() {
     let player = Address::generate(&env);
 
     let summary = client.stamp_progress_summary(&player, &404u32);
-    assert_eq!(summary.exists, false);
-    assert_eq!(summary.configured, true);
+    assert!(!summary.exists);
+    assert!(summary.configured);
 
     let window = client.claim_window_accessor(&player, &404u32);
-    assert_eq!(window.exists, false);
+    assert!(!window.exists);
     assert_eq!(window.state, StampClaimState::Unknown);
 }

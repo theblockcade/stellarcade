@@ -51,7 +51,7 @@ fn unlock_queue_accessor_reports_empty_defaults_when_unconfigured() {
     let client = SponsorLockboxClient::new(&env, &contract_id);
 
     let queue = client.unlock_queue_accessor();
-    assert_eq!(queue.configured, false);
+    assert!(!queue.configured);
     assert_eq!(queue.indexed_locks, 0);
     assert_eq!(queue.pending_count, 0);
 }
