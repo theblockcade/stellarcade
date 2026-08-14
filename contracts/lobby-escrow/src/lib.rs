@@ -193,12 +193,12 @@ impl LobbyEscrow {
         let remaining_amount = escrow
             .required_amount
             .saturating_sub(escrow.total_funded);
-        let coverage_bps = if escrow.required_amount == 0 {
-            0
-        } else {
-            let bps = escrow.total_funded.saturating_mul(10_000) / escrow.required_amount;
-            core::cmp::min(bps, 10_000) as u32
-        };
+        let bps = escrow
+            .total_funded
+            .saturating_mul(10_000)
+            .checked_div(escrow.required_amount)
+            .unwrap_or(0);
+        let coverage_bps = core::cmp::min(bps, 10_000) as u32;
 
         let state = if escrow.released {
             EscrowState::Released

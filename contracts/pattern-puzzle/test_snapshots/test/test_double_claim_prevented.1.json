@@ -408,6 +408,18 @@
                       "key": {
                         "vec": [
                           {
+                            "symbol": "LatestRoundId"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u32": 1
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
                             "symbol": "PrizePoolContract"
                           }
                         ]

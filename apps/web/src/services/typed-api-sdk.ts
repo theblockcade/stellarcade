@@ -336,10 +336,9 @@ export class ApiClient {
 
     const controller = new AbortController();
     let timedOut = false;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     const effectiveTimeout = opts.timeout ?? 5000;
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       timedOut = true;
       controller.abort();
     }, effectiveTimeout);
