@@ -207,7 +207,7 @@ impl DiceRoll {
         require_initialized(&env)?;
         player.require_auth();
 
-        if prediction < MIN_FACE || prediction > MAX_FACE {
+        if !(MIN_FACE..=MAX_FACE).contains(&prediction) {
             return Err(Error::InvalidPrediction);
         }
         if wager <= 0 {

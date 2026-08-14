@@ -1,5 +1,3 @@
-#![no_std]
-
 use soroban_sdk::{contracttype, Address, Env, Vec};
 
 use crate::types::*;
@@ -16,8 +14,7 @@ pub enum DataKey {
 // Storage functions
 
 pub fn get_admin(env: &Env) -> Address {
-    // Placeholder - would return actual admin
-    Address::generate(env)
+    env.storage().instance().get(&DataKey::Admin).unwrap()
 }
 
 pub fn set_admin(env: &Env, admin: &Address) {

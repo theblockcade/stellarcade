@@ -23,6 +23,16 @@ has_npm_script() {
 
 echo "Running pre-push verification..."
 
+# Normal pushes only check files touched in this push, for speed. That means
+# a docs-only PR can go green locally while CI (which always lints/tests the
+# WHOLE contracts workspace and web app, regardless of diff) catches
+# pre-existing breakage on main that this scoped check never looked at.
+# Run with STRICT_PREPUSH=1 to mirror CI exactly before opening a PR:
+#   STRICT_PREPUSH=1 git push
+if [ "${STRICT_PREPUSH:-}" = "1" ]; then
+    echo "STRICT_PREPUSH=1 — running full CI-equivalent checks regardless of diff."
+fi
+
 CHANGED_FILES=""
 while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
     [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
@@ -46,7 +56,34 @@ for crate_dir in "$REPO_ROOT"/contracts/*/; do
 done
 
 if command -v cargo >/dev/null 2>&1; then
-    if [ ${#TOUCHED_CRATES[@]} -gt 0 ]; then
+    if [ "${STRICT_PREPUSH:-}" = "1" ]; then
+        # Same commands CI runs: whole workspace in one shot, not a per-crate
+        # loop, so nothing can be left off a hand-maintained list.
+        echo "Running clippy on the entire contracts workspace (CI-equivalent)..."
+        if ! (cd "$REPO_ROOT/contracts" && cargo clippy --workspace --locked -- -D warnings 2>&1); then
+            echo "Workspace clippy failed."
+            FAIL=1
+        fi
+
+        echo "Running tests on the entire contracts workspace (CI-equivalent)..."
+        if ! (cd "$REPO_ROOT/contracts" && cargo test --workspace --locked 2>&1); then
+            echo "Workspace test failed."
+            FAIL=1
+        fi
+
+        if rustup target list --installed 2>/dev/null | grep -q wasm32v1-none; then
+            echo "Building every contract for wasm32v1-none (CI-equivalent)..."
+            if ! (cd "$REPO_ROOT/contracts" && cargo build --workspace --target wasm32v1-none --release --locked \
+                --exclude stellarcade-contract-doc-generator \
+                --exclude deployment-scripts 2>&1); then
+                echo "Workspace wasm build failed."
+                FAIL=1
+            fi
+        else
+            echo "wasm32v1-none target not installed; skipping wasm build check."
+            echo "Fix: rustup target add wasm32v1-none"
+        fi
+    elif [ ${#TOUCHED_CRATES[@]} -gt 0 ]; then
         echo "Strict Rust checks on: ${TOUCHED_CRATES[*]}"
         for crate in "${TOUCHED_CRATES[@]}"; do
             CRATE_DIR="$REPO_ROOT/contracts/$crate"
@@ -73,13 +110,14 @@ if command -v cargo >/dev/null 2>&1; then
         done
     else
         echo "No contract crates changed; skipping Rust checks."
+        echo "(Run with STRICT_PREPUSH=1 to check the whole workspace like CI does, regardless of what changed.)"
     fi
 else
     echo "Cargo not found. Install Rust: https://rustup.rs"
 fi
 
 CONTRACTS_DOCS_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^contracts/|^docs/contracts/" || true)
-if [ -n "$CONTRACTS_DOCS_CHANGED" ]; then
+if [ "${STRICT_PREPUSH:-}" = "1" ] || [ -n "$CONTRACTS_DOCS_CHANGED" ]; then
     echo "Checking contract doc sync..."
     DOC_GEN_TOML="$REPO_ROOT/contracts/contract-doc-generator/Cargo.toml"
     if [ -f "$DOC_GEN_TOML" ]; then
@@ -100,7 +138,7 @@ if [ -n "$CONTRACTS_DOCS_CHANGED" ]; then
 fi
 
 BACKEND_CHANGED=$(echo "$CHANGED_FILES" | grep "^backend/" || true)
-if [ -n "$BACKEND_CHANGED" ]; then
+if [ "${STRICT_PREPUSH:-}" = "1" ] || [ -n "$BACKEND_CHANGED" ]; then
     echo "Verifying backend..."
     if command -v npm >/dev/null 2>&1; then
         if ! (cd "$REPO_ROOT/backend" && npm run lint 2>&1); then
@@ -129,7 +167,7 @@ if [ -n "$BACKEND_CHANGED" ]; then
 fi
 
 WEB_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^apps/web/|^packages/tokens/" || true)
-if [ -n "$WEB_CHANGED" ]; then
+if [ "${STRICT_PREPUSH:-}" = "1" ] || [ -n "$WEB_CHANGED" ]; then
     echo "Verifying web app (apps/web)..."
     if command -v pnpm >/dev/null 2>&1; then
         if ! (cd "$REPO_ROOT" && pnpm --filter @stellarcade/web run lint 2>&1); then

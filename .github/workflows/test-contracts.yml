@@ -33,15 +33,20 @@ jobs:
       # Whole workspace, not a curated subset — a crate left off a hand
       # maintained list here is a crate that silently never gets built or
       # tested. Only stellarcade-contract-doc-generator and
-      # stellarcade-deployment-scripts are excluded from the wasm build:
-      # they're native tooling, not deployable contracts (no [lib] cdylib
-      # target) — they're still covered by the workspace-wide test run below.
+      # deployment-scripts (its actual package name has no stellarcade-
+      # prefix, unlike every other crate here) are excluded from the wasm
+      # build: they're native tooling, not deployable contracts (no [lib]
+      # cdylib target) and depend on std (serde_json/tempfile), which
+      # doesn't exist for wasm32v1-none. A wrong exclude name here silently
+      # fails to match and pulls a std-only crate into the no-std build,
+      # corrupting feature resolution for the whole workspace. They're
+      # still covered by the workspace-wide test run below.
       - name: Build every contract (wasm)
         run: |
           cd contracts
           cargo build --workspace --target wasm32v1-none --release --locked \
             --exclude stellarcade-contract-doc-generator \
-            --exclude stellarcade-deployment-scripts
+            --exclude deployment-scripts
 
       - name: Run every crate's tests
         run: cd contracts && cargo test --workspace --locked
