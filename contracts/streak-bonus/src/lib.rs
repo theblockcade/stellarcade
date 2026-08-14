@@ -346,11 +346,9 @@ impl StreakBonus {
             StreakSummaryStatus::Reset => ExpiryPressureLevel::None,
             StreakSummaryStatus::Active => {
                 let window_secs = rules.streak_window_secs;
-                let remaining_pct = if window_secs > 0 {
-                    (seconds_until_expiry * 100) / window_secs
-                } else {
-                    0
-                };
+                let remaining_pct = (seconds_until_expiry * 100)
+                    .checked_div(window_secs)
+                    .unwrap_or(0);
                 match remaining_pct {
                     0..=10 => ExpiryPressureLevel::Critical,
                     11..=25 => ExpiryPressureLevel::High,
