@@ -23,6 +23,8 @@ import { QueueHealthWidget } from "./QueueHealthWidget";
 import { QueueStateMiniPanel } from "./QueueStateMiniPanel";
 import { CollapsibleStatsGroup } from "./CollapsibleStatsGroup";
 import { RewardBalanceSparklineCard } from "./RewardBalanceSparklineCard";
+import { Button } from "./ui/button";
+import { Command, RefreshCw } from "lucide-react";
 import { useWalletStatus } from "../hooks/useWalletStatus";
 import { ApiClient, ONCHAIN_GAMES_CATALOG } from "../services/typed-api-sdk";
 import defaultFreighterAdapter from "../services/freighter-adapter";
@@ -885,6 +887,22 @@ export const GameLobby: React.FC = () => {
     <div
       className={`game-lobby ${showMobileActionFooter ? "game-lobby--with-mobile-footer" : ""}`.trim()}
     >
+      <header className="lobby-page-header">
+        <div>
+          <p className="lobby-page-header__eyebrow">StellarCade operations</p>
+          <h1>Arcade Lobby</h1>
+          <p>Monitor wallet readiness, live tables, and on-chain activity from one workspace.</p>
+        </div>
+        <div className="lobby-page-header__actions">
+          <Button type="button" variant="outline" size="sm" onClick={openCommandCenter}>
+            <Command /> Command center
+          </Button>
+          <Button type="button" variant="brand" size="sm" onClick={handleRefreshLobby} disabled={retrying}>
+            <RefreshCw className={retrying ? "animate-spin" : undefined} /> Refresh
+          </Button>
+        </div>
+      </header>
+
       {!checklistDismissed ? (
         <DashboardMissionStrip
           missions={missionItems}
@@ -938,7 +956,7 @@ export const GameLobby: React.FC = () => {
 
         <div className="lobby-dashboard__col">
           <div className="lobby-header">
-            <h1 id="games-heading">Live Arena</h1>
+            <h2 id="games-heading">Live Arena</h2>
             <p>Real-time game status across the Stellar ecosystem.</p>
             <InlineStatDelta
               value={activeGamesDelta}
@@ -1174,6 +1192,10 @@ export const GameLobby: React.FC = () => {
               pageSize={5}
               density={tableDensity}
               emptyMessage="No leaderboard data available yet."
+              searchable={true}
+              searchPlaceholder="Search live games…"
+              searchFn={(row, query) => [row.name, row.status, row.wager].some((value) => String(value).toLowerCase().includes(query))}
+              ariaLabel="Active games leaderboard"
               testId="leaderboard-table"
             />
           </section>
