@@ -1,12 +1,13 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Map, Symbol, Vec,
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Map, Symbol,
+    Vec,
 };
 
 pub mod storage;
-pub mod types;
 pub mod test;
+pub mod types;
 
 #[derive(Clone)]
 #[contracttype]
@@ -70,8 +71,9 @@ pub struct QueueMetrics {
     pub throughput_per_hour: u32,
 }
 
-#[derive(Clone)]
-#[contracttype]
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
 pub enum Error {
     NotInitialized = 1,
     AlreadyInitialized = 2,
@@ -189,7 +191,7 @@ impl QuestLedgerV2 {
             current_delay: delay_seconds,
             delay_reason: reason,
             estimated_processing_time: delay_seconds + 3600, // Add 1 hour buffer
-            priority_level: 3, // Default medium priority
+            priority_level: 3,                               // Default medium priority
             can_expedite: true,
         };
 
@@ -205,7 +207,7 @@ impl QuestLedgerV2 {
         Self::require_initialized(&env)?;
 
         let current_time = env.ledger().timestamp();
-        
+
         // In a real implementation, we would iterate through all completions
         // For this implementation, we'll return a basic snapshot
         let total_quests: u64 = env
@@ -219,8 +221,16 @@ impl QuestLedgerV2 {
             total_pending: total_quests as u32, // Simplified
             total_processing: 0,
             total_delayed: 0,
-            oldest_pending: if total_quests > 0 { Some(current_time - 3600) } else { None },
-            newest_pending: if total_quests > 0 { Some(current_time) } else { None },
+            oldest_pending: if total_quests > 0 {
+                Some(current_time - 3600)
+            } else {
+                None
+            },
+            newest_pending: if total_quests > 0 {
+                Some(current_time)
+            } else {
+                None
+            },
             average_processing_time: 1800, // 30 minutes default
             queue_health_score: if total_quests < 100 { 90 } else { 70 }, // Simple health calculation
         };
@@ -234,7 +244,10 @@ impl QuestLedgerV2 {
     }
 
     /// Get reward delay accessor for a quest
-    pub fn get_reward_delay_accessor(env: Env, quest_id: u64) -> Result<RewardDelayAccessor, Error> {
+    pub fn get_reward_delay_accessor(
+        env: Env,
+        quest_id: u64,
+    ) -> Result<RewardDelayAccessor, Error> {
         Self::require_initialized(&env)?;
 
         if quest_id == 0 {
@@ -316,7 +329,7 @@ impl QuestLedgerV2 {
             delayed_completions: 0,
             failed_completions: 0,
             average_completion_time: 1800, // 30 minutes
-            throughput_per_hour: 10, // Default throughput
+            throughput_per_hour: 10,       // Default throughput
         })
     }
 
@@ -337,7 +350,11 @@ impl QuestLedgerV2 {
     }
 
     fn require_not_paused(env: &Env) -> Result<(), Error> {
-        let paused: bool = env.storage().persistent().get(&DataKey::Paused).unwrap_or(false);
+        let paused: bool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
         if paused {
             return Err(Error::Paused);
         }
@@ -391,7 +408,8 @@ mod test {
         let (env, admin, _, _) = setup();
         QuestLedgerV2::init(env.clone(), admin.clone()).unwrap();
 
-        QuestLedgerV2::set_reward_delay(env.clone(), admin, 1, 3600, symbol_short!("REVIEW")).unwrap();
+        QuestLedgerV2::set_reward_delay(env.clone(), admin, 1, 3600, symbol_short!("REVIEW"))
+            .unwrap();
 
         let result = QuestLedgerV2::get_reward_delay_accessor(env, 1);
         assert!(result.is_ok());
