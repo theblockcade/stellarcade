@@ -14,15 +14,15 @@
 
 use soroban_sdk::{contract, contractevent, contractimpl, Address, Env, Vec};
 
-mod types;
 mod storage;
+mod types;
 
-use types::{CooldownGapInfo, DataKey, QueuedReward, QueueStatus, UnlockQueueSummary};
 use storage::{
-    compute_unlock_queue_summary, get_cooldown_gap_info, get_queued_reward, 
-    get_recipient_queue_ids, get_recipient_total_queued, get_recipient_total_queued,
-    set_queued_reward, set_recipient_queue_ids, set_recipient_total_queued,
+    compute_unlock_queue_summary, get_cooldown_gap_info, get_queued_reward,
+    get_recipient_queue_ids, get_recipient_total_queued, set_queued_reward,
+    set_recipient_queue_ids, set_recipient_total_queued,
 };
+use types::{CooldownGapInfo, DataKey, QueueStatus, QueuedReward, UnlockQueueSummary};
 
 // ──────────────────────────────────────────────────────────────
 // Events
@@ -82,12 +82,7 @@ impl RewardUnlocker {
     }
 
     /// Queue a reward for unlock after a cooldown period.
-    pub fn queue_reward(
-        env: Env,
-        recipient: Address,
-        amount: i128,
-        cooldown_ledgers: u32,
-    ) -> u32 {
+    pub fn queue_reward(env: Env, recipient: Address, amount: i128, cooldown_ledgers: u32) -> u32 {
         require_admin(&env);
 
         if amount <= 0 {
@@ -131,7 +126,9 @@ impl RewardUnlocker {
 
         // Increment next queue ID
         let next_id = queue_id.checked_add(1).unwrap_or(queue_id);
-        env.storage().instance().set(&DataKey::NextQueueId, &next_id);
+        env.storage()
+            .instance()
+            .set(&DataKey::NextQueueId, &next_id);
 
         RewardQueued {
             recipient,
@@ -150,7 +147,8 @@ impl RewardUnlocker {
 
         if let Some(queued_reward) = get_queued_reward(&env, &recipient, queue_id) {
             let current_ledger = env.ledger().sequence() as u32;
-            let unlock_ledger = queued_reward.queued_ledger
+            let unlock_ledger = queued_reward
+                .queued_ledger
                 .checked_add(queued_reward.cooldown_ledgers)
                 .unwrap_or(u32::MAX);
 
@@ -201,21 +199,12 @@ impl RewardUnlocker {
 
     /// Get cooldown gap info for a specific queue entry.
     /// Handles missing entry by treating as ready to claim.
-    pub fn get_cooldown_gap(
-        env: Env,
-        recipient: Address,
-        queue_id: u32,
-    ) -> CooldownGapInfo {
+    pub fn get_cooldown_gap(env: Env, recipient: Address, queue_id: u32) -> CooldownGapInfo {
         get_cooldown_gap_info(&env, &recipient, queue_id)
     }
 
     /// List all queue IDs for a recipient (paginated).
-    pub fn list_queued_rewards(
-        env: Env,
-        recipient: Address,
-        start: u32,
-        limit: u32,
-    ) -> Vec<u32> {
+    pub fn list_queued_rewards(env: Env, recipient: Address, start: u32, limit: u32) -> Vec<u32> {
         let all_queues = get_recipient_queue_ids(&env, &recipient);
         let total = all_queues.len();
 
