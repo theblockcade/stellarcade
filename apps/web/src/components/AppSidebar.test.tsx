@@ -1,44 +1,34 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { AppSidebar } from "./AppSidebar";
 import { I18nProvider } from "../i18n/provider";
+import { SidebarProvider } from "./ui/sidebar";
 
-function mockMatchMedia(matches: boolean) {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: vi.fn().mockImplementation((query: string) => ({
-      matches,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-}
-
+/**
+ * AppSidebar now renders on shadcn/ui's Sidebar primitive, which requires a
+ * SidebarProvider ancestor (it calls useSidebar() internally) — the mobile
+ * offcanvas sheet, icon-collapse, and ⌘/Ctrl+B shortcut all live in that
+ * primitive and are exercised together with the navbar's SidebarTrigger in
+ * AppShell.test.tsx instead of in isolation here.
+ */
 function renderSidebar(props: Parameters<typeof AppSidebar>[0]) {
   return render(
     <I18nProvider>
-      <AppSidebar {...props} />
+      <SidebarProvider>
+        <AppSidebar {...props} />
+      </SidebarProvider>
     </I18nProvider>,
   );
 }
 
 describe("AppSidebar", () => {
-  afterEach(() => {
-    mockMatchMedia(false);
-  });
-
   it("renders as a single named primary navigation landmark", () => {
     const onNavigate = vi.fn();
 
     renderSidebar({ currentRoute: "lobby", onNavigate });
 
     expect(screen.getByRole("navigation", { name: /primary dashboard/i })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: /sidebar navigation/i })).not.toBeInTheDocument();
   });
 
   it("renders grouped navigation and highlights the active route", () => {
@@ -49,6 +39,8 @@ describe("AppSidebar", () => {
     renderSidebar({ currentRoute: "settings", onNavigate });
 
     expect(screen.getByText("Play")).toBeInTheDocument();
+    expect(screen.getByText("Compete")).toBeInTheDocument();
+    expect(screen.getByText("Tools")).toBeInTheDocument();
     expect(screen.getByText("Account")).toBeInTheDocument();
     expect(screen.queryByText("More")).not.toBeInTheDocument();
     expect(screen.getByTestId("app-sidebar-link-settings")).toHaveAttribute("aria-current", "page");
@@ -57,56 +49,37 @@ describe("AppSidebar", () => {
     expect(screen.getByTestId("app-sidebar-link-quests")).toBeInTheDocument();
     expect(screen.getByTestId("app-sidebar-link-history")).toBeInTheDocument();
     expect(screen.getByTestId("app-sidebar-link-verify")).toBeInTheDocument();
+    expect(screen.getByTestId("app-sidebar-link-tournaments")).toBeInTheDocument();
+    expect(screen.getByTestId("app-sidebar-link-rewards")).toBeInTheDocument();
+    expect(screen.getByTestId("app-sidebar-link-cleanup")).toBeInTheDocument();
   });
 
-  it("supports mobile open/close toggle behavior", () => {
+  it("calls onNavigate when a nav item is selected", () => {
     const onNavigate = vi.fn();
 
     renderSidebar({ currentRoute: "lobby", onNavigate });
-
-    const sidebar = screen.getByTestId("app-sidebar");
-    expect(sidebar).not.toHaveClass("is-mobile-open");
-
-    fireEvent.click(screen.getByTestId("app-sidebar-mobile-toggle"));
-    expect(sidebar).toHaveClass("is-mobile-open");
-
-    fireEvent.click(screen.getByTestId("app-sidebar-mobile-close"));
-    expect(sidebar).not.toHaveClass("is-mobile-open");
-  });
-
-  it("supports desktop collapse and calls onNavigate when selecting a route", () => {
-    const onNavigate = vi.fn();
-
-    renderSidebar({ currentRoute: "lobby", onNavigate });
-
-    const sidebar = screen.getByTestId("app-sidebar");
-    expect(sidebar).not.toHaveClass("is-collapsed");
-
-    fireEvent.click(screen.getByTestId("app-sidebar-collapse-toggle"));
-    expect(sidebar).toHaveClass("is-collapsed");
 
     fireEvent.click(screen.getByTestId("app-sidebar-link-games"));
     expect(onNavigate).toHaveBeenCalledWith("games");
   });
 
-  it("keeps closed mobile navigation out of the focus order until opened", () => {
-    mockMatchMedia(true);
+  it("navigates to profile, portfolio, and settings from the account menu", async () => {
+    const user = userEvent.setup();
     const onNavigate = vi.fn();
 
     renderSidebar({ currentRoute: "lobby", onNavigate });
 
-    const toggle = screen.getByTestId("app-sidebar-mobile-toggle");
-    const sidebar = screen.getByTestId("app-sidebar");
+    await user.click(screen.getByTestId("sidebar-profile-card"));
+    await user.click(await screen.findByText("Portfolio"));
+    expect(onNavigate).toHaveBeenCalledWith("portfolio");
+  });
 
-    expect(toggle).toHaveAttribute("aria-controls", "primary-dashboard-navigation");
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(sidebar).toHaveAttribute("aria-hidden", "true");
-    expect(sidebar).toHaveAttribute("inert");
+  it("clicking the brand navigates to the lobby", () => {
+    const onNavigate = vi.fn();
 
-    fireEvent.click(toggle);
+    renderSidebar({ currentRoute: "settings", onNavigate });
 
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(sidebar).not.toHaveAttribute("aria-hidden");
-    expect(sidebar).not.toHaveAttribute("inert");
+    fireEvent.click(screen.getByTestId("app-sidebar-brand"));
+    expect(onNavigate).toHaveBeenCalledWith("lobby");
   });
 });
