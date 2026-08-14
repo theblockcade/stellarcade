@@ -26,9 +26,10 @@ impl SeasonPassContract {
     // Accessor for entitlement snapshot
     pub fn get_entitlement_snapshot(env: Env, user: Address) -> EntitlementSnapshot {
         let entitlements = get_entitlements(&env, &user);
+        let total_entitlements = entitlements.len();
         EntitlementSnapshot {
             entitlements,
-            total_entitlements: entitlements.len(),
+            total_entitlements,
         }
     }
 

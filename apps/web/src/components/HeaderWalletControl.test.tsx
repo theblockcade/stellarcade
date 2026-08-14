@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const connect = vi.fn();
@@ -44,7 +45,8 @@ describe("HeaderWalletControl", () => {
     expect(connect.mock.calls[0][0]).toBeDefined();
   });
 
-  it("shows a shortened address and the network once connected", () => {
+  it("shows wallet details from the compact account menu once connected", async () => {
+    const user = userEvent.setup();
     mockWallet = walletState({
       status: "CONNECTED",
       address: "GABCDEF1234567890XYZWVUTSRQPONMLKJIHGFEDCBA98765432",
@@ -52,11 +54,13 @@ describe("HeaderWalletControl", () => {
       capabilities: { isConnected: true, isConnecting: false, isReconnecting: false, canConnect: false },
     });
     render(<HeaderWalletControl />);
-    expect(screen.getByTestId("header-wallet-address")).toHaveTextContent("GABC…5432");
+    await user.click(screen.getByTestId("header-wallet-menu"));
+    expect(await screen.findByTestId("header-wallet-address")).toHaveTextContent("GABC…5432");
     expect(screen.getByTestId("header-wallet-network")).toHaveTextContent("TESTNET");
   });
 
-  it("disconnects when the disconnect button is clicked", () => {
+  it("disconnects from the wallet menu", async () => {
+    const user = userEvent.setup();
     mockWallet = walletState({
       status: "CONNECTED",
       address: "GABCDEF1234567890XYZ",
@@ -64,7 +68,8 @@ describe("HeaderWalletControl", () => {
       capabilities: { isConnected: true, isConnecting: false, isReconnecting: false, canConnect: false },
     });
     render(<HeaderWalletControl />);
-    screen.getByTestId("header-wallet-disconnect").click();
+    await user.click(screen.getByTestId("header-wallet-menu"));
+    await user.click(await screen.findByTestId("header-wallet-disconnect"));
     expect(disconnect).toHaveBeenCalledTimes(1);
   });
 

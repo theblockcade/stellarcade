@@ -1,50 +1,18 @@
-#![no_std]
+use soroban_sdk::Env;
 
-use soroban_sdk::{contracttype, Address, Env};
-
-use crate::types::*;
-
-// Storage keys
-
-#[contracttype]
-pub enum DataKey {
-    Admin,
-    TotalBorrowed,
-    TotalSupplied,
-    LiquidationBuffer(Address),
-}
+use crate::types::PoolTotals;
+use crate::DataKey;
 
 // Storage functions
+//
+// Only pool-totals accessors live here — `lib.rs` manages Admin and
+// LiquidationBufferBps directly via `env.storage().instance()` using its
+// own `DataKey` enum, so this module doesn't duplicate that.
 
-pub fn get_admin(env: &Env) -> Address {
-    env.storage().instance().get(&DataKey::Admin).unwrap()
+pub fn get_pool_totals(env: &Env) -> Option<PoolTotals> {
+    env.storage().instance().get(&DataKey::PoolTotals)
 }
 
-pub fn set_admin(env: &Env, admin: &Address) {
-    env.storage().instance().set(&DataKey::Admin, admin);
-}
-
-pub fn get_total_borrowed(env: &Env) -> i128 {
-    env.storage().instance().get(&DataKey::TotalBorrowed).unwrap_or(0)
-}
-
-pub fn set_total_borrowed(env: &Env, amount: i128) {
-    env.storage().instance().set(&DataKey::TotalBorrowed, &amount);
-}
-
-pub fn get_total_supplied(env: &Env) -> i128 {
-    env.storage().instance().get(&DataKey::TotalSupplied).unwrap_or(0)
-}
-
-pub fn set_total_supplied(env: &Env, amount: i128) {
-    env.storage().instance().set(&DataKey::TotalSupplied, &amount);
-}
-
-pub fn get_liquidation_buffer(env: &Env, user: &Address) -> Option<LiquidationBuffer> {
-    env.storage().persistent().get(&DataKey::LiquidationBuffer(user.clone()))
-}
-
-pub fn set_liquidation_buffer(env: &Env, user: &Address, buffer: &LiquidationBuffer) {
-    env.storage().persistent().set(&DataKey::LiquidationBuffer(user.clone()), buffer);
-    env.storage().persistent().bump(&DataKey::LiquidationBuffer(user.clone()), 518400);
+pub fn set_pool_totals(env: &Env, totals: &PoolTotals) {
+    env.storage().instance().set(&DataKey::PoolTotals, totals);
 }

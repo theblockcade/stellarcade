@@ -1,5 +1,3 @@
-#![no_std]
-
 use soroban_sdk::{contracttype, Address, Env, Vec};
 
 use crate::types::*;
@@ -25,7 +23,10 @@ pub fn set_admin(env: &Env, admin: &Address) {
 }
 
 pub fn get_quests(env: &Env) -> Vec<Quest> {
-    env.storage().instance().get(&DataKey::Quests).unwrap_or(Vec::new(&env))
+    env.storage()
+        .instance()
+        .get(&DataKey::Quests)
+        .unwrap_or(Vec::new(&env))
 }
 
 pub fn set_quests(env: &Env, quests: &Vec<Quest>) {
@@ -33,7 +34,10 @@ pub fn set_quests(env: &Env, quests: &Vec<Quest>) {
 }
 
 pub fn get_total_budget(env: &Env) -> i128 {
-    env.storage().instance().get(&DataKey::TotalBudget).unwrap_or(0)
+    env.storage()
+        .instance()
+        .get(&DataKey::TotalBudget)
+        .unwrap_or(0)
 }
 
 pub fn set_total_budget(env: &Env, budget: i128) {
@@ -41,9 +45,14 @@ pub fn set_total_budget(env: &Env, budget: i128) {
 }
 
 pub fn get_allocated_budget(env: &Env) -> i128 {
-    env.storage().instance().get(&DataKey::AllocatedBudget).unwrap_or(0)
+    env.storage()
+        .instance()
+        .get(&DataKey::AllocatedBudget)
+        .unwrap_or(0)
 }
 
 pub fn set_allocated_budget(env: &Env, budget: i128) {
-    env.storage().instance().set(&DataKey::AllocatedBudget, &budget);
+    env.storage()
+        .instance()
+        .set(&DataKey::AllocatedBudget, &budget);
 }

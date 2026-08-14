@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{contracttype, Address, Env, Vec};
 
 use crate::types::*;
 
@@ -24,19 +24,33 @@ pub fn set_admin(env: &Env, admin: &Address) {
 }
 
 pub fn get_entitlements(env: &Env, user: &Address) -> Vec<Entitlement> {
-    env.storage().persistent().get(&DataKey::Entitlements(user.clone())).unwrap_or(Vec::new(&env))
+    env.storage()
+        .persistent()
+        .get(&DataKey::Entitlements(user.clone()))
+        .unwrap_or(Vec::new(&env))
 }
 
 pub fn set_entitlements(env: &Env, user: &Address, entitlements: &Vec<Entitlement>) {
-    env.storage().persistent().set(&DataKey::Entitlements(user.clone()), entitlements);
-    env.storage().persistent().bump(&DataKey::Entitlements(user.clone()), 518400);
+    env.storage()
+        .persistent()
+        .set(&DataKey::Entitlements(user.clone()), entitlements);
+    env.storage()
+        .persistent()
+        .extend_ttl(&DataKey::Entitlements(user.clone()), 518400, 518400);
 }
 
 pub fn get_tier_progress(env: &Env, user: &Address) -> Option<TierProgress> {
-    env.storage().persistent().get(&DataKey::TierProgress(user.clone()))
+    env.storage()
+        .persistent()
+        .get(&DataKey::TierProgress(user.clone()))
 }
 
 pub fn set_tier_progress(env: &Env, user: &Address, progress: &TierProgress) {
-    env.storage().persistent().set(&DataKey::TierProgress(user.clone()), progress);
-    env.storage().persistent().bump(&DataKey::TierProgress(user.clone()), 518400);
+    env.storage()
+        .persistent()
+        .set(&DataKey::TierProgress(user.clone()), progress);
+    env.storage()
+        .persistent()
+        .extend_ttl(&DataKey::TierProgress(user.clone()), 518400, 518400);
 }
+

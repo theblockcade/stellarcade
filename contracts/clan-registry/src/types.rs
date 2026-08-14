@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Vec, String};
+use soroban_sdk::{contracttype, Address, String, Vec};
 
 /// Summary of clan roster.
 #[contracttype]

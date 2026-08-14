@@ -1,6 +1,8 @@
 #![cfg(test)]
 
-use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, testutils::LedgerInfo, Address, Env};
+use soroban_sdk::{
+    testutils::Address as _, testutils::Ledger as _, testutils::LedgerInfo, Address, Env,
+};
 
 use super::*;
 
@@ -156,7 +158,7 @@ fn test_pass_tier_snapshot() {
 
     // Test existing pass
     client.upsert_pass(&admin, &5, &12, &3, &6);
-    
+
     // Not expired yet (ledger=0)
     let snap = client.pass_tier_snapshot(&5);
     assert!(snap.exists);
@@ -168,7 +170,7 @@ fn test_pass_tier_snapshot() {
 
     // Move ledger sequence past expiry
     env.ledger().set(LedgerInfo {
-        protocol_version: 22,
+        protocol_version: 25,
         sequence_number: 150,
         timestamp: 0,
         network_id: [0; 32],

@@ -1,14 +1,14 @@
 #![no_std]
 
-mod types;
 mod storage;
+mod types;
 
 #[cfg(test)]
 mod test;
 
-use soroban_sdk::{contract, contractimpl, contractevent, Address, Env, Vec, contracterror};
-use crate::types::{MatchConfig, MatchState, MatchStatus, MatchSnapshot, Squad};
-use crate::storage::{get_config, set_config, get_match, set_match};
+use crate::storage::{get_config, get_match, set_config, set_match};
+use crate::types::{MatchConfig, MatchSnapshot, MatchState, MatchStatus, Squad};
+use soroban_sdk::{contract, contracterror, contractevent, contractimpl, Address, Env, Vec};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -76,7 +76,7 @@ impl SquadMatch {
 
         set_match(&env, match_id, &state);
 
-        env.events().publish(("match", "created"), MatchCreated { match_id, creator });
+        MatchCreated { match_id, creator }.publish(&env);
 
         Ok(())
     }
@@ -102,7 +102,9 @@ impl SquadMatch {
     /// Returns the status of a specific match.
     /// Returns `Cancelled` as a fallback if the match does not exist.
     pub fn get_match_status(env: Env, match_id: u32) -> MatchStatus {
-        get_match(&env, match_id).map(|m| m.status).unwrap_or(MatchStatus::Cancelled)
+        get_match(&env, match_id)
+            .map(|m| m.status)
+            .unwrap_or(MatchStatus::Cancelled)
     }
 
     /// Returns whether the matchmaking system is paused.

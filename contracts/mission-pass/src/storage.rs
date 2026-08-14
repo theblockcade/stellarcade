@@ -1,6 +1,6 @@
 use soroban_sdk::Env;
 
-use crate::{DataKey, types::PassRecord};
+use crate::{types::PassRecord, DataKey};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 

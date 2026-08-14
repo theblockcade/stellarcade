@@ -1,14 +1,18 @@
 #![no_std]
 
-mod types;
 mod storage;
+mod types;
 
 #[cfg(test)]
 mod test;
 
-use soroban_sdk::{contract, contractimpl, contractevent, Address, Env, Vec, contracterror};
-use crate::types::{ManagerConfig, ManagerThresholdSummary, ReserveState, ReserveStatus, ReserveSnapshot};
-use crate::storage::{get_config, set_config, get_assets, set_assets, get_reserve_state, set_reserve_state};
+use crate::storage::{
+    get_assets, get_config, get_reserve_state, set_assets, set_config, set_reserve_state,
+};
+use crate::types::{
+    ManagerConfig, ManagerThresholdSummary, ReserveSnapshot, ReserveState, ReserveStatus,
+};
+use soroban_sdk::{contract, contracterror, contractevent, contractimpl, Address, Env, Vec};
 
 /// Sweep cooldown expressed in ledgers (2_880 ≈ 4 hours at 5 s/ledger).
 const SWEEP_COOLDOWN_LEDGERS: u32 = 2_880;
@@ -63,7 +67,12 @@ impl ReserveManager {
     }
 
     /// Update an asset's reserve targets and current balance. Admin only.
-    pub fn update_reserve(env: Env, asset: Address, balance: i128, target: i128) -> Result<(), Error> {
+    pub fn update_reserve(
+        env: Env,
+        asset: Address,
+        balance: i128,
+        target: i128,
+    ) -> Result<(), Error> {
         let config = get_config(&env).ok_or(Error::NotInitialized)?;
         if config.is_paused {
             return Err(Error::Paused);
@@ -94,7 +103,12 @@ impl ReserveManager {
 
         set_reserve_state(&env, &asset, &state);
 
-        env.events().publish(("reserve", "updated"), ReserveUpdated { asset, new_balance: balance, status });
+        ReserveUpdated {
+            asset,
+            new_balance: balance,
+            status,
+        }
+        .publish(&env);
 
         Ok(())
     }
@@ -160,7 +174,9 @@ impl ReserveManager {
             if let Some(state) = get_reserve_state(&env, &asset) {
                 match state.status {
                     ReserveStatus::Healthy => healthy_count = healthy_count.saturating_add(1),
-                    ReserveStatus::BelowTarget => below_target_count = below_target_count.saturating_add(1),
+                    ReserveStatus::BelowTarget => {
+                        below_target_count = below_target_count.saturating_add(1)
+                    }
                     ReserveStatus::Critical => critical_count = critical_count.saturating_add(1),
                     ReserveStatus::Paused => {}
                 }

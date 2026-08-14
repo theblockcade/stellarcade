@@ -1,12 +1,13 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Map, Symbol, Vec,
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Map, Symbol,
+    Vec,
 };
 
 pub mod storage;
-pub mod types;
 pub mod test;
+pub mod types;
 
 #[derive(Clone)]
 #[contracttype]
@@ -52,8 +53,9 @@ pub struct DepletionRiskAssessment {
     pub recommended_action: Symbol,
 }
 
-#[derive(Clone)]
-#[contracttype]
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
 pub enum Error {
     NotInitialized = 1,
     AlreadyInitialized = 2,
@@ -78,7 +80,9 @@ impl WalletReserves {
         env.storage().persistent().set(&DataKey::Admin, &admin);
         env.storage().persistent().set(&DataKey::Initialized, &true);
         env.storage().persistent().set(&DataKey::Paused, &false);
-        env.storage().persistent().set(&DataKey::TotalReserves, &0i128);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TotalReserves, &0i128);
 
         Ok(())
     }
@@ -259,7 +263,11 @@ impl WalletReserves {
     }
 
     fn require_not_paused(env: &Env) -> Result<(), Error> {
-        let paused: bool = env.storage().persistent().get(&DataKey::Paused).unwrap_or(false);
+        let paused: bool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
         if paused {
             return Err(Error::Paused);
         }

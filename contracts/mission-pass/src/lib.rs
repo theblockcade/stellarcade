@@ -19,7 +19,7 @@ mod types;
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
-pub use types::{PassProgressSnapshot, PassRecord, UnlockGap, PassTierSnapshot};
+pub use types::{PassProgressSnapshot, PassRecord, PassTierSnapshot, UnlockGap};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 
@@ -104,8 +104,8 @@ impl MissionPass {
                 let completion_pct = (record.completed_missions * 100)
                     .checked_div(record.total_missions)
                     .unwrap_or(0);
-                let is_complete = record.total_missions > 0
-                    && record.completed_missions >= record.total_missions;
+                let is_complete =
+                    record.total_missions > 0 && record.completed_missions >= record.total_missions;
                 PassProgressSnapshot {
                     pass_id,
                     exists: true,

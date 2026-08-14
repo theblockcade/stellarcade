@@ -15,7 +15,9 @@ import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import { useWalletStatus } from "../hooks/useWalletStatus";
 import { ApiClient } from "../services/typed-api-sdk";
 import { profileStore } from "./ProfileSettings";
-import "./AppShell.css";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "./ui/sidebar";
+import { Separator } from "./ui/separator";
+import { Button } from "./ui/button";
 
 /**
  * Next.js port of frontend/src/App.tsx's shell. The original used
@@ -27,6 +29,11 @@ import "./AppShell.css";
  * MIGRATION.md). "games" has no dedicated route yet, so it also resolves
  * to `/app`, matching GameLobby's own behavior of serving both concerns
  * from one component.
+ *
+ * Shell chrome (sidebar + navbar) is built entirely on shadcn/ui's Sidebar
+ * primitive and Tailwind utility classes bound to @stellarcade/tokens via
+ * globals.css — there is no AppShell.css/AppSidebar.css anymore. Everything
+ * below the navbar (route content) is unchanged.
  */
 
 const MAIN_CONTENT_ID = "main-content";
@@ -249,13 +256,13 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 app-container">
+    <SidebarProvider>
       <CommandPalette commands={commands} />
       <NotificationCenter />
 
       <a
         href={`#${MAIN_CONTENT_ID}`}
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-teal-400 focus:text-black focus:font-bold focus:rounded-lg skip-link"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:font-bold focus:text-primary-foreground"
         onClick={(event) => {
           const mainContent = document.getElementById(MAIN_CONTENT_ID);
           if (!mainContent) return;
@@ -270,43 +277,63 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       <AppSidebar currentRoute={route} onNavigate={handleNavigate} />
 
-      <div className="flex-1 flex flex-col min-w-0 app-main-layout">
-        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-slate-950/80 backdrop-blur-md border-b border-white/10 app-header" role="banner">
-          <div className="flex items-center gap-4 app-header__left">
+      <SidebarInset>
+        <header
+          className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-4 border-b border-border bg-background/95 px-3 shadow-sm backdrop-blur-md sm:px-4"
+          role="banner"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <SidebarTrigger />
+            <Separator orientation="vertical" className="h-5" />
+            <div className="hidden min-w-0 sm:block">
+              <p className="truncate text-sm font-bold tracking-tight">StellarCade</p>
+              <p className="truncate text-[10px] font-semibold tracking-[0.12em] text-primary uppercase">Player workspace</p>
+            </div>
+            <Separator orientation="vertical" className="hidden h-5 sm:block" />
             <Breadcrumbs />
-            <button
-              type="button"
-              onClick={() => commandStore.dispatch({ type: "COMMAND_PALETTE_OPEN" })}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 hover:border-teal-400/40 transition-colors text-xs text-slate-400 app-header__search-btn"
-              aria-label="Open command palette (⌘K)"
-            >
-              <Search size={14} className="text-teal-300" />
-              <span className="hidden sm:inline app-header__search-placeholder">Quick search...</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-slate-300 app-header__search-kbd">⌘K</kbd>
-            </button>
           </div>
-          <div className="flex items-center gap-3 app-header__actions">
+          <div className="hidden min-w-0 flex-1 justify-center lg:flex">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => commandStore.dispatch({ type: "COMMAND_PALETTE_OPEN" })}
+              className="w-full max-w-sm justify-start gap-2 rounded-md text-xs text-muted-foreground"
+              aria-label="Open command palette (Control or Command K)"
+            >
+              <Search className="size-3.5 text-primary" />
+              <span className="flex-1 text-left">Search actions, routes, and tools…</span>
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted-foreground">
+                Ctrl/⌘ K
+              </kbd>
+            </Button>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
             <HeaderWalletControl />
           </div>
         </header>
 
-        <main className="flex-1 p-6 outline-none app-content" id={MAIN_CONTENT_ID} tabIndex={-1}>
+        <main
+          className="mx-auto w-full max-w-350 flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8"
+          id={MAIN_CONTENT_ID}
+          tabIndex={-1}
+        >
           <RouteErrorBoundary>{children}</RouteErrorBoundary>
         </main>
 
-        <footer className="px-6 py-4 border-t border-white/10 text-xs text-slate-500 app-footer" role="contentinfo">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 max-w-7xl mx-auto footer-content">
+        <footer className="border-t border-border px-4 py-4 text-xs text-muted-foreground sm:px-6 lg:px-8" role="contentinfo">
+          <div className="mx-auto flex max-w-350 flex-col items-center justify-between gap-3 sm:flex-row">
             <p>{t("footer.copyright", "© 2026 StellarCade. All rights reserved.")}</p>
 
-            <div className="flex items-center gap-4 font-semibold text-slate-400 footer-links">
-              <a href="/about" className="hover:text-teal-300 transition-colors">{t("footer.about", "About")}</a>
-              <a href="/terms" className="hover:text-teal-300 transition-colors">{t("footer.terms", "Terms")}</a>
-              <a href="/privacy" className="hover:text-teal-300 transition-colors">{t("footer.privacy", "Privacy")}</a>
+            <div className="flex items-center gap-4 font-semibold">
+              <a href="/about" className="transition-colors hover:text-primary">{t("footer.about", "About")}</a>
+              <a href="/terms" className="transition-colors hover:text-primary">{t("footer.terms", "Terms")}</a>
+              <a href="/privacy" className="transition-colors hover:text-primary">{t("footer.privacy", "Privacy")}</a>
             </div>
           </div>
         </footer>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

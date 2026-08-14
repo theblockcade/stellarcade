@@ -23,20 +23,10 @@ jobs:
         with:
           toolchain: 1.91.0
           components: clippy
-      - name: Run Clippy
-        run: |
-          cd contracts/shared && cargo clippy --locked -- -D warnings
-          cd ../prize-pool && cargo clippy --locked -- -D warnings
-          cd ../random-generator && cargo clippy --locked -- -D warnings
-          cd ../coin-flip && cargo clippy --locked -- -D warnings
-          cd ../multiplayer-room && cargo clippy --locked -- -D warnings
-          cd ../pattern-puzzle && cargo clippy --locked -- -D warnings
-          cd ../emergency-pause && cargo clippy --locked -- -D warnings
-          cd ../governance && cargo clippy --locked -- -D warnings
-          cd ../campaign-claims && cargo clippy --locked -- -D warnings
-          cd ../fee-shield && cargo clippy --locked -- -D warnings
-          cd ../streak-ladder && cargo clippy --locked -- -D warnings
-          cd ../creator-drops && cargo clippy --locked -- -D warnings
+      # Whole workspace, not a curated subset — a crate left off a hand
+      # maintained list here is a crate that silently never gets linted.
+      - name: Run Clippy (entire contracts workspace)
+        run: cd contracts && cargo clippy --workspace --locked -- -D warnings
 
   lint-web:
     runs-on: ubuntu-latest

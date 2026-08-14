@@ -43,6 +43,12 @@ Thanks for contributing to Stellarcade.
 - Windows PowerShell: `powershell -ExecutionPolicy Bypass -File scripts/setup-hooks.ps1`
 - Verify the setup with `git config --get core.hooksPath`
 - The hooks catch common contract, backend, and frontend failures before push.
+- By default the pre-push hook only checks files touched in your push, so a
+  docs-only push won't run contract/web checks — CI always runs the full
+  suite regardless of diff, so it can still catch pre-existing breakage on
+  `main`. Before opening a PR, run `STRICT_PREPUSH=1 git push` to mirror CI
+  exactly (whole contracts workspace clippy/test/wasm build, backend, and
+  web app) regardless of what your push touched.
 
 ## Code Style
 

@@ -1,9 +1,8 @@
-#![no_std]
-
 use soroban_sdk::{contracttype, Address, Env, String, Vec};
 
 // Types for quest-board contract
 
+#[derive(Clone)]
 #[contracttype]
 pub struct Quest {
     pub id: u32,

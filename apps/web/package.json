@@ -9,7 +9,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@stellar/freighter-api": "^6.0.1",
@@ -35,6 +35,8 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.2.11",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",

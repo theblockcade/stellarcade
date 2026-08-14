@@ -24,12 +24,23 @@ impl AchievementsContract {
     }
 
     // Accessor for category completion summary
-    pub fn get_category_completion_summary(env: Env, user: Address, category: String) -> CategoryCompletionSummary {
+    pub fn get_category_completion_summary(
+        env: Env,
+        user: Address,
+        category: String,
+    ) -> CategoryCompletionSummary {
         let achievements = get_achievements(&env, &user);
-        let category_achievements: Vec<Achievement> = achievements.iter().filter(|a| a.category == category).collect();
+        let category_achievements: Vec<Achievement> = achievements
+            .iter()
+            .filter(|a| a.category == category)
+            .collect();
         let unlocked = category_achievements.iter().filter(|a| a.unlocked).count() as u32;
         let total = category_achievements.len();
-        let percentage = if total > 0 { (unlocked * 100) / total } else { 0 };
+        let percentage = if total > 0 {
+            (unlocked * 100) / total
+        } else {
+            0
+        };
         CategoryCompletionSummary {
             category,
             total_achievements: total,
@@ -60,7 +71,11 @@ impl AchievementsContract {
         let total = achievements.len();
         let unlocked = achievements.iter().filter(|a| a.unlocked).count() as u32;
         let locked = total - unlocked;
-        let percentage = if total > 0 { (unlocked * 100) / total } else { 0 };
+        let percentage = if total > 0 {
+            (unlocked * 100) / total
+        } else {
+            0
+        };
 
         AchievementUnlockSnapshot {
             user: user.clone(),

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import type { SortDirection } from '../types/pagination';
 import type { TableDensityPreference } from '../services/global-state-store';
 import './DataTable.css';
@@ -27,6 +28,10 @@ export interface DataTableProps<T> {
   onPageSizeChange?: (size: number) => void;
   initialSortField?: string;
   initialSortDirection?: SortDirection;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  searchFn?: (row: T, query: string) => boolean;
+  ariaLabel?: string;
 }
 
 function toggleDirection(current: SortDirection): SortDirection {
@@ -53,19 +58,30 @@ export function DataTable<T extends object>({
   onPageSizeChange,
   initialSortField,
   initialSortDirection = 'asc',
+  searchable = false,
+  searchPlaceholder = 'Search records…',
+  searchFn,
+  ariaLabel = 'Data table',
 }: DataTableProps<T>): React.JSX.Element {
   const [sortField, setSortField] = useState<string | undefined>(initialSortField);
   const [sortDirection, setSortDirection] = useState<SortDirection>(initialSortDirection);
   const [page, setPage] = useState(1);
   const [currentPageSize, setCurrentPageSize] = useState(pageSize);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredData = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query || !searchFn) return data;
+    return data.filter((row) => searchFn(row, query));
+  }, [data, searchFn, searchQuery]);
 
   const sortedData = useMemo(() => {
-    if (!sortField) return data;
+    if (!sortField) return filteredData;
 
     const col = columns.find((c) => c.key === sortField);
-    if (!col) return data;
+    if (!col) return filteredData;
 
-    return [...data].sort((a, b) => {
+    return [...filteredData].sort((a, b) => {
       const aValue = col.sortAccessor
         ? col.sortAccessor(a)
         : (a as Record<string, unknown>)[sortField];
@@ -88,7 +104,7 @@ export function DataTable<T extends object>({
 
       return sortDirection === 'asc' ? aStr : -aStr;
     });
-  }, [data, columns, sortField, sortDirection]);
+  }, [filteredData, columns, sortField, sortDirection]);
 
   const totalPages = Math.max(1, Math.ceil(sortedData.length / currentPageSize));
 
@@ -117,6 +133,11 @@ export function DataTable<T extends object>({
     setCurrentPageSize(size);
     setPage(1);
     onPageSizeChange?.(size);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
   };
 
   if (isLoading) {
@@ -172,6 +193,9 @@ export function DataTable<T extends object>({
     return <div className="data-table-empty" data-testid="data-table-empty">{emptyMessage}</div>;
   }
 
+  const firstResult = sortedData.length === 0 ? 0 : (page - 1) * currentPageSize + 1;
+  const lastResult = Math.min(page * currentPageSize, sortedData.length);
+
   return (
     <div
       className={['data-table', density === 'compact' ? 'data-table--compact' : '', className]
@@ -179,7 +203,34 @@ export function DataTable<T extends object>({
         .join(' ')}
       data-testid={testId}
       data-density={density}
+      role="region"
+      aria-label={ariaLabel}
     >
+      <div className="data-table-toolbar">
+        {searchable ? (
+          <label className="data-table-search">
+            <Search size={16} aria-hidden="true" />
+            <span className="sr-only">{searchPlaceholder}</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              placeholder={searchPlaceholder}
+              data-testid="data-table-search"
+            />
+          </label>
+        ) : <span />}
+        <div className="data-table-toolbar__summary">
+          <SlidersHorizontal size={15} aria-hidden="true" />
+          <span>{sortedData.length} result{sortedData.length === 1 ? '' : 's'}</span>
+        </div>
+      </div>
+      {sortedData.length === 0 ? (
+        <div className="data-table-empty data-table-empty--filtered" role="status">
+          No matching records. Clear or refine your search.
+        </div>
+      ) : (
+      <>
       <table>
         <thead>
           <tr>
@@ -188,13 +239,22 @@ export function DataTable<T extends object>({
                 key={String(column.key)}
                 style={column.width ? { width: column.width } : undefined}
                 className={column.sortable ? 'sortable' : undefined}
-                onClick={() => changeSort(column)}
-                data-testid={`data-table-header-${String(column.key)}`}
               >
-                {column.header}
-                {column.sortable && sortField === String(column.key) && (
-                  <span className="sort-indicator">{sortDirection === 'asc' ? ' ▲' : ' ▼'}</span>
-                )}
+                {column.sortable ? (
+                  <button
+                    type="button"
+                    className="data-table-sort-button"
+                    onClick={() => changeSort(column)}
+                    aria-label={`Sort by ${column.header}${sortField === String(column.key) ? `, currently ${sortDirection === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+                    aria-pressed={sortField === String(column.key)}
+                    data-testid={`data-table-header-${String(column.key)}`}
+                  >
+                    {column.header}
+                    {sortField === String(column.key) && (
+                      <span className="sort-indicator" aria-hidden="true">{sortDirection === 'asc' ? ' ▲' : ' ▼'}</span>
+                    )}
+                  </button>
+                ) : <span data-testid={`data-table-header-${String(column.key)}`}>{column.header}</span>}
               </th>
             ))}
           </tr>
@@ -215,6 +275,9 @@ export function DataTable<T extends object>({
       </table>
 
       <div className="data-table-pagination">
+        <span className="data-table-pagination__summary">
+          Showing {firstResult}–{lastResult} of {sortedData.length}
+        </span>
         <div className="page-controls">
           <button onClick={() => changePage(page - 1)} disabled={page === 1} data-testid="data-table-prev">
             Prev
@@ -242,6 +305,8 @@ export function DataTable<T extends object>({
           </select>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

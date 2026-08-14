@@ -13,6 +13,53 @@
   min-width: 420px;
 }
 
+.data-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.data-table-search {
+  display: flex;
+  min-width: min(100%, 19rem);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--sc-border-glass, rgba(255, 255, 255, 0.12));
+  border-radius: 0.55rem;
+  color: var(--sc-text-dim, #94a3b8);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.data-table-search:focus-within {
+  border-color: var(--sc-accent, #00ffcc);
+  box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.12);
+}
+
+.data-table-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--sc-text-main, #ffffff);
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.data-table-toolbar__summary,
+.data-table-pagination__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--sc-text-dim, #94a3b8);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 .data-table th,
 .data-table td {
   padding: 0.85rem 1rem;
@@ -39,6 +86,21 @@
 .data-table th.sortable:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--sc-accent, #00ffcc);
+}
+
+.data-table-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
 }
 
 .data-table--compact th,
@@ -123,10 +185,23 @@
 }
 
 @media (max-width: 640px) {
+  .data-table-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .data-table-search {
+    min-width: 0;
+  }
+
   .data-table-pagination {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
+  }
+
+  .data-table-pagination__summary {
+    justify-content: center;
   }
 
   .page-controls {
