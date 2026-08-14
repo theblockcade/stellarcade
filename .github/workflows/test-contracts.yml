@@ -27,48 +27,24 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+            contracts/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/**/Cargo.toml') }}
 
-      - name: Build Contracts
+      # Whole workspace, not a curated subset — a crate left off a hand
+      # maintained list here is a crate that silently never gets built or
+      # tested. Only stellarcade-contract-doc-generator and
+      # stellarcade-deployment-scripts are excluded from the wasm build:
+      # they're native tooling, not deployable contracts (no [lib] cdylib
+      # target) — they're still covered by the workspace-wide test run below.
+      - name: Build every contract (wasm)
         run: |
-          cd contracts/shared && cargo build --release
-          cd ../prize-pool && cargo build --target wasm32v1-none --release
-          cd ../random-generator && cargo build --target wasm32v1-none --release
-          cd ../coin-flip && cargo build --target wasm32v1-none --release
-          cd ../multiplayer-room && cargo build --target wasm32v1-none --release
-          cd ../pattern-puzzle && cargo build --target wasm32v1-none --release
-          cd ../emergency-pause && cargo build --target wasm32v1-none --release
-          cd ../governance && cargo build --target wasm32v1-none --release
-          cd ../contract-role-registry && cargo build --target wasm32v1-none --release
-          cd ../campaign-claims && cargo build --target wasm32v1-none --release
-          cd ../fee-shield && cargo build --target wasm32v1-none --release
-          cd ../streak-ladder && cargo build --target wasm32v1-none --release
-          cd ../creator-drops && cargo build --target wasm32v1-none --release
-          cd ../escrow-ledger && cargo build --target wasm32v1-none --release
-          cd ../attendance-pass && cargo build --target wasm32v1-none --release
-          cd ../fanout-distributor && cargo build --target wasm32v1-none --release
-          cd ../vote-escrow && cargo build --target wasm32v1-none --release
+          cd contracts
+          cargo build --workspace --target wasm32v1-none --release --locked \
+            --exclude stellarcade-contract-doc-generator \
+            --exclude stellarcade-deployment-scripts
 
-      - name: Run Tests
-        run: |
-          cd contracts/shared && cargo test --locked
-          cd ../prize-pool && cargo test --locked
-          cd ../random-generator && cargo test --locked
-          cd ../coin-flip && cargo test --locked
-          cd ../multiplayer-room && cargo test --locked
-          cd ../pattern-puzzle && cargo test --locked
-          cd ../emergency-pause && cargo test --locked
-          cd ../governance && cargo test --locked
-          cd ../contract-role-registry && cargo test --locked
-          cd ../campaign-claims && cargo test --locked
-          cd ../fee-shield && cargo test --locked
-          cd ../streak-ladder && cargo test --locked
-          cd ../creator-drops && cargo test --locked
-          cd ../escrow-ledger && cargo test --locked
-          cd ../attendance-pass && cargo test --locked
-          cd ../fanout-distributor && cargo test --locked
-          cd ../vote-escrow && cargo test --locked
+      - name: Run every crate's tests
+        run: cd contracts && cargo test --workspace --locked
 
       - name: Verify Contract Documentation
         run: |
