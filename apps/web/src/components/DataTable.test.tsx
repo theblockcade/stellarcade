@@ -60,6 +60,23 @@ describe('DataTable', () => {
     expect(screen.getByTestId('data-table-page-info')).toHaveTextContent('Page 1 of 1');
   });
 
+  it('filters rows from the table workspace search field', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        searchable
+        searchFn={(row, query) => row.name.toLowerCase().includes(query)}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('data-table-search'), { target: { value: 'b' } });
+
+    expect(screen.getByTestId('data-table-row-0')).toHaveTextContent('B');
+    expect(screen.queryByTestId('data-table-row-1')).not.toBeInTheDocument();
+    expect(screen.getByText('1 result')).toBeInTheDocument();
+  });
+
   it('applies compact density classes without breaking table rendering', () => {
     render(<DataTable columns={columns} data={rows} density="compact" />);
 
