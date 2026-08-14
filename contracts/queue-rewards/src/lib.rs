@@ -1,14 +1,14 @@
 #![no_std]
 
-mod types;
 mod storage;
+mod types;
 
 #[cfg(test)]
 mod test;
 
-use soroban_sdk::{contract, contractimpl, contractevent, Address, Env, contracterror};
-use crate::types::{RewardConfig, UserRewardState, RewardSnapshot};
-use crate::storage::{get_config, set_config, get_user_state, set_user_state};
+use crate::storage::{get_config, get_user_state, set_config, set_user_state};
+use crate::types::{RewardConfig, RewardSnapshot, UserRewardState};
+use soroban_sdk::{contract, contracterror, contractevent, contractimpl, Address, Env};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -83,13 +83,19 @@ impl QueueRewards {
             last_update_ledger: env.ledger().sequence(),
         });
 
-        state.total_accrued = state.total_accrued.checked_add(amount).ok_or(Error::Overflow)?;
-        state.pending_balance = state.pending_balance.checked_add(amount).ok_or(Error::Overflow)?;
+        state.total_accrued = state
+            .total_accrued
+            .checked_add(amount)
+            .ok_or(Error::Overflow)?;
+        state.pending_balance = state
+            .pending_balance
+            .checked_add(amount)
+            .ok_or(Error::Overflow)?;
         state.last_update_ledger = env.ledger().sequence();
 
         set_user_state(&env, &user, &state);
 
-        env.events().publish(("reward", "accrued"), RewardAccrued { user, amount });
+        RewardAccrued { user, amount }.publish(&env);
 
         Ok(())
     }
@@ -109,7 +115,10 @@ impl QueueRewards {
         }
 
         // Update state before transfer to prevent re-entry issues (though Soroban handles this)
-        state.total_claimed = state.total_claimed.checked_add(amount).ok_or(Error::Overflow)?;
+        state.total_claimed = state
+            .total_claimed
+            .checked_add(amount)
+            .ok_or(Error::Overflow)?;
         state.pending_balance = 0;
         state.last_update_ledger = env.ledger().sequence();
         set_user_state(&env, &user, &state);
@@ -117,7 +126,7 @@ impl QueueRewards {
         // Placeholder for token transfer
         // In reality: token_client.transfer(&config.treasury, &user, &amount);
 
-        env.events().publish(("reward", "claimed"), RewardClaimed { user, amount });
+        RewardClaimed { user, amount }.publish(&env);
 
         Ok(amount)
     }
