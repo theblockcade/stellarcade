@@ -6,6 +6,15 @@ import { Check, Copy, Loader2, LogOut, Wallet } from "lucide-react";
 import { useWalletStatus } from "../hooks/useWalletStatus";
 import defaultFreighterAdapter from "../services/freighter-adapter";
 import { Button } from "./ui/button";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import "./HeaderWalletControl.css";
 
 /**
@@ -99,42 +108,55 @@ export const HeaderWalletControl: React.FC = () => {
 
   if (mounted && wallet.capabilities.isConnected && wallet.address) {
     return (
-      <div className="flex items-center gap-2 p-1.5 rounded-full bg-slate-900/80 border border-white/10 text-slate-100 hwc" data-testid="header-wallet-connected">
-        <div className="flex items-center gap-2 text-xs font-semibold hwc__identity">
-          {xlmBalance !== null && (
-            <span className="font-mono text-emerald-400 font-bold px-2 py-0.5 rounded-md bg-emerald-400/10 hwc__balance" data-testid="header-wallet-balance">
-              {xlmBalance} XLM
-            </span>
-          )}
-          <button
-            type="button"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 hover:border-teal-400/50 hover:bg-black/60 transition-all font-mono text-slate-200 hwc__address"
-            onClick={() => void handleCopy()}
-            title={`${wallet.address} — click to copy`}
-            data-testid="header-wallet-address"
-          >
-            <span>{shortenAddress(wallet.address)}</span>
-            {copied ? <Check size={13} className="text-emerald-400 hwc__icon-success" /> : <Copy size={13} />}
-          </button>
-          {wallet.network && (
-            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-400/10 border border-teal-400/30 text-teal-300 font-mono text-[10px] font-bold tracking-wider uppercase hwc__network" data-testid="header-wallet-network">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse hwc__pulse" aria-hidden="true" />
-              {wallet.network}
-            </span>
-          )}
-          <span className="w-px h-4 bg-white/15 hwc__divider" aria-hidden="true" />
-          <button
-            type="button"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors hwc__disconnect-btn"
-            onClick={() => void wallet.disconnect()}
-            aria-label="Disconnect wallet"
-            title="Disconnect wallet"
-            data-testid="header-wallet-disconnect"
-          >
-            <LogOut size={14} />
-            <span className="hidden sm:inline hwc__disconnect-label">Disconnect</span>
-          </button>
-        </div>
+      <div className="hwc" data-testid="header-wallet-connected">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full border border-border bg-card"
+              aria-label="Open wallet menu"
+              data-testid="header-wallet-menu"
+            >
+              <Avatar className="size-8">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  <Wallet className="size-4" />
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="font-normal">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">Connected wallet</p>
+                <p className="font-mono text-xs text-muted-foreground" data-testid="header-wallet-address">
+                  {shortenAddress(wallet.address)}
+                </p>
+                {xlmBalance !== null && <p className="text-xs font-semibold text-emerald-400" data-testid="header-wallet-balance">{xlmBalance} XLM</p>}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {wallet.network && (
+              <DropdownMenuItem disabled data-testid="header-wallet-network">
+                <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+                {wallet.network}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => void handleCopy()} data-testid="header-wallet-copy">
+              {copied ? <Check className="text-emerald-400" /> : <Copy />}
+              {copied ? "Copied address" : "Copy address"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => void wallet.disconnect()}
+              data-testid="header-wallet-disconnect"
+            >
+              <LogOut /> Disconnect wallet
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
   }
