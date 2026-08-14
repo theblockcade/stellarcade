@@ -45,11 +45,21 @@ while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
     CHANGED_FILES="$CHANGED_FILES$(git diff --name-only "$RANGE" 2>/dev/null)"$'\n'
 done
 
+EXCLUDED_CRATES=$(awk '/^exclude = \[/{f=1; next} f && /^\]/{f=0} f' "$REPO_ROOT/contracts/Cargo.toml")
+
 TOUCHED_CRATES=()
 for crate_dir in "$REPO_ROOT"/contracts/*/; do
     crate=$(basename "$crate_dir")
     [ -f "$crate_dir/Cargo.toml" ] || continue
     [ -d "$crate_dir/src" ] || continue
+    # Crates in contracts/Cargo.toml's `exclude` list aren't workspace
+    # members, so running cargo from inside them re-resolves a whole
+    # separate dependency graph over the network instead of using the
+    # workspace's Cargo.lock — slow, and fails offline. CI doesn't check
+    # them either (see the exclude list's own comment); skip them here too.
+    if echo "$EXCLUDED_CRATES" | grep -qE "\"$crate\","; then
+        continue
+    fi
     if echo "$CHANGED_FILES" | grep -q "^contracts/$crate/"; then
         TOUCHED_CRATES+=("$crate")
     fi
