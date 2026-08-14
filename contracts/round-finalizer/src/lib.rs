@@ -299,11 +299,9 @@ impl RoundFinalizerContract {
         }
 
         let total_rounds = ids.len();
-        let pressure_bps = if total_rounds == 0 {
-            0
-        } else {
-            (blocked_rounds * 10_000) / total_rounds
-        };
+        let pressure_bps = (blocked_rounds * 10_000)
+            .checked_div(total_rounds)
+            .unwrap_or(0);
 
         FinalizationPressure {
             status: if cfg.paused {

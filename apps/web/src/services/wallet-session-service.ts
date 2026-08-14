@@ -487,6 +487,8 @@ function formatAddressPreview(address: string): string {
 }
 
 function readHistory(storageKey: string): WalletSessionHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+
   try {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return [];
@@ -511,6 +513,8 @@ function appendHistoryEntry(
   entry: WalletSessionHistoryEntry,
   storageKey: string,
 ): void {
+  if (typeof window === "undefined") return;
+
   const nextHistory = [entry, ...readHistory(storageKey)].slice(
     0,
     MAX_HISTORY_ENTRIES,
