@@ -37,15 +37,12 @@ impl AttendancePass {
         env.storage().instance().set(&DataKey::Admin, &admin);
     }
 
-    pub fn issue_pass(
-        env: Env,
-        admin: Address,
-        pass_id: u64,
-        holder: Address,
-        expires_at: u64,
-    ) {
+    pub fn issue_pass(env: Env, admin: Address, pass_id: u64, holder: Address, expires_at: u64) {
         admin.require_auth();
-        assert!(expires_at > env.ledger().timestamp(), "Expiry must be in future");
+        assert!(
+            expires_at > env.ledger().timestamp(),
+            "Expiry must be in future"
+        );
 
         let record = PassRecord {
             pass_id,
@@ -131,10 +128,7 @@ impl AttendancePass {
     /// Empty/missing behavior:
     /// - Unknown `pass_id` returns `exists = false` and zero-value fields.
     /// - Not-yet-configured contracts return `configured = false` and `status = NotConfigured`.
-    pub fn redemption_readiness_snapshot(
-        env: Env,
-        pass_id: u64,
-    ) -> RedemptionReadinessSnapshot {
+    pub fn redemption_readiness_snapshot(env: Env, pass_id: u64) -> RedemptionReadinessSnapshot {
         let now = env.ledger().timestamp();
         let configured = env.storage().instance().has(&DataKey::Admin);
 
@@ -165,7 +159,8 @@ impl AttendancePass {
         };
         let checked_in = storage::is_checked_in(&env, pass_id);
         let resale_locked = storage::is_resale_locked(&env, pass_id);
-        let ready_to_redeem = configured && status == PassStatus::Active && !checked_in && !resale_locked;
+        let ready_to_redeem =
+            configured && status == PassStatus::Active && !checked_in && !resale_locked;
 
         RedemptionReadinessSnapshot {
             pass_id,
@@ -240,8 +235,16 @@ impl AttendancePass {
         };
 
         let expired = !record.active || now >= record.expires_at;
-        let status = if expired { PassStatus::Expired } else { PassStatus::Active };
-        let time_remaining = if expired { 0 } else { record.expires_at.saturating_sub(now) };
+        let status = if expired {
+            PassStatus::Expired
+        } else {
+            PassStatus::Active
+        };
+        let time_remaining = if expired {
+            0
+        } else {
+            record.expires_at.saturating_sub(now)
+        };
 
         PassValiditySnapshot {
             pass_id,
@@ -262,7 +265,11 @@ impl AttendancePass {
     /// supply `grace_seconds` and this function computes whether the pass is
     /// currently inside the grace window. When `grace_seconds` is zero the
     /// grace period is disabled and `in_grace_period` is always false.
-    pub fn grace_period_accessor(env: Env, pass_id: u64, grace_seconds: u64) -> GracePeriodAccessor {
+    pub fn grace_period_accessor(
+        env: Env,
+        pass_id: u64,
+        grace_seconds: u64,
+    ) -> GracePeriodAccessor {
         let now = env.ledger().timestamp();
         let configured = env.storage().instance().has(&DataKey::Admin);
 
@@ -280,9 +287,7 @@ impl AttendancePass {
         };
 
         let grace_deadline = record.expires_at.saturating_add(grace_seconds);
-        let in_grace_period = grace_seconds > 0
-            && now >= record.expires_at
-            && now < grace_deadline;
+        let in_grace_period = grace_seconds > 0 && now >= record.expires_at && now < grace_deadline;
 
         GracePeriodAccessor {
             pass_id,
@@ -370,8 +375,8 @@ mod test {
         let (_admin, client) = setup(&env);
 
         let band = client.expiry_band(&999);
-        assert_eq!(band.exists, false);
-        assert_eq!(band.configured, true);
+        assert!(!band.exists);
+        assert!(band.configured);
     }
 
     #[test]
@@ -387,7 +392,7 @@ mod test {
         client.mark_checked_in(&admin, &1);
 
         let summary = client.check_in_coverage_summary();
-        assert_eq!(summary.configured, true);
+        assert!(summary.configured);
         assert_eq!(summary.total_issued, 2);
         assert_eq!(summary.checked_in_count, 1);
         assert_eq!(summary.unchecked_count, 1);
@@ -400,10 +405,10 @@ mod test {
         let (_admin, client) = setup(&env);
 
         let status = client.resale_lock_status(&999);
-        assert_eq!(status.configured, true);
-        assert_eq!(status.exists, false);
-        assert_eq!(status.active, false);
-        assert_eq!(status.resale_locked, false);
+        assert!(status.configured);
+        assert!(!status.exists);
+        assert!(!status.active);
+        assert!(!status.resale_locked);
     }
 
     // ── pass_validity_snapshot ────────────────────────────────────────────
@@ -417,8 +422,8 @@ mod test {
         client.issue_pass(&admin, &1, &holder, &5000);
 
         let snap = client.pass_validity_snapshot(&1);
-        assert_eq!(snap.exists, true);
-        assert_eq!(snap.valid, true);
+        assert!(snap.exists);
+        assert!(snap.valid);
         assert_eq!(snap.status, PassStatus::Active);
         assert_eq!(snap.time_remaining, 4000);
         assert_eq!(snap.now, 1000);
@@ -434,7 +439,7 @@ mod test {
         client.expire_pass(&admin, &2);
 
         let snap = client.pass_validity_snapshot(&2);
-        assert_eq!(snap.valid, false);
+        assert!(!snap.valid);
         assert_eq!(snap.status, PassStatus::Expired);
         assert_eq!(snap.time_remaining, 0);
     }
@@ -445,8 +450,8 @@ mod test {
         let (_admin, client) = setup(&env);
 
         let snap = client.pass_validity_snapshot(&999);
-        assert_eq!(snap.exists, false);
-        assert_eq!(snap.valid, false);
+        assert!(!snap.exists);
+        assert!(!snap.valid);
         assert_eq!(snap.time_remaining, 0);
     }
 
@@ -468,8 +473,8 @@ mod test {
 
         // Grace window of 200s → grace_deadline = 1700; now=1600 is inside
         let acc = client.grace_period_accessor(&3, &200);
-        assert_eq!(acc.exists, true);
-        assert_eq!(acc.in_grace_period, true);
+        assert!(acc.exists);
+        assert!(acc.in_grace_period);
         assert_eq!(acc.grace_deadline, 1700);
     }
 
@@ -487,7 +492,7 @@ mod test {
         env.ledger().set(ledger);
 
         let acc = client.grace_period_accessor(&4, &200);
-        assert_eq!(acc.in_grace_period, false);
+        assert!(!acc.in_grace_period);
     }
 
     #[test]
@@ -510,7 +515,7 @@ mod test {
         env.ledger().set(ledger);
 
         let acc = client.grace_period_accessor(&5, &0);
-        assert_eq!(acc.in_grace_period, false);
+        assert!(!acc.in_grace_period);
     }
 
     #[test]
@@ -519,7 +524,7 @@ mod test {
         let (_admin, client) = setup(&env);
 
         let acc = client.grace_period_accessor(&999, &300);
-        assert_eq!(acc.exists, false);
-        assert_eq!(acc.in_grace_period, false);
+        assert!(!acc.exists);
+        assert!(!acc.in_grace_period);
     }
 }
