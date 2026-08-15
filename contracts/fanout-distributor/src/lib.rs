@@ -62,12 +62,7 @@ impl FanoutDistributor {
         storage::increment_pending_batches(&env);
     }
 
-    pub fn distribute(
-        env: Env,
-        admin: soroban_sdk::Address,
-        batch_id: u64,
-        amount: i128,
-    ) -> i128 {
+    pub fn distribute(env: Env, admin: soroban_sdk::Address, batch_id: u64, amount: i128) -> i128 {
         admin.require_auth();
 
         let mut record = storage::get_batch(&env, batch_id).expect("Batch not found");
@@ -439,8 +434,8 @@ mod test {
         client.init(&admin);
 
         let failure = client.retryable_failure(&999);
-        assert_eq!(failure.exists, false);
-        assert_eq!(failure.configured, true);
+        assert!(!failure.exists);
+        assert!(failure.configured);
     }
 
     #[test]
@@ -454,17 +449,20 @@ mod test {
         client.mark_failed(&admin, &7);
 
         let snapshot = client.batch_health_snapshot(&7);
-        assert_eq!(snapshot.exists, true);
+        assert!(snapshot.exists);
         assert_eq!(snapshot.health_band, BatchHealthBand::Failed);
         assert_eq!(snapshot.remaining_amount, 750);
         assert_eq!(snapshot.progress_bps, 2_500);
 
         let gap = client.retry_gap(&7);
-        assert_eq!(gap.exists, true);
-        assert_eq!(gap.failed, true);
+        assert!(gap.exists);
+        assert!(gap.failed);
         assert_eq!(gap.retry_gap_ledgers, DEFAULT_RETRY_GAP_LEDGERS);
-        assert_eq!(gap.retry_after_ledger, gap.current_ledger + DEFAULT_RETRY_GAP_LEDGERS);
-        assert_eq!(gap.can_retry, true);
+        assert_eq!(
+            gap.retry_after_ledger,
+            gap.current_ledger + DEFAULT_RETRY_GAP_LEDGERS
+        );
+        assert!(gap.can_retry);
     }
 
     #[test]
@@ -473,14 +471,14 @@ mod test {
         let (client, _) = setup(&env);
 
         let snapshot = client.batch_health_snapshot(&404);
-        assert_eq!(snapshot.configured, false);
-        assert_eq!(snapshot.exists, false);
+        assert!(!snapshot.configured);
+        assert!(!snapshot.exists);
         assert_eq!(snapshot.health_band, BatchHealthBand::NotConfigured);
         assert_eq!(snapshot.progress_bps, 0);
 
         let gap = client.retry_gap(&404);
-        assert_eq!(gap.exists, false);
-        assert_eq!(gap.can_retry, false);
+        assert!(!gap.exists);
+        assert!(!gap.can_retry);
         assert_eq!(gap.retry_gap_ledgers, 0);
     }
 
