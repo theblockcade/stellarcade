@@ -1,9 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractevent, contractimpl, contracttype,
-    Address, Env, Symbol, Vec,
-};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Symbol, Vec};
 
 // ── Storage Keys ─────────────────────────────────────────────────
 #[contracttype]
@@ -85,7 +82,9 @@ impl ContractHealthRegistry {
             panic!("Already initialized");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::TrackedContracts, &Vec::<Address>::new(&env));
+        env.storage()
+            .instance()
+            .set(&DataKey::TrackedContracts, &Vec::<Address>::new(&env));
     }
 
     /// Report the health of a contract. The reporter must be authorized.
@@ -99,7 +98,11 @@ impl ContractHealthRegistry {
     ) {
         reporter.require_auth();
 
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
         // Only admin may report in this version; circuit-breaker roles can extend this later
         assert!(reporter == admin, "Unauthorized reporter");
 
@@ -161,7 +164,11 @@ impl ContractHealthRegistry {
             .persistent()
             .set(&DataKey::HealthPolicy(contract_id.clone()), &policy);
 
-        PolicySet { contract_id, policy_type: policy.policy_type }.publish(&env);
+        PolicySet {
+            contract_id,
+            policy_type: policy.policy_type,
+        }
+        .publish(&env);
     }
 
     /// Get the most recent health report for a contract.
@@ -227,7 +234,8 @@ impl ContractHealthRegistry {
 
         let mut stale = Vec::new(&env);
         for contract_id in tracked.iter() {
-            let freshness = Self::heartbeat_freshness(env.clone(), contract_id.clone(), stale_after_seconds);
+            let freshness =
+                Self::heartbeat_freshness(env.clone(), contract_id.clone(), stale_after_seconds);
             if freshness.has_heartbeat && freshness.is_stale {
                 stale.push_back(contract_id);
             }
@@ -263,7 +271,9 @@ impl ContractHealthRegistry {
 
         if !exists {
             tracked.push_back(contract_id.clone());
-            env.storage().instance().set(&DataKey::TrackedContracts, &tracked);
+            env.storage()
+                .instance()
+                .set(&DataKey::TrackedContracts, &tracked);
         }
     }
 }
@@ -282,7 +292,7 @@ mod test {
         let admin = Address::generate(&env);
         let monitored = Address::generate(&env);
 
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
 
         client.init(&admin);
@@ -307,14 +317,29 @@ mod test {
         let admin = Address::generate(&env);
         let monitored = Address::generate(&env);
 
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
 
         client.init(&admin);
 
-        client.report_health(&admin, &monitored, &HealthStatus::Healthy, &Symbol::new(&env, "H1"));
-        client.report_health(&admin, &monitored, &HealthStatus::Degraded, &Symbol::new(&env, "H2"));
-        client.report_health(&admin, &monitored, &HealthStatus::Critical, &Symbol::new(&env, "H3"));
+        client.report_health(
+            &admin,
+            &monitored,
+            &HealthStatus::Healthy,
+            &Symbol::new(&env, "H1"),
+        );
+        client.report_health(
+            &admin,
+            &monitored,
+            &HealthStatus::Degraded,
+            &Symbol::new(&env, "H2"),
+        );
+        client.report_health(
+            &admin,
+            &monitored,
+            &HealthStatus::Critical,
+            &Symbol::new(&env, "H3"),
+        );
 
         let hist = client.history(&monitored);
         assert_eq!(hist.len(), 3);
@@ -329,7 +354,7 @@ mod test {
         let admin = Address::generate(&env);
         let monitored = Address::generate(&env);
 
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
 
         client.init(&admin);
@@ -341,9 +366,24 @@ mod test {
         };
         client.set_health_policy(&monitored, &policy);
 
-        client.report_health(&admin, &monitored, &HealthStatus::Healthy, &Symbol::new(&env, "A"));
-        client.report_health(&admin, &monitored, &HealthStatus::Degraded, &Symbol::new(&env, "B"));
-        client.report_health(&admin, &monitored, &HealthStatus::Critical, &Symbol::new(&env, "C"));
+        client.report_health(
+            &admin,
+            &monitored,
+            &HealthStatus::Healthy,
+            &Symbol::new(&env, "A"),
+        );
+        client.report_health(
+            &admin,
+            &monitored,
+            &HealthStatus::Degraded,
+            &Symbol::new(&env, "B"),
+        );
+        client.report_health(
+            &admin,
+            &monitored,
+            &HealthStatus::Critical,
+            &Symbol::new(&env, "C"),
+        );
 
         let hist = client.history(&monitored);
         // Only 2 most recent
@@ -362,11 +402,16 @@ mod test {
         let bad_actor = Address::generate(&env);
         let monitored = Address::generate(&env);
 
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
 
         client.init(&admin);
-        client.report_health(&bad_actor, &monitored, &HealthStatus::Healthy, &Symbol::new(&env, "X"));
+        client.report_health(
+            &bad_actor,
+            &monitored,
+            &HealthStatus::Healthy,
+            &Symbol::new(&env, "X"),
+        );
     }
 
     #[test]
@@ -375,7 +420,7 @@ mod test {
         let env = Env::default();
         env.mock_all_auths();
         let admin = Address::generate(&env);
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
         client.init(&admin);
         client.init(&admin);
@@ -390,11 +435,16 @@ mod test {
         let admin = Address::generate(&env);
         let monitored = Address::generate(&env);
 
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
         client.init(&admin);
 
-        client.report_health(&admin, &monitored, &HealthStatus::Healthy, &Symbol::new(&env, "OK"));
+        client.report_health(
+            &admin,
+            &monitored,
+            &HealthStatus::Healthy,
+            &Symbol::new(&env, "OK"),
+        );
 
         env.ledger().set_timestamp(1_020);
         let freshness = client.heartbeat_freshness(&monitored, &60);
@@ -402,7 +452,7 @@ mod test {
         assert_eq!(freshness.status, HealthStatus::Healthy);
         assert_eq!(freshness.last_heartbeat_timestamp, 1_000);
         assert_eq!(freshness.age_seconds, 20);
-        assert_eq!(freshness.is_stale, false);
+        assert!(!freshness.is_stale);
     }
 
     #[test]
@@ -415,13 +465,23 @@ mod test {
         let fresh_contract = Address::generate(&env);
         let stale_contract = Address::generate(&env);
 
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
         client.init(&admin);
 
-        client.report_health(&admin, &stale_contract, &HealthStatus::Healthy, &Symbol::new(&env, "OLD"));
+        client.report_health(
+            &admin,
+            &stale_contract,
+            &HealthStatus::Healthy,
+            &Symbol::new(&env, "OLD"),
+        );
         env.ledger().set_timestamp(150);
-        client.report_health(&admin, &fresh_contract, &HealthStatus::Degraded, &Symbol::new(&env, "NEW"));
+        client.report_health(
+            &admin,
+            &fresh_contract,
+            &HealthStatus::Degraded,
+            &Symbol::new(&env, "NEW"),
+        );
 
         env.ledger().set_timestamp(205);
         let stale = client.stale_contracts(&60);
@@ -437,15 +497,15 @@ mod test {
         let admin = Address::generate(&env);
         let monitored = Address::generate(&env);
 
-        let contract_id = env.register_contract(None, ContractHealthRegistry);
+        let contract_id = env.register(ContractHealthRegistry, ());
         let client = ContractHealthRegistryClient::new(&env, &contract_id);
         client.init(&admin);
 
         let freshness = client.heartbeat_freshness(&monitored, &30);
-        assert_eq!(freshness.has_heartbeat, false);
+        assert!(!freshness.has_heartbeat);
         assert_eq!(freshness.status, HealthStatus::Unknown);
         assert_eq!(freshness.last_heartbeat_timestamp, 0);
-        assert_eq!(freshness.is_stale, false);
+        assert!(!freshness.is_stale);
 
         let stale = client.stale_contracts(&30);
         assert_eq!(stale.len(), 0);
