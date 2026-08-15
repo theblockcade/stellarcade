@@ -4,15 +4,7 @@ use soroban_sdk::{
     Address, Env,
 };
 
-fn setup(
-    env: &Env,
-) -> (
-    CreatorEscrowClient<'_>,
-    Address,
-    Address,
-    Address,
-    Address,
-) {
+fn setup(env: &Env) -> (CreatorEscrowClient<'_>, Address, Address, Address, Address) {
     let admin = Address::generate(env);
     let creator = Address::generate(env);
     let payout_token = Address::generate(env);
@@ -37,8 +29,14 @@ fn test_creator_summary_and_release_happy_path() {
 
     let summary_before_release = client.creator_summary(&creator);
     assert!(summary_before_release.exists);
-    assert_eq!(summary_before_release.payout_token, Some(payout_token.clone()));
-    assert_eq!(summary_before_release.beneficiary, Some(beneficiary.clone()));
+    assert_eq!(
+        summary_before_release.payout_token,
+        Some(payout_token.clone())
+    );
+    assert_eq!(
+        summary_before_release.beneficiary,
+        Some(beneficiary.clone())
+    );
     assert_eq!(summary_before_release.release_delay_ledgers, 10);
     assert_eq!(summary_before_release.total_locked, 300);
     assert_eq!(summary_before_release.total_released, 0);
