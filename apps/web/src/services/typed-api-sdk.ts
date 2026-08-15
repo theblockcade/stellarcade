@@ -42,6 +42,7 @@ function makeClientError(params: {
   severity: (typeof ErrorSeverity)[keyof typeof ErrorSeverity];
   status?: number;
   originalMessage?: string;
+  serverCode?: string;
 }): ApiClientError {
   return {
     code: params.code,
@@ -51,6 +52,7 @@ function makeClientError(params: {
     domain: ErrorDomain.API,
     status: params.status,
     originalMessage: params.originalMessage,
+    serverCode: params.serverCode,
   };
 }
 
@@ -100,14 +102,41 @@ function makeUnauthorizedError(): ApiClientError {
 function mapApiError(status: number, body: Record<string, unknown>): ApiClientError {
   const nestedError = (body.error ?? {}) as Record<string, unknown>;
   const message =
+    // `{ "error": "Username already taken" }` — the shape the app's own route
+    // handlers return. This case was missing, so every such response
+    // collapsed to "Request failed with status 409" and the user was told
+    // nothing about what to fix.
+    (typeof body.error === 'string' && body.error) ||
     (typeof nestedError.message === 'string' && nestedError.message) ||
     (typeof body.message === 'string' && body.message) ||
     `Request failed with status ${status}`;
 
+  /** Machine-readable hint some handlers supply (e.g. PROFILE_EXISTS). */
+  const serverCode =
+    (typeof body.code === 'string' && body.code) ||
+    (typeof nestedError.code === 'string' && nestedError.code) ||
+    undefined;
+
   if (status === 400) {
     return makeClientError({
       code: 'API_VALIDATION_ERROR',
-      message: 'Validation failed.',
+      // Surface the specific validation problem rather than a bare
+      // "Validation failed." — the caller renders this straight to the user.
+      message,
+      category: ApiErrorCategory.VALIDATION,
+      severity: ErrorSeverity.TERMINAL,
+      status,
+      originalMessage: message,
+    });
+  }
+
+  if (status === 409) {
+    return makeClientError({
+      code: 'API_CONFLICT',
+      message,
+      // Callers branch on this to tell "username taken" from "profile
+      // already exists", which need different recovery.
+      serverCode,
       category: ApiErrorCategory.VALIDATION,
       severity: ErrorSeverity.TERMINAL,
       status,
@@ -268,8 +297,31 @@ export class ApiClient {
     return this._request('POST', '/games/play', input, true, opts);
   }
 
-  async getProfile(opts?: ApiRequestOptions): Promise<ApiResult<GetProfileResponse>> {
-    return this._request('GET', '/users/profile', undefined, true, opts);
+  /**
+   * Fetch the profile for one wallet address.
+   *
+   * The address is required and travels in the query string: the endpoint
+   * scopes its lookup to that address alone, and previously — when called
+   * without one — served whichever profile happened to be most recently
+   * updated, handing one wallet another wallet's identity.
+   *
+   * A missing profile comes back as a failed result with status 404, which
+   * is the normal signal that this wallet still needs onboarding.
+   */
+  async getProfile(
+    address: string,
+    opts?: ApiRequestOptions,
+  ): Promise<ApiResult<GetProfileResponse>> {
+    if (!address.trim()) {
+      return { success: false, error: makeValidationError('A wallet address is required.') };
+    }
+    return this._request(
+      'GET',
+      `/users/profile?address=${encodeURIComponent(address)}`,
+      undefined,
+      true,
+      opts,
+    );
   }
 
   async createProfile(input: CreateProfileRequest, opts?: ApiRequestOptions): Promise<ApiResult<CreateProfileResponse>> {
@@ -336,10 +388,9 @@ export class ApiClient {
 
     const controller = new AbortController();
     let timedOut = false;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     const effectiveTimeout = opts.timeout ?? 5000;
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       timedOut = true;
       controller.abort();
     }, effectiveTimeout);

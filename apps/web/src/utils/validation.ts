@@ -278,6 +278,19 @@ export function validateStellarAddress(
   return { success: true, data: trimmed };
 }
 
+/**
+ * Boolean form of {@link validateStellarAddress}, for places that only need
+ * to know whether a stored key is a real wallet.
+ *
+ * The profile store was seeded with a `G_GUEST_PLAYER` sentinel by an older
+ * code path that fell back to that literal when no wallet was connected. It
+ * is not an account, but it occupied a username and so blocked a real wallet
+ * from claiming that name.
+ */
+export function isStellarPublicKey(value: unknown): value is string {
+  return typeof value === "string" && validateStellarAddress(value).success;
+}
+
 export function validateContractAddress(
   value: string | null | undefined
 ): ValidationResult<string> {
