@@ -65,12 +65,16 @@ impl Deployer {
             .as_secs();
 
         let output = if path.exists() {
-            DeploymentOutput::load(&path).unwrap_or_else(|_| DeploymentOutput::new(network, admin, timestamp))
+            DeploymentOutput::load(&path)
+                .unwrap_or_else(|_| DeploymentOutput::new(network, admin, timestamp))
         } else {
             DeploymentOutput::new(network, admin, timestamp)
         };
-        
-        Self { output, storage_path: path }
+
+        Self {
+            output,
+            storage_path: path,
+        }
     }
 
     /// Primary routine to sequence deployment of a contract
@@ -94,7 +98,9 @@ impl Deployer {
         }
 
         // Explicit logic for Pending transition
-        self.output.contracts.insert(name.to_string(), ContractState::Pending);
+        self.output
+            .contracts
+            .insert(name.to_string(), ContractState::Pending);
         self.output.save(&self.storage_path)?;
 
         // Simulate deployment yielding output addresses and hashes seamlessly
@@ -111,7 +117,10 @@ impl Deployer {
         self.output.save(&self.storage_path)?;
 
         // Emit consistent event loop
-        println!("EVENT: Contract {} deployed to {} (WASM: {})", name, address, wasm_hash);
+        println!(
+            "EVENT: Contract {} deployed to {} (WASM: {})",
+            name, address, wasm_hash
+        );
 
         Ok(address)
     }
@@ -123,8 +132,12 @@ impl Deployer {
             return Err("Unauthorized caller".to_string());
         }
 
-        let state = self.output.contracts.get(name).ok_or("Contract not found")?;
-        
+        let state = self
+            .output
+            .contracts
+            .get(name)
+            .ok_or("Contract not found")?;
+
         // Ensure deterministic handling and transitions
         match state {
             ContractState::Deployed { address, wasm_hash } => {
@@ -138,7 +151,7 @@ impl Deployer {
                 self.output.save(&self.storage_path)?;
                 println!("EVENT: Contract {} initialized", name);
                 Ok(())
-            },
+            }
             ContractState::Initialized { .. } => Err("Already initialized".to_string()),
             _ => Err("Invalid state transition".to_string()),
         }
@@ -154,20 +167,21 @@ mod tests {
     fn test_valid_deployment_flow() {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_path_buf();
-        
-        let mut deployer = Deployer::new(NetworkProfile::Testnet, "GAdmin".to_string(), path.clone());
-        
+
+        let mut deployer =
+            Deployer::new(NetworkProfile::Testnet, "GAdmin".to_string(), path.clone());
+
         let deploy_req = deployer.deploy_contract("reward_distribution", "GAdmin");
         assert!(deploy_req.is_ok());
-        
+
         let init_req = deployer.initialize_contract("reward_distribution", "GAdmin");
         assert!(init_req.is_ok());
-        
+
         let loaded = DeploymentOutput::load(&path).unwrap();
         match loaded.contracts.get("reward_distribution") {
             Some(ContractState::Initialized { address, .. }) => {
                 assert!(address.starts_with("C_reward_distribution_"));
-            },
+            }
             _ => panic!("Expected initialized state"),
         }
     }
@@ -175,8 +189,12 @@ mod tests {
     #[test]
     fn test_unauthorized_deploy() {
         let temp_file = NamedTempFile::new().unwrap();
-        let mut deployer = Deployer::new(NetworkProfile::Dev, "GAdmin".to_string(), temp_file.path().to_path_buf());
-        
+        let mut deployer = Deployer::new(
+            NetworkProfile::Dev,
+            "GAdmin".to_string(),
+            temp_file.path().to_path_buf(),
+        );
+
         let res = deployer.deploy_contract("coin_flip", "GHacker");
         assert_eq!(res, Err("Unauthorized".to_string()));
     }
@@ -184,14 +202,18 @@ mod tests {
     #[test]
     fn test_invalid_state_transition() {
         let temp_file = NamedTempFile::new().unwrap();
-        let mut deployer = Deployer::new(NetworkProfile::Mainnet, "GAdmin".to_string(), temp_file.path().to_path_buf());
-        
+        let mut deployer = Deployer::new(
+            NetworkProfile::Mainnet,
+            "GAdmin".to_string(),
+            temp_file.path().to_path_buf(),
+        );
+
         let res_init_early = deployer.initialize_contract("missing", "GAdmin");
         assert_eq!(res_init_early, Err("Contract not found".to_string()));
 
         deployer.deploy_contract("dice_roll", "GAdmin").unwrap();
         deployer.initialize_contract("dice_roll", "GAdmin").unwrap();
-        
+
         // Duplicate actions
         let duplicate_init = deployer.initialize_contract("dice_roll", "GAdmin");
         assert_eq!(duplicate_init, Err("Already initialized".to_string()));
