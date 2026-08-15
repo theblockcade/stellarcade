@@ -449,7 +449,14 @@ function buildSpec() {
         description: 'Local development server',
       },
     ],
-    tags: [{ name: 'Health' }, { name: 'Games' }, { name: 'Users' }, { name: 'Wallet' }],
+    tags: [
+      { name: 'Health' },
+      { name: 'Games' },
+      { name: 'Users' },
+      { name: 'Wallet' },
+      { name: 'Leaderboard' },
+      { name: 'Quests' },
+    ],
     paths,
     components,
   };
