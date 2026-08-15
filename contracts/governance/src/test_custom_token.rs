@@ -1,13 +1,12 @@
 #![cfg(test)]
 
-use super::*;
 // use crate::test::{hash}; // Removed due to visibility issues
+use crate::Governance;
+use crate::GovernanceClient;
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
     Address, Bytes, BytesN, Env, String,
 };
-use crate::GovernanceClient;
-use crate::Governance;
 
 // Define a local hash helper if needed
 fn local_hash(env: &Env, data: &[u8]) -> BytesN<32> {
@@ -23,12 +22,12 @@ fn test_governance_with_custom_governance_token() {
     let token_admin = Address::generate(&env);
     let token_id = env.register(stellarcade_governance_token::GovernanceToken, ());
     let token_client = stellarcade_governance_token::GovernanceTokenClient::new(&env, &token_id);
-    
+
     token_client.init(
-        &token_admin, 
-        &String::from_str(&env, "StellarCade Governance"), 
-        &String::from_str(&env, "SCG"), 
-        &18
+        &token_admin,
+        &String::from_str(&env, "StellarCade Governance"),
+        &String::from_str(&env, "SCG"),
+        &18,
     );
 
     // 2. Setup Governance
@@ -37,12 +36,10 @@ fn test_governance_with_custom_governance_token() {
     let gov_client = GovernanceClient::new(&env, &gov_id);
 
     gov_client.init(
-        &gov_admin, 
-        &token_id, 
-        &100, // voting period
-        &50,  // timelock
+        &gov_admin, &token_id, &100,  // voting period
+        &50,   // timelock
         &1000, // quorum (10%)
-        &6000  // threshold (60%)
+        &6000, // threshold (60%)
     );
 
     // 3. Distribute tokens
@@ -65,12 +62,14 @@ fn test_governance_with_custom_governance_token() {
     assert_eq!(proposal.against_votes, 500);
 
     // 6. Queue
-    env.ledger().set_sequence_number(env.ledger().sequence() + 101);
+    env.ledger()
+        .set_sequence_number(env.ledger().sequence() + 101);
     gov_client.queue(&1u64);
     assert_eq!(gov_client.get_proposal(&1u64).state, 4); // STATE_QUEUED
 
     // 7. Execute
-    env.ledger().set_sequence_number(env.ledger().sequence() + 51);
+    env.ledger()
+        .set_sequence_number(env.ledger().sequence() + 51);
     gov_client.execute(&1u64, &payload);
     assert_eq!(gov_client.get_proposal(&1u64).state, 5); // STATE_EXECUTED
 }
