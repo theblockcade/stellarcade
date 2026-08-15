@@ -11,7 +11,9 @@ describe('OpenAPI generation', () => {
     expect(spec.paths['/api/wallet/deposit'].post.parameters).toContainEqual({
       $ref: '#/components/parameters/IdempotencyKeyHeader',
     });
-    expect(spec.paths['/api/wallet/withdraw'].post.responses[400].content['application/json'].schema).toEqual({
+    expect(
+      spec.paths['/api/wallet/withdraw'].post.responses[400].content['application/json'].schema
+    ).toEqual({
       $ref: '#/components/schemas/ValidationErrorResponse',
     });
   });

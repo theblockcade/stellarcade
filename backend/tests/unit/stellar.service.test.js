@@ -25,7 +25,11 @@ jest.mock('@stellar/stellar-sdk', () => {
 
 const StellarSdk = require('@stellar/stellar-sdk');
 const { server } = require('../../src/config/stellar');
-const { submitTransaction, STELLAR_ERRORS, _parseHorizonError } = require('../../src/services/stellar.service');
+const {
+  submitTransaction,
+  STELLAR_ERRORS,
+  _parseHorizonError,
+} = require('../../src/services/stellar.service');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -311,7 +315,9 @@ describe('stellar.service — _parseHorizonError', () => {
   });
 
   test('maps 429 to RATE_LIMITED', () => {
-    expect(_parseHorizonError(makeHorizonError({ status: 429 })).code).toBe(STELLAR_ERRORS.RATE_LIMITED);
+    expect(_parseHorizonError(makeHorizonError({ status: 429 })).code).toBe(
+      STELLAR_ERRORS.RATE_LIMITED
+    );
   });
 
   test('maps 400 + result_codes to TX_FAILED', () => {
@@ -322,15 +328,21 @@ describe('stellar.service — _parseHorizonError', () => {
   });
 
   test('maps 400 without result_codes to NETWORK_ERROR', () => {
-    expect(_parseHorizonError(makeHorizonError({ status: 400 })).code).toBe(STELLAR_ERRORS.NETWORK_ERROR);
+    expect(_parseHorizonError(makeHorizonError({ status: 400 })).code).toBe(
+      STELLAR_ERRORS.NETWORK_ERROR
+    );
   });
 
   test('maps 500 to SERVER_ERROR', () => {
-    expect(_parseHorizonError(makeHorizonError({ status: 500 })).code).toBe(STELLAR_ERRORS.SERVER_ERROR);
+    expect(_parseHorizonError(makeHorizonError({ status: 500 })).code).toBe(
+      STELLAR_ERRORS.SERVER_ERROR
+    );
   });
 
   test('maps 502 to SERVER_ERROR', () => {
-    expect(_parseHorizonError(makeHorizonError({ status: 502 })).code).toBe(STELLAR_ERRORS.SERVER_ERROR);
+    expect(_parseHorizonError(makeHorizonError({ status: 502 })).code).toBe(
+      STELLAR_ERRORS.SERVER_ERROR
+    );
   });
 
   test('error without response falls back to NETWORK_ERROR', () => {

@@ -142,9 +142,7 @@ describe('Audit Log Service', () => {
         outcome: 'success',
       });
 
-      expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Connection refused')
-      );
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Connection refused'));
     });
   });
 

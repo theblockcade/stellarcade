@@ -58,9 +58,7 @@ describe('GET /leaderboard', () => {
 
     await request(app).get('/leaderboard');
 
-    expect(GameModel.getLeaderboard).toHaveBeenCalledWith(
-      expect.objectContaining({ limit: 10 }),
-    );
+    expect(GameModel.getLeaderboard).toHaveBeenCalledWith(expect.objectContaining({ limit: 10 }));
   });
 
   test('passes the game query param through as a game-type filter', async () => {
@@ -69,7 +67,7 @@ describe('GET /leaderboard', () => {
     await request(app).get('/leaderboard').query({ game: 'coin-flip', limit: 5 });
 
     expect(GameModel.getLeaderboard).toHaveBeenCalledWith(
-      expect.objectContaining({ gameType: 'coin-flip', limit: 5 }),
+      expect.objectContaining({ gameType: 'coin-flip', limit: 5 })
     );
   });
 

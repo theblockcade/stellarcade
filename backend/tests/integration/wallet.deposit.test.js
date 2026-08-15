@@ -67,7 +67,11 @@ describe('POST /wallet/deposit', () => {
 
   test('503s with an honest error when no vault address is configured, instead of returning a fake one', async () => {
     delete process.env.VAULT_ADDRESS;
-    User.findByWallet.mockResolvedValue({ id: 1, wallet_address: 'GALICE1234567890', balance: '10' });
+    User.findByWallet.mockResolvedValue({
+      id: 1,
+      wallet_address: 'GALICE1234567890',
+      balance: '10',
+    });
 
     const res = await request(app).post('/wallet/deposit').send({ amount: 5, asset: 'XLM' });
 
@@ -81,7 +85,11 @@ describe('POST /wallet/deposit', () => {
     process.env.VAULT_ADDRESS = 'G' + 'A'.repeat(55); // 56 chars, valid G-address length
     expect(process.env.VAULT_ADDRESS).toHaveLength(56);
 
-    User.findByWallet.mockResolvedValue({ id: 1, wallet_address: 'GALICE1234567890', balance: '10' });
+    User.findByWallet.mockResolvedValue({
+      id: 1,
+      wallet_address: 'GALICE1234567890',
+      balance: '10',
+    });
     TransactionModel.create.mockResolvedValue({ id: 99, type: 'deposit', amount: 5 });
 
     const res = await request(app).post('/wallet/deposit').send({ amount: 5, asset: 'XLM' });

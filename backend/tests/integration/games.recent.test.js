@@ -3,26 +3,30 @@ const express = require('express');
 
 // Mock the database to prevent it from trying to connect and calling process.exit(1)
 jest.mock('../../src/config/database', () => {
-    const queryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        first: jest.fn().mockResolvedValue({ id: 1, wallet_address: 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY', balance: 100 }),
-        update: jest.fn().mockResolvedValue(1),
-    };
-    const mock = jest.fn(() => queryBuilder);
-    mock.raw = jest.fn().mockResolvedValue({});
-    mock.fn = { now: () => new Date() };
-    return mock;
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    first: jest.fn().mockResolvedValue({
+      id: 1,
+      wallet_address: 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY',
+      balance: 100,
+    }),
+    update: jest.fn().mockResolvedValue(1),
+  };
+  const mock = jest.fn(() => queryBuilder);
+  mock.raw = jest.fn().mockResolvedValue({});
+  mock.fn = { now: () => new Date() };
+  return mock;
 });
 
 jest.mock('../../src/config/redis', () => {
-    const mockClient = {
-        get: jest.fn(),
-        setEx: jest.fn().mockResolvedValue('OK'),
-        connect: jest.fn().mockResolvedValue('OK'),
-        on: jest.fn(),
-        isOpen: true,
-    };
-    return { client: mockClient, connectPromise: Promise.resolve() };
+  const mockClient = {
+    get: jest.fn(),
+    setEx: jest.fn().mockResolvedValue('OK'),
+    connect: jest.fn().mockResolvedValue('OK'),
+    on: jest.fn(),
+    isOpen: true,
+  };
+  return { client: mockClient, connectPromise: Promise.resolve() };
 });
 
 const router = require('../../src/routes/games.routes');
@@ -44,8 +48,8 @@ app.use(express.json());
 
 // Mock middleware that might be needed
 app.use((req, res, next) => {
-    req.user = { id: 1, walletAddress: 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY' }; // Mock user for auth-protected routes
-    next();
+  req.user = { id: 1, walletAddress: 'GA2C5RFPE6CXENJUA67TZND6L6SXY67TZND6L6SXY67TZND6L6SXY' }; // Mock user for auth-protected routes
+  next();
 });
 
 app.use('/api/games', router);
@@ -78,114 +82,120 @@ describe('POST /api/games/play', () => {
 });
 
 describe('GET /api/games/recent', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should return recent games with default pagination', async () => {
+    const mockGames = [
+      { id: 1, game_type: 'coin-flip', bet_amount: 10, result: 'win' },
+      { id: 2, game_type: 'trivia', bet_amount: 5, result: 'loss' },
+    ];
+
+    GameModel.findRecent.mockResolvedValue({
+      items: mockGames,
+      total: 2,
+      page: 1,
+      pageSize: 10,
     });
 
-    test('should return recent games with default pagination', async () => {
-        const mockGames = [
-            { id: 1, game_type: 'coin-flip', bet_amount: 10, result: 'win' },
-            { id: 2, game_type: 'trivia', bet_amount: 5, result: 'loss' }
-        ];
+    const res = await request(app).get('/api/games/recent');
 
-        GameModel.findRecent.mockResolvedValue({
-            items: mockGames,
-            total: 2,
-            page: 1,
-            pageSize: 10,
-        });
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(2);
+    expect(res.body.total).toBe(2);
+    expect(res.body.page).toBe(1);
+    expect(res.body.pageSize).toBe(10);
+    expect(res.body.totalPages).toBe(1);
 
-        const res = await request(app).get('/api/games/recent');
+    expect(GameModel.findRecent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        page: 1,
+        limit: 10,
+      })
+    );
+  });
 
-        expect(res.status).toBe(200);
-        expect(res.body.items).toHaveLength(2);
-        expect(res.body.total).toBe(2);
-        expect(res.body.page).toBe(1);
-        expect(res.body.pageSize).toBe(10);
-        expect(res.body.totalPages).toBe(1);
-
-        expect(GameModel.findRecent).toHaveBeenCalledWith(expect.objectContaining({
-            page: 1,
-            limit: 10
-        }));
+  test('should support explicit limit and page pagination', async () => {
+    GameModel.findRecent.mockResolvedValue({
+      items: [],
+      total: 5,
+      page: 2,
+      pageSize: 2,
     });
 
-    test('should support explicit limit and page pagination', async () => {
-        GameModel.findRecent.mockResolvedValue({
-            items: [],
-            total: 5,
-            page: 2,
-            pageSize: 2,
-        });
+    const res = await request(app).get('/api/games/recent').query({ page: 2, limit: 2 });
 
-        const res = await request(app)
-            .get('/api/games/recent')
-            .query({ page: 2, limit: 2 });
+    expect(res.status).toBe(200);
+    expect(res.body.page).toBe(2);
+    expect(res.body.pageSize).toBe(2);
+    expect(res.body.total).toBe(5);
+    expect(res.body.totalPages).toBe(3);
 
-        expect(res.status).toBe(200);
-        expect(res.body.page).toBe(2);
-        expect(res.body.pageSize).toBe(2);
-        expect(res.body.total).toBe(5);
-        expect(res.body.totalPages).toBe(3);
+    expect(GameModel.findRecent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        page: 2,
+        limit: 2,
+      })
+    );
+  });
 
-        expect(GameModel.findRecent).toHaveBeenCalledWith(expect.objectContaining({
-            page: 2,
-            limit: 2
-        }));
+  test('should filter by gameType and status', async () => {
+    GameModel.findRecent.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
     });
 
-    test('should filter by gameType and status', async () => {
-        GameModel.findRecent.mockResolvedValue({
-            items: [],
-            total: 0,
-            page: 1,
-            pageSize: 10,
-        });
+    const res = await request(app)
+      .get('/api/games/recent')
+      .query({ gameType: 'coin-flip', status: 'win' });
 
-        const res = await request(app)
-            .get('/api/games/recent')
-            .query({ gameType: 'coin-flip', status: 'win' });
+    expect(res.status).toBe(200);
+    expect(GameModel.findRecent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gameType: 'coin-flip',
+        status: 'win',
+      })
+    );
+  });
 
-        expect(res.status).toBe(200);
-        expect(GameModel.findRecent).toHaveBeenCalledWith(expect.objectContaining({
-            gameType: 'coin-flip',
-            status: 'win'
-        }));
+  test('should support custom sorting', async () => {
+    GameModel.findRecent.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
     });
 
-    test('should support custom sorting', async () => {
-        GameModel.findRecent.mockResolvedValue({
-            items: [],
-            total: 0,
-            page: 1,
-            pageSize: 10,
-        });
+    const res = await request(app)
+      .get('/api/games/recent')
+      .query({ sortBy: 'bet_amount', sortDir: 'asc' });
 
-        const res = await request(app)
-            .get('/api/games/recent')
-            .query({ sortBy: 'bet_amount', sortDir: 'asc' });
+    expect(res.status).toBe(200);
+    expect(GameModel.findRecent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sortBy: 'bet_amount',
+        sortDir: 'asc',
+      })
+    );
+  });
 
-        expect(res.status).toBe(200);
-        expect(GameModel.findRecent).toHaveBeenCalledWith(expect.objectContaining({
-            sortBy: 'bet_amount',
-            sortDir: 'asc'
-        }));
+  test('should handle invalid pagination params gracefully by using defaults', async () => {
+    GameModel.findRecent.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
     });
 
-    test('should handle invalid pagination params gracefully by using defaults', async () => {
-        GameModel.findRecent.mockResolvedValue({
-            items: [],
-            total: 0,
-            page: 1,
-            pageSize: 10,
-        });
+    const res = await request(app)
+      .get('/api/games/recent')
+      .query({ page: 'abc', limit: 'invalid' });
 
-        const res = await request(app)
-            .get('/api/games/recent')
-            .query({ page: 'abc', limit: 'invalid' });
-
-        expect(res.status).toBe(200);
-        expect(res.body.page).toBe(1);
-        expect(res.body.pageSize).toBe(10);
-    });
+    expect(res.status).toBe(200);
+    expect(res.body.page).toBe(1);
+    expect(res.body.pageSize).toBe(10);
+  });
 });

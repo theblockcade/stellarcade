@@ -3,7 +3,7 @@
  */
 const mockLogger = {
   error: jest.fn(),
-  info: jest.fn()
+  info: jest.fn(),
 };
 
 const mockDb = jest.fn();
@@ -34,7 +34,7 @@ const createGameRecentBuilder = ({ items = [], total = 0 } = {}) => {
       clearSelect: jest.fn().mockReturnThis(),
       clearOrder: jest.fn().mockReturnThis(),
       count: jest.fn().mockReturnThis(),
-      first: jest.fn().mockResolvedValue({ total })
+      first: jest.fn().mockResolvedValue({ total }),
     };
     return countBuilder;
   });
@@ -45,12 +45,12 @@ const createListBuilder = ({ items = [], total = 0 } = {}) => {
   const root = {};
   const countBuilder = {
     count: jest.fn().mockReturnThis(),
-    first: jest.fn().mockResolvedValue({ total })
+    first: jest.fn().mockResolvedValue({ total }),
   };
   const itemsBuilder = {
     orderBy: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
-    offset: jest.fn().mockResolvedValue(items)
+    offset: jest.fn().mockResolvedValue(items),
   };
 
   root.where = jest.fn().mockReturnValue(root);
@@ -102,7 +102,7 @@ describe('Model operations', () => {
     test('findRecent returns normalized metadata and items', async () => {
       const builder = createGameRecentBuilder({
         items: [{ id: 1 }, { id: 2 }],
-        total: 5
+        total: 5,
       });
       mockDb.mockImplementation(() => builder);
 
@@ -110,14 +110,14 @@ describe('Model operations', () => {
         page: 2,
         limit: 2,
         sortBy: 'bet_amount',
-        sortDir: 'asc'
+        sortDir: 'asc',
       });
 
       expect(result).toEqual({
         items: [{ id: 1 }, { id: 2 }],
         total: 5,
         page: 2,
-        pageSize: 2
+        pageSize: 2,
       });
       expect(builder.orderBy).toHaveBeenCalledWith('bet_amount', 'asc');
       expect(builder.limit).toHaveBeenCalledWith(2);
@@ -162,7 +162,7 @@ describe('Model operations', () => {
     test('listByUser applies filters and pagination', async () => {
       const root = createListBuilder({
         items: [{ id: 1, type: 'deposit' }],
-        total: 1
+        total: 1,
       });
       mockDb.mockImplementation(() => root);
 
@@ -171,14 +171,14 @@ describe('Model operations', () => {
         page: 1,
         limit: 20,
         type: 'deposit',
-        status: 'confirmed'
+        status: 'confirmed',
       });
 
       expect(result).toEqual({
         items: [{ id: 1, type: 'deposit' }],
         total: 1,
         page: 1,
-        pageSize: 20
+        pageSize: 20,
       });
       expect(root.where).toHaveBeenNthCalledWith(1, { user_id: 3 });
       expect(root.where).toHaveBeenNthCalledWith(2, { type: 'deposit' });
