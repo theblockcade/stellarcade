@@ -106,7 +106,7 @@ fn test_unauthorized_submit() {
     client.set_game_active(&admin, &game_id, &true);
 
     let result = client.try_submit_score(&intruder, &player, &game_id, &500);
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
 }
 
 #[test]
