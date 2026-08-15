@@ -136,7 +136,7 @@ const GameModel = {
         .select(
           'games.user_id as userId',
           'users.wallet_address as walletAddress',
-          'users.username as username',
+          'users.username as username'
         )
         .sum('games.payout as score')
         .groupBy('games.user_id', 'users.wallet_address', 'users.username')
@@ -169,7 +169,7 @@ const GameModel = {
       logger.error('Error in GameModel.update:', error);
       throw error;
     }
-  }
+  },
 };
 
 module.exports = GameModel;
