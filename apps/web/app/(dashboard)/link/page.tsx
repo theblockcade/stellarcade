@@ -180,7 +180,7 @@ function LinkPageContent() {
               </div>
 
               <a
-                href="https://t.me/StellarCadeBot"
+                href="https://t.me/StellarcadeOfficialBot"
                 target="_blank"
                 rel="noreferrer noopener"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white shadow-md shadow-sky-500/20 transition-all hover:-translate-y-px hover:bg-sky-600"
