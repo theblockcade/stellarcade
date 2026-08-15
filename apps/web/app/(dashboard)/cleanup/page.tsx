@@ -157,7 +157,7 @@ export default function CleanupPage() {
           <StatTile
             label="Total Subentries"
             value={String(scanResult.totalSubentries)}
-            caption={`${scanResult.totalLockedReserveXlm.toFixed(1)} XLM locked in base reserve`}
+            caption={`${scanResult.totalLockedReserveXlm.toFixed(1)} XLM locked in base account reserve`}
             data-testid="stat-total-subentries"
           />
           <StatTile
