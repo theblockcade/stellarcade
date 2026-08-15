@@ -2,13 +2,12 @@
 
 import React, { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { Check, Copy, ShieldCheck, Wallet, Bot, Send } from "lucide-react";
+
 import { useWalletStatus } from "@/hooks/useWalletStatus";
 import defaultFreighterAdapter from "@/services/freighter-adapter";
-import { ApiClient } from "@/services/typed-api-sdk";
-import { profileStore } from "@/components/ProfileSettings";
+import { createProfileApiClient, profileStore } from "@/services/profile-service";
 import { Button } from "@/components/ui/button";
-import { Check, Copy, ShieldCheck, Wallet, Bot, Send } from "lucide-react";
-import "./link-page.css";
 
 function LinkPageContent() {
   const searchParams = useSearchParams();
@@ -46,20 +45,28 @@ function LinkPageContent() {
       }
       setSignature(sig);
 
-      // Automatically sync Telegram link state with cloud profile store
+      /*
+       * Sync the Telegram link onto the existing profile.
+       *
+       * updateProfile requires a username, and this used to pass
+       * `Player_<last4>` when the store had none loaded — which silently
+       * *renamed* the player as a side effect of linking their bot account.
+       * Linking must never change the display name, so if we don't have the
+       * current one we skip the sync rather than guess it.
+       */
       try {
-        const client = new ApiClient({
-          baseUrl: typeof window !== "undefined" ? window.location.origin : "",
-        });
-        const currentProfile = profileStore.getState().profile;
-        const res = await client.updateProfile({
-          address: wallet.address,
-          username: currentProfile?.username || `Player_${wallet.address.slice(-4)}`,
-          telegramUserId: userId || "tg_linked",
-          telegramHandle: userId ? `@user_${userId}` : undefined,
-        } as any);
-        if (res.success && res.data) {
-          profileStore.dispatch({ type: "PROFILE_SET", payload: { profile: res.data } });
+        const currentUsername = profileStore.getState().profile?.username?.trim();
+        if (currentUsername) {
+          const client = createProfileApiClient();
+          const res = await client.updateProfile({
+            address: wallet.address,
+            username: currentUsername,
+            telegramUserId: userId || "tg_linked",
+            telegramHandle: userId ? `@user_${userId}` : undefined,
+          });
+          if (res.success && res.data) {
+            profileStore.dispatch({ type: "PROFILE_SET", payload: { profile: res.data } });
+          }
         }
       } catch {
         // Non-fatal
@@ -72,9 +79,7 @@ function LinkPageContent() {
     }
   };
 
-  const commandString = wallet.address && signature
-    ? `/link ${wallet.address} ${signature}`
-    : "";
+  const commandString = wallet.address && signature ? `/link ${wallet.address} ${signature}` : "";
 
   const handleCopyCommand = async () => {
     if (!commandString) return;
@@ -88,36 +93,54 @@ function LinkPageContent() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto my-8 p-4 link-page">
-      <div className="bg-slate-900/85 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl flex flex-col gap-6 link-card" data-testid="link-card">
-        <div className="text-center flex flex-col items-center gap-2 link-header">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-400 via-blue-500 to-purple-600 flex items-center justify-center text-black shadow-lg shadow-teal-500/30 link-icon-badge">
-            <Bot size={28} />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Link Your Bot Account</h1>
-          <p className="text-slate-400 text-sm link-subtitle">
-            Authorize your <strong className="capitalize text-white">{platform}</strong> account ({userId || "Guest"}) to interact with StellarCade smart contracts.
+    <div className="mx-auto w-full max-w-2xl py-8">
+      <div
+        data-testid="link-card"
+        className="relative flex flex-col gap-6 overflow-hidden rounded-2xl border border-border bg-card/70 p-8 shadow-2xl backdrop-blur-xl"
+      >
+        <div
+          className="pointer-events-none absolute -top-28 left-1/2 size-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
+          aria-hidden
+        />
+
+        <header className="relative flex flex-col items-center gap-2 text-center">
+          <span className="flex size-16 items-center justify-center rounded-full bg-linear-to-br from-teal-400 via-blue-500 to-purple-600 text-black shadow-lg shadow-teal-500/30">
+            <Bot className="size-7" aria-hidden />
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Link Your Bot Account
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Authorize your <strong className="text-foreground capitalize">{platform}</strong> account
+            ({userId || "Guest"}) to interact with StellarCade smart contracts.
           </p>
-        </div>
+        </header>
 
         {error && (
-          <div className="p-3.5 rounded-xl text-sm bg-red-500/15 border border-red-500/30 text-red-300 link-alert link-alert--error" role="alert">
+          <p
+            role="alert"
+            className="relative rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300"
+          >
             {error}
-          </div>
+          </p>
         )}
 
         {!challenge ? (
-          <div className="p-3.5 rounded-xl text-sm bg-amber-500/15 border border-amber-500/30 text-amber-300 link-alert link-alert--warning">
-            No active challenge token found. Please trigger <code className="font-mono font-bold px-1 bg-amber-400/20 rounded">/link</code> inside Telegram to generate a fresh link token.
-          </div>
+          <p className="relative rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            No active challenge token found. Please trigger{" "}
+            <code className="rounded bg-amber-400/20 px-1 font-mono font-bold">/link</code> inside
+            Telegram to generate a fresh link token.
+          </p>
         ) : (
-          <div className="bg-black/30 border border-white/10 rounded-xl p-4 flex flex-col gap-1 link-challenge-box">
-            <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 link-label">Challenge Token</span>
-            <code className="font-mono text-base text-teal-300 break-all link-token">{challenge}</code>
+          <div className="relative flex flex-col gap-1 rounded-xl border border-border bg-background/50 p-4">
+            <span className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+              Challenge Token
+            </span>
+            <code className="font-mono text-base break-all text-primary">{challenge}</code>
           </div>
         )}
 
-        <div className="flex flex-col gap-4 mt-2 link-actions">
+        <div className="relative flex flex-col gap-4">
           {!wallet.capabilities.isConnected ? (
             <Button
               type="button"
@@ -125,7 +148,7 @@ function LinkPageContent() {
               size="lg"
               onClick={() => void wallet.connect(defaultFreighterAdapter)}
             >
-              <Wallet size={18} />
+              <Wallet />
               Connect Wallet to Sign
             </Button>
           ) : !signature ? (
@@ -136,24 +159,22 @@ function LinkPageContent() {
               onClick={handleSign}
               disabled={signing || !challenge}
             >
-              <ShieldCheck size={18} />
+              <ShieldCheck />
               {signing ? "Signing Challenge…" : "Sign Challenge with Freighter"}
             </Button>
           ) : (
-            <div className="flex flex-col gap-4 link-success-section">
-              <div className="p-3.5 rounded-xl text-sm bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 link-alert link-alert--success">
-                ✓ Challenge signed successfully! Copy the command below and paste it back into Telegram:
-              </div>
+            <div className="flex flex-col gap-4">
+              <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                ✓ Challenge signed successfully! Copy the command below and paste it back into
+                Telegram:
+              </p>
 
-              <div className="bg-black/40 border border-teal-400/30 rounded-xl p-4 flex items-center justify-between gap-4 link-command-box">
-                <code className="font-mono text-sm text-teal-300 break-all link-command">{commandString}</code>
-                <Button
-                  type="button"
-                  variant="brand-outline"
-                  size="sm"
-                  onClick={handleCopyCommand}
-                >
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-background/60 p-4">
+                <code className="min-w-0 flex-1 font-mono text-sm break-all text-primary">
+                  {commandString}
+                </code>
+                <Button type="button" variant="brand-outline" size="sm" onClick={handleCopyCommand}>
+                  {copied ? <Check /> : <Copy />}
                   {copied ? "Copied!" : "Copy Command"}
                 </Button>
               </div>
@@ -162,9 +183,9 @@ function LinkPageContent() {
                 href="https://t.me/StellarCadeBot"
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-md shadow-sky-500/20 link-tg-btn"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white shadow-md shadow-sky-500/20 transition-all hover:-translate-y-px hover:bg-sky-600"
               >
-                <Send size={16} />
+                <Send className="size-4" aria-hidden />
                 Return to Telegram Bot
               </a>
             </div>
@@ -177,7 +198,13 @@ function LinkPageContent() {
 
 export default function LinkPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Loading Telegram Bot Linker…</div>}>
+    <Suspense
+      fallback={
+        <p className="p-8 text-center text-sm text-muted-foreground">
+          Loading Telegram Bot Linker…
+        </p>
+      }
+    >
       <LinkPageContent />
     </Suspense>
   );

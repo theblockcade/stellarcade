@@ -5,7 +5,10 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
-pub use types::{ClaimReadiness, ClaimReadinessReason, LedgerRecordSummary, MissionRecord, MissionSnapshot, MissionStatus, ValidationWindow};
+pub use types::{
+    ClaimReadiness, ClaimReadinessReason, LedgerRecordSummary, MissionRecord, MissionSnapshot,
+    MissionStatus, ValidationWindow,
+};
 
 #[contracttype]
 #[derive(Clone)]
@@ -374,8 +377,8 @@ mod test {
         let (_env, _admin, client) = setup();
 
         let snap = client.mission_snapshot(&999u64);
-        assert_eq!(snap.exists, false);
-        assert_eq!(snap.configured, true);
+        assert!(!snap.exists);
+        assert!(snap.configured);
         assert_eq!(snap.status, MissionStatus::NotConfigured);
         assert_eq!(snap.now, 1_000);
     }
@@ -386,7 +389,7 @@ mod test {
         register(&env, &client, &admin, 1, 3, 5_000);
 
         let active = client.mission_snapshot(&1u64);
-        assert_eq!(active.exists, true);
+        assert!(active.exists);
         assert_eq!(active.status, MissionStatus::Active);
         assert_eq!(active.completion_threshold, 3);
 
@@ -408,18 +411,18 @@ mod test {
         let player = Address::generate(&env);
 
         let r0 = client.reward_claim_ready(&1u64, &player);
-        assert_eq!(r0.ready, false);
+        assert!(!r0.ready);
         assert_eq!(r0.reason, ClaimReadinessReason::PlayerNotEnrolled);
 
         client.record_progress(&player, &1u64, &1u32);
         let r1 = client.reward_claim_ready(&1u64, &player);
-        assert_eq!(r1.ready, false);
+        assert!(!r1.ready);
         assert_eq!(r1.reason, ClaimReadinessReason::ProgressIncomplete);
         assert_eq!(r1.progress, 1);
 
         client.record_progress(&player, &1u64, &1u32);
         let r2 = client.reward_claim_ready(&1u64, &player);
-        assert_eq!(r2.ready, true);
+        assert!(r2.ready);
         assert_eq!(r2.reason, ClaimReadinessReason::Ready);
     }
 
@@ -432,7 +435,7 @@ mod test {
 
         client.set_paused(&admin, &1u64, &true);
         let r = client.reward_claim_ready(&1u64, &player);
-        assert_eq!(r.ready, false);
+        assert!(!r.ready);
         assert_eq!(r.reason, ClaimReadinessReason::MissionPaused);
     }
 
@@ -445,7 +448,7 @@ mod test {
 
         env.ledger().set_timestamp(3_000);
         let r = client.reward_claim_ready(&1u64, &player);
-        assert_eq!(r.ready, false);
+        assert!(!r.ready);
         assert_eq!(r.reason, ClaimReadinessReason::MissionExpired);
     }
 
@@ -458,7 +461,7 @@ mod test {
         client.claim(&player, &1u64);
 
         let r = client.reward_claim_ready(&1u64, &player);
-        assert_eq!(r.ready, false);
+        assert!(!r.ready);
         assert_eq!(r.reason, ClaimReadinessReason::AlreadyClaimed);
     }
 
@@ -467,7 +470,7 @@ mod test {
         let (env, _admin, client) = setup();
         let player = Address::generate(&env);
         let r = client.reward_claim_ready(&42u64, &player);
-        assert_eq!(r.ready, false);
+        assert!(!r.ready);
         assert_eq!(r.reason, ClaimReadinessReason::MissionUnknown);
     }
 
@@ -477,8 +480,8 @@ mod test {
         register(&env, &client, &admin, 1, 2, 5_000);
 
         let summary = client.ledger_record_summary(&1u64);
-        assert_eq!(summary.exists, true);
-        assert_eq!(summary.paused, false);
+        assert!(summary.exists);
+        assert!(!summary.paused);
         assert_eq!(summary.completion_threshold, 2);
         assert_eq!(summary.completed_count, 0);
         assert_eq!(summary.reward_amount, 500);
@@ -499,7 +502,7 @@ mod test {
     fn ledger_record_summary_missing_mission() {
         let (_env, _admin, client) = setup();
         let summary = client.ledger_record_summary(&999u64);
-        assert_eq!(summary.exists, false);
+        assert!(!summary.exists);
         assert_eq!(summary.completion_threshold, 0);
         assert_eq!(summary.reward_amount, 0);
     }
@@ -511,8 +514,8 @@ mod test {
 
         // Ledger starts at 1_000; expiry is 2_000 → 1_000s remain.
         let vw = client.validation_window(&1u64);
-        assert_eq!(vw.exists, true);
-        assert_eq!(vw.configured, true);
+        assert!(vw.exists);
+        assert!(vw.configured);
         assert!(vw.window_open);
         assert_eq!(vw.expires_at, 2_000);
         assert_eq!(vw.seconds_remaining, 1_000);
@@ -533,7 +536,7 @@ mod test {
     fn validation_window_missing_mission() {
         let (_env, _admin, client) = setup();
         let vw = client.validation_window(&999u64);
-        assert_eq!(vw.exists, false);
+        assert!(!vw.exists);
         assert!(!vw.window_open);
         assert_eq!(vw.seconds_remaining, 0);
     }

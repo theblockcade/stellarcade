@@ -55,6 +55,9 @@ export type ApiErrorCode =
   | 'API_FORBIDDEN'
   | 'API_NOT_FOUND'
   | 'API_VALIDATION_ERROR'
+  /** 409 — the request conflicts with existing state (username already
+      taken, profile already exists for this address, …). */
+  | 'API_CONFLICT'
   | 'API_RATE_LIMITED'
   | 'API_SERVER_ERROR'
   | 'API_REQUEST_TIMEOUT'

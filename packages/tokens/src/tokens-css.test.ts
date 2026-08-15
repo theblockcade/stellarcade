@@ -17,6 +17,8 @@ function cssVar(name: string): string {
 describe("tokens.css stays in sync with the TS token exports", () => {
   it("bg tokens match", () => {
     expect(cssVar("sc-bg-dark")).toBe(colors.bg.dark);
+    expect(cssVar("sc-bg-surface")).toBe(colors.bg.surface);
+    expect(cssVar("sc-bg-chrome")).toBe(colors.bg.chrome);
     expect(cssVar("sc-bg-card")).toBe(colors.bg.card);
   });
 

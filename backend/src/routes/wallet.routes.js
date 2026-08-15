@@ -182,8 +182,24 @@ const routeDocs = [
 ];
 
 router.get('/:address/balance', rateLimit('wallet'), getBalance);
-router.post('/deposit', auth, rateLimit('wallet'), idempotency, amountValidation, validate, deposit);
-router.post('/withdraw', auth, rateLimit('wallet'), idempotency, amountValidation, validate, withdraw);
+router.post(
+  '/deposit',
+  auth,
+  rateLimit('wallet'),
+  idempotency,
+  amountValidation,
+  validate,
+  deposit
+);
+router.post(
+  '/withdraw',
+  auth,
+  rateLimit('wallet'),
+  idempotency,
+  amountValidation,
+  validate,
+  withdraw
+);
 
 module.exports = router;
 module.exports.routeDocs = routeDocs;

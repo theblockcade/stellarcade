@@ -17,7 +17,7 @@ const Outbox = {
         next_retry_at: new Date(), // Retry immediately
       })
       .returning('*');
-    
+
     return outbox;
   },
 
@@ -51,7 +51,7 @@ const Outbox = {
         processing_lock: lockId,
         updated_at: new Date(),
       });
-    
+
     return updated > 0;
   },
 
@@ -62,15 +62,12 @@ const Outbox = {
    * @returns {Promise<boolean>} True if lock was released
    */
   async releaseLock(id, lockId) {
-    const updated = await knex('outbox')
-      .where('id', id)
-      .where('processing_lock', lockId)
-      .update({
-        status: 'pending',
-        processing_lock: null,
-        updated_at: new Date(),
-      });
-    
+    const updated = await knex('outbox').where('id', id).where('processing_lock', lockId).update({
+      status: 'pending',
+      processing_lock: null,
+      updated_at: new Date(),
+    });
+
     return updated > 0;
   },
 
@@ -81,15 +78,12 @@ const Outbox = {
    * @returns {Promise<boolean>} True if marked as completed
    */
   async markCompleted(id, lockId) {
-    const updated = await knex('outbox')
-      .where('id', id)
-      .where('processing_lock', lockId)
-      .update({
-        status: 'completed',
-        processing_lock: null,
-        updated_at: new Date(),
-      });
-    
+    const updated = await knex('outbox').where('id', id).where('processing_lock', lockId).update({
+      status: 'completed',
+      processing_lock: null,
+      updated_at: new Date(),
+    });
+
     return updated > 0;
   },
 
@@ -118,7 +112,7 @@ const Outbox = {
         next_retry_at: nextRetryAt,
         updated_at: new Date(),
       });
-    
+
     return updated > 0;
   },
 
@@ -130,18 +124,15 @@ const Outbox = {
    * @returns {Promise<boolean>} True if marked as failed
    */
   async markPermanentlyFailed(id, lockId, errorData) {
-    const updated = await knex('outbox')
-      .where('id', id)
-      .where('processing_lock', lockId)
-      .update({
-        status: 'failed',
-        processing_lock: null,
-        error_message: errorData.error_message,
-        error_code: errorData.error_code,
-        result_codes: errorData.result_codes,
-        updated_at: new Date(),
-      });
-    
+    const updated = await knex('outbox').where('id', id).where('processing_lock', lockId).update({
+      status: 'failed',
+      processing_lock: null,
+      error_message: errorData.error_message,
+      error_code: errorData.error_code,
+      result_codes: errorData.result_codes,
+      updated_at: new Date(),
+    });
+
     return updated > 0;
   },
 
@@ -151,10 +142,8 @@ const Outbox = {
    * @returns {Promise<Object|null>} Outbox entry or null
    */
   async findById(id) {
-    const [outbox] = await knex('outbox')
-      .where('id', id)
-      .select('*');
-    
+    const [outbox] = await knex('outbox').where('id', id).select('*');
+
     return outbox || null;
   },
 
@@ -163,11 +152,8 @@ const Outbox = {
    * @returns {Promise<Object>} Statistics
    */
   async getStats() {
-    const stats = await knex('outbox')
-      .select('status')
-      .count('* as count')
-      .groupBy('status');
-    
+    const stats = await knex('outbox').select('status').count('* as count').groupBy('status');
+
     return stats.reduce((acc, stat) => {
       acc[stat.status] = parseInt(stat.count);
       return acc;

@@ -116,7 +116,9 @@ impl NftReward {
         admin.require_auth();
 
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::NftContract, &nft_contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::NftContract, &nft_contract);
         env.storage()
             .instance()
             .set(&DataKey::RewardContract, &reward_contract);
@@ -157,7 +159,12 @@ impl NftReward {
             PERSISTENT_BUMP_LEDGERS,
         );
 
-        CampaignDefined { campaign_id, metadata_uri, supply }.publish(&env);
+        CampaignDefined {
+            campaign_id,
+            metadata_uri,
+            supply,
+        }
+        .publish(&env);
 
         Ok(())
     }
@@ -246,7 +253,9 @@ impl NftReward {
 
     /// View campaign state.
     pub fn nft_reward_state(env: Env, campaign_id: u32) -> Option<CampaignData> {
-        env.storage().persistent().get(&DataKey::Campaign(campaign_id))
+        env.storage()
+            .persistent()
+            .get(&DataKey::Campaign(campaign_id))
     }
 
     // -----------------------------------------------------------------------

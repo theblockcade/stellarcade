@@ -28,7 +28,7 @@ const isRetryableError = (errorCode) => {
     stellarService.STELLAR_ERRORS.RATE_LIMITED,
     stellarService.STELLAR_ERRORS.SERVER_ERROR,
   ];
-  
+
   return retryableErrors.includes(errorCode);
 };
 
@@ -40,7 +40,7 @@ const isRetryableError = (errorCode) => {
 const processOutboxEntry = async (entry) => {
   const lockId = crypto.randomUUID();
   const startTime = Date.now();
-  
+
   logger.info(`Processing outbox entry ${entry.id}`, {
     id: entry.id,
     attempts: entry.attempts,
@@ -50,40 +50,47 @@ const processOutboxEntry = async (entry) => {
     // Acquire lock to prevent duplicate processing
     const lockAcquired = await Outbox.acquireLock(entry.id, lockId);
     if (!lockAcquired) {
-      logger.debug(`Failed to acquire lock for outbox entry ${entry.id}, likely already being processed`);
+      logger.debug(
+        `Failed to acquire lock for outbox entry ${entry.id}, likely already being processed`
+      );
       return false;
     }
 
     // Submit transaction to Stellar
     const result = await stellarService.submitTransaction(entry.transaction_xdr);
-    
+
     if (result.status === 'success') {
       // Transaction succeeded - mark as completed
       await Outbox.markCompleted(entry.id, lockId);
-      
+
       logger.info(`Successfully processed outbox entry ${entry.id}`, {
         id: entry.id,
         hash: result.hash,
         ledger: result.ledger,
         processingTime: Date.now() - startTime,
       });
-      
+
       return true;
     } else {
       // Transaction failed - determine if retryable
       const isRetryable = isRetryableError(result.errorCode);
       const maxAttempts = 5;
-      
+
       if (isRetryable && entry.attempts < maxAttempts) {
         // Schedule retry with exponential backoff
         const nextRetryAt = new Date(Date.now() + calculateBackoff(entry.attempts));
-        
-        await Outbox.markFailed(entry.id, lockId, {
-          error_code: result.errorCode,
-          error_message: result.errorMessage,
-          result_codes: result.resultCodes,
-        }, nextRetryAt);
-        
+
+        await Outbox.markFailed(
+          entry.id,
+          lockId,
+          {
+            error_code: result.errorCode,
+            error_message: result.errorMessage,
+            result_codes: result.resultCodes,
+          },
+          nextRetryAt
+        );
+
         logger.warn(`Scheduled retry for outbox entry ${entry.id}`, {
           id: entry.id,
           errorCode: result.errorCode,
@@ -92,7 +99,7 @@ const processOutboxEntry = async (entry) => {
           nextRetryAt,
           processingTime: Date.now() - startTime,
         });
-        
+
         return false;
       } else {
         // Mark as permanently failed
@@ -101,7 +108,7 @@ const processOutboxEntry = async (entry) => {
           error_message: result.errorMessage,
           result_codes: result.resultCodes,
         });
-        
+
         logger.error(`Permanently failed outbox entry ${entry.id}`, {
           id: entry.id,
           errorCode: result.errorCode,
@@ -110,7 +117,7 @@ const processOutboxEntry = async (entry) => {
           attempts: entry.attempts + 1,
           processingTime: Date.now() - startTime,
         });
-        
+
         return false;
       }
     }
@@ -118,13 +125,18 @@ const processOutboxEntry = async (entry) => {
     // Unexpected error - release lock and schedule retry
     try {
       const nextRetryAt = new Date(Date.now() + calculateBackoff(entry.attempts));
-      
-      await Outbox.markFailed(entry.id, lockId, {
-        error_code: 'UNEXPECTED_ERROR',
-        error_message: error.message,
-        result_codes: null,
-      }, nextRetryAt);
-      
+
+      await Outbox.markFailed(
+        entry.id,
+        lockId,
+        {
+          error_code: 'UNEXPECTED_ERROR',
+          error_message: error.message,
+          result_codes: null,
+        },
+        nextRetryAt
+      );
+
       logger.error(`Unexpected error processing outbox entry ${entry.id}`, {
         id: entry.id,
         error: error.message,
@@ -139,7 +151,7 @@ const processOutboxEntry = async (entry) => {
         error: releaseError.message,
       });
     }
-    
+
     return false;
   }
 };
@@ -156,7 +168,7 @@ const processPendingEntries = async (options = {}) => {
     batchSize = 10,
     maxProcessingTime = 30000, // 30 seconds
   } = options;
-  
+
   const startTime = Date.now();
   const results = {
     processed: 0,
@@ -164,7 +176,7 @@ const processPendingEntries = async (options = {}) => {
     failed: 0,
     errors: [],
   };
-  
+
   logger.info('Starting outbox worker processing', {
     batchSize,
     maxProcessingTime,
@@ -173,7 +185,7 @@ const processPendingEntries = async (options = {}) => {
   try {
     // Get pending entries ready for retry
     const entries = await Outbox.getPendingForRetry(batchSize);
-    
+
     if (entries.length === 0) {
       logger.info('No pending outbox entries to process');
       return results;
@@ -192,7 +204,7 @@ const processPendingEntries = async (options = {}) => {
       try {
         const success = await processOutboxEntry(entry);
         results.processed++;
-        
+
         if (success) {
           results.successful++;
         } else {
@@ -204,7 +216,7 @@ const processPendingEntries = async (options = {}) => {
           error: error.message,
         });
         results.failed++;
-        
+
         logger.error(`Failed to process outbox entry ${entry.id}`, {
           id: entry.id,
           error: error.message,
@@ -226,11 +238,11 @@ const processPendingEntries = async (options = {}) => {
       stack: error.stack,
       processingTime: Date.now() - startTime,
     });
-    
+
     results.errors.push({
       error: error.message,
     });
-    
+
     return results;
   }
 };
@@ -248,15 +260,15 @@ const startWorker = async (options = {}) => {
     batchSize = 10,
     maxProcessingTime = 30000,
   } = options;
-  
+
   logger.info('Starting outbox worker', {
     pollInterval,
     batchSize,
     maxProcessingTime,
   });
 
-let running = true;
-  
+  let running = true;
+
   while (running) {
     try {
       await processPendingEntries({
@@ -269,9 +281,9 @@ let running = true;
         stack: error.stack,
       });
     }
-    
+
     // Wait before next iteration
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
 };
 

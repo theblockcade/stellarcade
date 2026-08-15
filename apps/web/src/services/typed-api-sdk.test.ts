@@ -97,7 +97,7 @@ describe('ApiClient — happy path', () => {
     mockFetch(200, profile);
 
     const client = new ApiClient({ sessionStore: makeSessionStore() });
-    const result = await client.getProfile();
+    const result = await client.getProfile('GABC123');
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -172,7 +172,7 @@ describe('ApiClient — auth propagation', () => {
 
   it('returns API_UNAUTHORIZED when no sessionStore is provided for auth-required endpoint', async () => {
     const client = new ApiClient();
-    const result = await client.getProfile();
+    const result = await client.getProfile('GABC123');
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -256,7 +256,7 @@ describe('ApiClient — retry logic', () => {
     mockFetch(401, { message: 'unauthorized' });
 
     const client = new ApiClient({ sessionStore: makeSessionStore() });
-    const result = await client.getProfile();
+    const result = await client.getProfile('GABC123');
 
     expect(result.success).toBe(false);
     expect((global.fetch as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
@@ -285,7 +285,7 @@ describe('ApiClient — error mapping', () => {
     mockFetch(401, { message: 'unauthorized' });
 
     const client = new ApiClient({ sessionStore: makeSessionStore() });
-    const result = await client.getProfile();
+    const result = await client.getProfile('GABC123');
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -556,7 +556,7 @@ describe('ApiClient — result envelope shape', () => {
 
   it('failure result has { success: false, error } and no data property', async () => {
     const client = new ApiClient({ sessionStore: makeSessionStore(null) });
-    const result = await client.getProfile();
+    const result = await client.getProfile('GABC123');
 
     expect(result.success).toBe(false);
     expect('error' in result).toBe(true);

@@ -99,7 +99,7 @@ const TransactionModel = {
       logger.error('Error in TransactionModel.update:', error);
       throw error;
     }
-  }
+  },
 };
 
 module.exports = TransactionModel;

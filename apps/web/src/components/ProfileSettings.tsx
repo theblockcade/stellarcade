@@ -1,42 +1,48 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, User } from 'lucide-react';
-import { ApiClient } from '../services/typed-api-sdk';
-import { AlertBanner } from './AlertBanner';
-import GlobalStateStore from '../services/global-state-store';
-import { useWalletStatus } from '../hooks/useWalletStatus';
-import type { UserProfile } from '../types/api-client';
-import './ProfileSettings.css';
+import React, { useEffect, useMemo, useState } from "react";
+import { Check, Copy, Loader2, Send, ShieldCheck, User } from "lucide-react";
 
-export const profileStore = new GlobalStateStore();
+import { AlertBanner } from "./AlertBanner";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { PageHeader } from "./ui/page-header";
+import { StatTile } from "./ui/stat-tile";
+import { cn } from "../lib/utils";
+import { useProfile } from "../hooks/useProfile";
+import { useWalletStatus } from "../hooks/useWalletStatus";
+import { useXlmBalance } from "../hooks/useXlmBalance";
+import {
+  USERNAME_MAX,
+  profileStore,
+  saveUsername,
+  validateUsername,
+} from "../services/profile-service";
+
+/*
+ * Rewritten to sit on the shared profile service. What this file used to do
+ * and no longer does:
+ *
+ *   • Two separate load effects both keyed on the wallet address, racing each
+ *     other on every connect.
+ *   • Falling back to a made-up `Player_<last4>` username whenever the API
+ *     had no record — the app naming the player instead of asking them.
+ *   • A third private copy of the Horizon balance fetch (now useXlmBalance).
+ *   • ~15 console.log statements narrating every step to the browser console.
+ *
+ * `profileStore` is re-exported for the modules that still import it from
+ * here; it now actually lives in services/profile-service.
+ */
+export { profileStore };
 
 const formatDate = (value?: string): string => {
-  if (!value) return '—';
+  if (!value) return "—";
   const parsed = Date.parse(value);
   if (Number.isNaN(parsed)) return value;
   return new Date(parsed).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
-const getStoreToken = () => {
-  const token = profileStore.getState().auth.token ?? null;
-  if (token) return token;
-  if (process.env.NODE_ENV === 'development') {
-    return 'test-jwt-token';
-  }
-  return null;
-};
-
-const createApiClient = () => {
-  return new ApiClient({
-    baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
-    sessionStore: {
-      getToken: () => getStoreToken(),
-    },
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 };
 
@@ -46,194 +52,64 @@ function shortenAddress(address: string): string {
 }
 
 const ProfileSettings: React.FC = () => {
-  const walletStatus = useWalletStatus();
+  const wallet = useWalletStatus();
+  const { profile, isLoading } = useProfile();
+  const balance = useXlmBalance();
+
   const [mounted, setMounted] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
-  const [xlmBalance, setXlmBalance] = useState<string | null>(null);
 
-  const store = useRef<GlobalStateStore>(profileStore);
+  useEffect(() => setMounted(true), []);
 
+  // Mirror the stored username into the editable field whenever the profile
+  // changes underneath us (initial load, or a rename made elsewhere).
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setUsername(profile?.username ?? "");
+  }, [profile?.username]);
 
-  // --- Load profile ---
-  useEffect(() => {
-    const loadProfile = async () => {
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
+  const walletMeta = useMemo(
+    () => ({
+      connected: wallet.capabilities.isConnected,
+      address: wallet.address || "",
+      network: wallet.network || "Unknown",
+    }),
+    [wallet],
+  );
 
-      const persisted = store.current.selectProfile();
-      if (persisted) {
-        setProfile(persisted);
-        setUsername(persisted.username ?? '');
-        setLoading(false);
-        return;
-      }
+  const localError = username.trim() ? validateUsername(username) : null;
+  const isDirty = Boolean(profile && username.trim() !== (profile.username ?? "").trim());
+  const canSave = isDirty && !localError && !saving && Boolean(profile?.address);
 
-      const client = createApiClient();
-      const result = await client.getProfile();
-      if (result.success) {
-        setProfile(result.data);
-        setUsername(result.data.username ?? '');
-        store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
-      } else if (walletStatus.address) {
-        const localProfile: UserProfile = {
-          address: walletStatus.address,
-          username: `Player_${walletStatus.address.slice(-4)}`,
-          createdAt: new Date().toISOString(),
-        };
-        setProfile(localProfile);
-        setUsername(localProfile.username ?? '');
-      } else {
-        setError(result.error.message);
-      }
-
-      setLoading(false);
-    };
-
-    loadProfile();
-  }, [walletStatus.address]);
-
-  // --- Fetch XLM balance ---
-  useEffect(() => {
-    if (!walletStatus.capabilities.isConnected || !walletStatus.address) {
-      setXlmBalance(null);
-      return;
-    }
-
-    let isMounted = true;
-    const fetchBalance = async () => {
-      try {
-        const network = (walletStatus.network || '').toUpperCase();
-        const isTestnet = network.includes('TEST');
-        const horizonUrl = isTestnet
-          ? 'https://horizon-testnet.stellar.org'
-          : 'https://horizon.stellar.org';
-
-        const res = await fetch(`${horizonUrl}/accounts/${walletStatus.address}`);
-        if (!res.ok) return;
-        const data = (await res.json()) as { balances?: Array<{ asset_type: string; balance: string }> };
-        const native = data.balances?.find((b) => b.asset_type === 'native');
-        if (native && isMounted) {
-          const num = parseFloat(native.balance);
-          setXlmBalance(num.toLocaleString(undefined, { maximumFractionDigits: 2 }));
-        }
-      } catch {
-        // Non-fatal — horizon may be unreachable or account may not exist yet
-      }
-    };
-
-    void fetchBalance();
-    const interval = setInterval(() => void fetchBalance(), 15000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [walletStatus.capabilities.isConnected, walletStatus.address, walletStatus.network]);
-
-  // --- Load profile from Cloud API ---
-  useEffect(() => {
-    const loadProfile = async () => {
-      console.log('[ProfileSettings] loadProfile starting for address:', walletStatus.address);
-      setLoading(true);
-      setError(null);
-
-      const client = createApiClient();
-      console.log('[ProfileSettings] Calling client.getProfile()...');
-      const result = await client.getProfile();
-      console.log('[ProfileSettings] client.getProfile() result:', result);
-
-      if (result?.success && result?.data) {
-        console.log('[ProfileSettings] Cloud profile loaded successfully:', result.data);
-        setProfile(result.data);
-        setUsername(result.data.username ?? '');
-        store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
-      } else {
-        console.log('[ProfileSettings] Cloud profile not found or returned error, checking local fallback...');
-        const persisted = store.current.selectProfile();
-        if (persisted) {
-          console.log('[ProfileSettings] Using local persisted profile:', persisted);
-          setProfile(persisted);
-          setUsername(persisted.username ?? '');
-        } else if (walletStatus.address) {
-          const defaultProfile: UserProfile = {
-            address: walletStatus.address,
-            username: `Player_${walletStatus.address.slice(-4)}`,
-            createdAt: new Date().toISOString(),
-          };
-          console.log('[ProfileSettings] Using default wallet profile:', defaultProfile);
-          setProfile(defaultProfile);
-          setUsername(defaultProfile.username ?? '');
-        }
-      }
-
-      setLoading(false);
-    };
-
-    loadProfile();
-  }, [walletStatus.address]);
-
-  // --- Derived state ---
-  const walletMeta = useMemo(() => ({
-    connected: walletStatus.capabilities.isConnected,
-    address: walletStatus.address || '',
-    network: walletStatus.network || 'Unknown',
-  }), [walletStatus]);
-
-  const hasDraftChanges = Boolean(profile && username.trim() !== (profile.username ?? '').trim());
-
-  // --- Handlers ---
   const handleSave = async () => {
-    console.log('[ProfileSettings] handleSave triggered!');
     setError(null);
     setSuccess(null);
 
-    const trimmed = username.trim();
-    if (!trimmed) {
-      console.warn('[ProfileSettings] Username input is empty!');
-      setError('Username is required.');
+    const problem = validateUsername(username);
+    if (problem) {
+      setError(problem);
       return;
     }
 
-    const targetAddress = profile?.address || walletStatus.address || 'G_GUEST_PLAYER';
-    console.log('[ProfileSettings] Preparing update profile payload -> Address:', targetAddress, '| Username:', trimmed);
+    const address = profile?.address || wallet.address;
+    if (!address) {
+      setError("Connect a wallet before saving your profile.");
+      return;
+    }
+
     setSaving(true);
+    // saveUsername publishes to the shared store on success, which is what
+    // repaints the sidebar immediately rather than on the next page load.
+    const result = await saveUsername(address, username);
+    setSaving(false);
 
-    try {
-      const client = createApiClient();
-      console.log('[ProfileSettings] Sending updateProfile API POST request...');
-      const result = await client.updateProfile({
-        address: targetAddress,
-        username: trimmed,
-      });
-
-      console.log('[ProfileSettings] API updateProfile response received:', result);
-
-      if (result?.success) {
-        console.log('[ProfileSettings] Profile successfully updated in cloud:', result.data);
-        setProfile(result.data);
-        setUsername(result.data.username ?? trimmed);
-        store.current.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
-        setSuccess('Profile saved successfully to cloud.');
-      } else {
-        const errMsg = result?.error?.message || 'Failed to save to cloud API.';
-        console.error('[ProfileSettings] updateProfile failed with error:', errMsg);
-        setError(errMsg);
-      }
-    } catch (err) {
-      console.error('[ProfileSettings] updateProfile caught unexpected exception:', err);
-      setError('Failed to update cloud profile.');
-    } finally {
-      console.log('[ProfileSettings] handleSave finished. Setting saving to false.');
-      setSaving(false);
+    if (result.ok) {
+      setSuccess("Profile saved successfully.");
+    } else {
+      setError(result.message);
     }
   };
 
@@ -244,165 +120,220 @@ const ProfileSettings: React.FC = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Non-fatal
+      // Clipboard permission denied — the address is still visible.
     }
   };
 
-  // --- Avatar initials ---
   const avatarInitial = useMemo(() => {
-    if (!mounted) return '?';
+    if (!mounted) return "?";
     if (username) return username.charAt(0).toUpperCase();
     if (walletMeta.address) return walletMeta.address.charAt(0).toUpperCase();
-    return '?';
+    return "?";
   }, [mounted, username, walletMeta.address]);
 
-  return (
-    <section className="max-w-3xl mx-auto flex flex-col gap-6 p-4 text-slate-100 profile-page" aria-labelledby="profile-settings-heading">
-      <h1 id="profile-settings-heading" className="text-2xl font-bold tracking-tight text-white profile-page-title">Profile Settings</h1>
+  const telegramLinked = Boolean(
+    profile?.telegramLinked || profile?.telegramHandle || profile?.telegramUserId,
+  );
 
-      {error && (
-        <AlertBanner variant="error" message={error} testId="profile-settings-error" />
-      )}
+  return (
+    <section
+      className="profile-page mx-auto flex w-full max-w-4xl flex-col gap-6"
+      aria-labelledby="profile-settings-heading"
+    >
+      <PageHeader
+        icon={<User />}
+        title="Profile"
+        description="Your display name is tied to your connected Stellar wallet. StellarCade never holds your keys."
+        eyebrow={
+          mounted && walletMeta.connected ? (
+            <Badge variant="outline" className="gap-1.5 border-primary/40 text-primary">
+              <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden />
+              {walletMeta.network}
+            </Badge>
+          ) : null
+        }
+      />
+      <h1 id="profile-settings-heading" className="sr-only">
+        Profile Settings
+      </h1>
+
+      {error && <AlertBanner variant="error" message={error} testId="profile-settings-error" />}
       {success && (
         <AlertBanner variant="success" message={success} testId="profile-settings-success" />
       )}
 
-      {/* ── Player Identity Card ── */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-2xl profile-identity-card" data-testid="profile-identity-card">
-        <div className="w-18 h-18 rounded-full bg-gradient-to-br from-teal-400 via-blue-500 to-purple-600 flex items-center justify-center text-black font-extrabold text-2xl shadow-lg shadow-teal-500/20 shrink-0 profile-avatar" data-testid="profile-avatar">
+      {/* Identity */}
+      <div
+        className="profile-identity-card flex flex-col items-center gap-6 rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm sm:flex-row sm:items-start"
+        data-testid="profile-identity-card"
+      >
+        <div
+          className="profile-avatar flex size-18 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-teal-400 via-blue-500 to-purple-600 text-2xl font-extrabold text-black shadow-lg shadow-teal-500/20"
+          data-testid="profile-avatar"
+        >
           <span className="profile-avatar__initial">{avatarInitial}</span>
         </div>
 
-        <div className="flex-1 flex flex-col gap-3 w-full text-center sm:text-left profile-info">
+        <div className="profile-info flex w-full flex-1 flex-col gap-3 text-center sm:text-left">
           <form
             onSubmit={(evt) => {
               evt.preventDefault();
               void handleSave();
             }}
-            className="flex flex-col gap-2 w-full profile-username-form"
+            className="flex w-full flex-col gap-2"
           >
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full profile-input-group">
+            <label htmlFor="profile-username" className="sr-only">
+              Username
+            </label>
+            <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <input
                 id="profile-username"
-                className="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-white font-semibold outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20 transition-all profile-username-input"
+                className={cn(
+                  "profile-username-input flex-1 rounded-xl border bg-background/60 px-4 py-2.5 font-semibold text-foreground outline-none transition-colors",
+                  "placeholder:font-normal placeholder:text-muted-foreground/60 focus-visible:ring-[3px] focus-visible:ring-primary/20",
+                  localError
+                    ? "border-destructive/60"
+                    : "border-border focus-visible:border-primary/60",
+                )}
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter display name"
-                aria-label="Username"
+                placeholder={isLoading ? "Loading…" : "Enter display name"}
+                maxLength={USERNAME_MAX}
+                autoComplete="off"
+                aria-invalid={Boolean(localError)}
                 data-testid="profile-username-input"
               />
-              <button
+              <Button
                 type="submit"
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-teal-400 to-blue-500 text-black hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:pointer-events-none transition-all shadow-md shadow-teal-500/20 cursor-pointer profile-save-btn ${saving ? 'opacity-70 cursor-wait profile-save-btn--saving' : ''}`}
-                disabled={!username.trim() || saving}
+                variant="brand"
+                disabled={!canSave}
+                className="profile-save-btn shrink-0"
                 data-testid="profile-settings-save"
               >
-                {saving
-                  ? (profile?.username ? 'Updating…' : 'Saving…')
-                  : (profile?.username ? 'Update Profile' : 'Save Profile')}
-              </button>
+                {saving ? <Loader2 className="animate-spin" /> : null}
+                {saving ? "Saving…" : isDirty ? "Save changes" : "Saved"}
+              </Button>
             </div>
-            <p className="text-xs text-slate-400 profile-persistence-caption">
-              Your display name is linked to your connected Stellar wallet address.
-            </p>
+            {localError ? (
+              <p className="text-xs font-medium text-rose-400">{localError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Your display name is linked to your connected Stellar wallet address and must be
+                unique.
+              </p>
+            )}
           </form>
 
           {mounted && walletMeta.address && (
-            <div className="flex items-center justify-center sm:justify-start gap-2 font-mono text-xs text-slate-400 profile-address-row">
-              <span className="profile-address-text" data-testid="profile-address">
-                {shortenAddress(walletMeta.address)}
-              </span>
+            <div className="flex items-center justify-center gap-2 font-mono text-xs text-muted-foreground sm:justify-start">
+              <span data-testid="profile-address">{shortenAddress(walletMeta.address)}</span>
               <button
                 type="button"
-                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors profile-address-copy"
+                className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
                 onClick={() => void handleCopy()}
-                title="Copy full address"
                 aria-label="Copy wallet address"
                 data-testid="profile-address-copy"
               >
-                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? (
+                  <Check className="size-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
               </button>
             </div>
           )}
 
-          {mounted && walletMeta.connected && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-400/10 border border-teal-400/30 text-teal-300 font-mono text-[10px] font-bold tracking-wider uppercase w-max mx-auto sm:mx-0 profile-network-badge" data-testid="profile-network-badge">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse profile-network-dot" aria-hidden="true" />
-              {walletMeta.network}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            {mounted && walletMeta.connected && (
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-primary/30 font-mono text-primary"
+                data-testid="profile-network-badge"
+              >
+                <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" aria-hidden />
+                {walletMeta.network}
+              </Badge>
+            )}
 
-          {mounted && (
-            <div className="flex items-center justify-center sm:justify-start gap-2 mt-1 profile-social-row">
-              {profile?.telegramLinked || profile?.telegramHandle || profile?.telegramUserId ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-300 font-semibold text-xs profile-telegram-badge profile-telegram-badge--linked" data-testid="profile-telegram-linked">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-sm shadow-sky-400 profile-telegram-dot" aria-hidden="true" />
-                  Telegram: {profile.telegramHandle || `@user_${profile.telegramUserId || 'linked'}`}
-                </span>
-              ) : (
-                <a
-                  href="/link"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/15 text-slate-400 hover:bg-sky-500/20 hover:border-sky-500/50 hover:text-sky-300 font-semibold text-xs transition-all profile-telegram-badge profile-telegram-badge--unlinked"
-                  data-testid="profile-telegram-unlinked"
-                >
-                  + Link Telegram Bot
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+            {profile?.ageConfirmedAt ? (
+              <Badge variant="outline" className="gap-1.5 border-emerald-400/30 text-emerald-400">
+                <ShieldCheck className="size-3" aria-hidden />
+                18+ confirmed
+              </Badge>
+            ) : null}
 
-      {/* ── Wallet Overview ── */}
-      <div>
-        <h2 className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3 profile-section-title">Wallet</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10 profile-wallet-row" data-testid="profile-wallet-row">
-          <div className="flex flex-col profile-wallet-item profile-wallet-item--balance">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold profile-wallet-label">Balance</span>
-            <span className="text-lg font-mono font-bold text-emerald-400 profile-wallet-value" data-testid="profile-wallet-balance">
-              {mounted && xlmBalance !== null ? `${xlmBalance} XLM` : '—'}
-            </span>
-          </div>
-          <div className="flex flex-col profile-wallet-item">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold profile-wallet-label">Status</span>
-            <span className="text-lg font-bold text-white profile-wallet-value">
-              {mounted && walletMeta.connected ? 'Connected' : 'Disconnected'}
-            </span>
-          </div>
-          <div className="flex flex-col profile-wallet-item">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold profile-wallet-label">Network</span>
-            <span className="text-lg font-bold text-white profile-wallet-value">{mounted ? walletMeta.network : 'Unknown'}</span>
+            {telegramLinked ? (
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-sky-500/40 text-sky-300"
+                data-testid="profile-telegram-linked"
+              >
+                <span className="size-1.5 rounded-full bg-sky-400" aria-hidden />
+                Telegram: {profile?.telegramHandle || `@user_${profile?.telegramUserId}`}
+              </Badge>
+            ) : (
+              <a
+                href="/link"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-sky-500/50 hover:text-sky-300"
+                data-testid="profile-telegram-unlinked"
+              >
+                <Send className="size-3" aria-hidden />
+                Link Telegram
+              </a>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Quick Stats ── */}
+      {/* Wallet */}
       <div>
-        <h2 className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3 profile-section-title">Stats</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 profile-stats-grid" data-testid="profile-stats-grid">
-          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Games Played</span>
-            <span className="text-2xl font-extrabold text-white profile-stat-value">128</span>
-            <span className="text-xs text-slate-500 profile-stat-caption">Lifetime</span>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Win Rate</span>
-            <span className="text-2xl font-extrabold text-teal-400 profile-stat-value">64%</span>
-            <span className="text-xs text-slate-500 profile-stat-caption">Last 30 days</span>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Badges</span>
-            <span className="text-2xl font-extrabold text-purple-400 profile-stat-value">14</span>
-            <span className="text-xs text-slate-500 profile-stat-caption">Soulbound</span>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/10 flex flex-col hover:border-white/20 hover:-translate-y-0.5 transition-all profile-stat-card">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1 profile-stat-label">Member Since</span>
-            <span className="text-lg font-bold text-white profile-stat-value" data-testid="profile-member-since">
-              {formatDate(profile?.createdAt)}
-            </span>
-            <span className="text-xs text-slate-500 profile-stat-caption">Account Created</span>
-          </div>
+        <h2 className="mb-3 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          Wallet
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3" data-testid="profile-wallet-row">
+          <StatTile
+            label="Balance"
+            value={
+              balance.isUnfunded ? "Unfunded" : balance.formatted ? `${balance.formatted} XLM` : "—"
+            }
+            empty={!mounted || !walletMeta.connected}
+            caption={
+              !mounted || !walletMeta.connected ? "Not connected" : "Live from Horizon"
+            }
+            data-testid="profile-wallet-balance"
+          />
+          <StatTile
+            label="Status"
+            value={mounted && walletMeta.connected ? "Connected" : "Disconnected"}
+            caption={mounted && walletMeta.connected ? "Freighter session active" : "No wallet"}
+          />
+          <StatTile
+            label="Network"
+            value={mounted ? walletMeta.network : "Unknown"}
+            caption="Stellar"
+          />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div>
+        <h2 className="mb-3 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          Stats
+        </h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4" data-testid="profile-stats-grid">
+          {/* No settlement data source exists yet, so these read empty rather
+              than showing invented lifetime figures. */}
+          <StatTile label="Games played" value="0" empty caption="No rounds settled yet" />
+          <StatTile label="Win rate" value="0%" empty caption="Needs at least one round" />
+          <StatTile label="Badges" value="0" empty caption="No badges minted yet" />
+          <StatTile
+            label="Member since"
+            value={formatDate(profile?.createdAt)}
+            empty={!profile?.createdAt}
+            caption="Account created"
+            data-testid="profile-member-since"
+          />
         </div>
       </div>
     </section>

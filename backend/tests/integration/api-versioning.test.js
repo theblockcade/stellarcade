@@ -23,7 +23,7 @@ const app = require('../../src/server');
 
 /**
  * API Versioning Integration Tests
- * 
+ *
  * Verifies that:
  * 1. The X-API-Version header is correctly handled.
  * 2. V1 routes under /api/v1/* are accessible.
@@ -40,9 +40,7 @@ describe('API Versioning Integration', () => {
     });
 
     test('should return the specified version in the X-API-Version header', async () => {
-      const response = await request(app)
-        .get('/api/health')
-        .set('X-API-Version', 'v2');
+      const response = await request(app).get('/api/health').set('X-API-Version', 'v2');
       expect(response.headers['x-api-version']).toBe('v2');
     });
   });

@@ -6,7 +6,7 @@ use soroban_sdk::Env;
 fn setup() -> (Env, MissionCheckinsClient<'static>) {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register_contract(None, MissionCheckins);
+    let contract_id = env.register(MissionCheckins, ());
     let client = MissionCheckinsClient::new(&env, &contract_id);
     (env, client)
 }

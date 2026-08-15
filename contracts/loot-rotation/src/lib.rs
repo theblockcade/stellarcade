@@ -5,7 +5,7 @@ mod types;
 
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
-pub use types::{ActivePoolSnapshot, LootPool, RotationQueueSummary, RolloverDelay, TransitionGap};
+pub use types::{ActivePoolSnapshot, LootPool, RolloverDelay, RotationQueueSummary, TransitionGap};
 
 #[contract]
 pub struct LootRotation;

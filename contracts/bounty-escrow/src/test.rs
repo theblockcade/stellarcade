@@ -102,7 +102,10 @@ fn test_get_bounties_by_poster_success() {
     }
 
     // Both IDs should be present
-    let returned_ids: [u64; 2] = [views.get(0).unwrap().bounty_id, views.get(1).unwrap().bounty_id];
+    let returned_ids: [u64; 2] = [
+        views.get(0).unwrap().bounty_id,
+        views.get(1).unwrap().bounty_id,
+    ];
     assert!(returned_ids.contains(&id1));
     assert!(returned_ids.contains(&id2));
 }
@@ -125,7 +128,10 @@ fn test_get_bounty_status_success() {
     assert_eq!(status_view.bounty_id, bounty_id);
     // Status must match what get_bounty returns
     assert_eq!(status_view.status, full_view.status);
-    assert_eq!(status_view.status, OptionalBountyStatus::Some(BountyStatus::Open));
+    assert_eq!(
+        status_view.status,
+        OptionalBountyStatus::Some(BountyStatus::Open)
+    );
 }
 
 // ── Task 7.8: test_get_platform_config_initialized ────────────────────────────
@@ -197,9 +203,27 @@ fn test_get_bounty_summary_mixed_states() {
     let reward_cancelled: i128 = 400;
 
     let _id_open = post_bounty(&env, &client, &poster, reward_open, symbol_short!("open"));
-    let id_paused = post_bounty(&env, &client, &poster, reward_paused, symbol_short!("paused"));
-    let id_completed = post_bounty(&env, &client, &poster, reward_completed, symbol_short!("done"));
-    let id_cancelled = post_bounty(&env, &client, &poster, reward_cancelled, symbol_short!("cancel"));
+    let id_paused = post_bounty(
+        &env,
+        &client,
+        &poster,
+        reward_paused,
+        symbol_short!("paused"),
+    );
+    let id_completed = post_bounty(
+        &env,
+        &client,
+        &poster,
+        reward_completed,
+        symbol_short!("done"),
+    );
+    let id_cancelled = post_bounty(
+        &env,
+        &client,
+        &poster,
+        reward_cancelled,
+        symbol_short!("cancel"),
+    );
 
     // Transition statuses (id_open stays Open)
     client.update_bounty_status(&admin, &id_paused, &BountyStatus::Paused);

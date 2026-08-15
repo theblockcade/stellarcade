@@ -1,8 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractevent, contractimpl, contracttype, Address, Env, Symbol, Vec,
-};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone)]
@@ -68,7 +66,10 @@ impl AccessControl {
 
     /// Retrieves the current super admin address.
     pub fn get_admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).expect("Not initialized")
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized")
     }
 
     /// Returns the number of accounts that currently hold the given role.
@@ -108,7 +109,8 @@ impl AccessControl {
 // or as a shared module for other contracts.
 
 pub fn require_admin(env: &Env) {
-    let admin: Address = env.storage()
+    let admin: Address = env
+        .storage()
         .instance()
         .get(&DataKey::Admin)
         .expect("AccessControl: Not initialized");
@@ -167,7 +169,9 @@ pub fn internal_revoke_role(env: &Env, role: Symbol, account: Address) {
 }
 
 pub fn internal_has_role(env: &Env, role: Symbol, account: Address) -> bool {
-    env.storage().persistent().has(&DataKey::Role(role, account))
+    env.storage()
+        .persistent()
+        .has(&DataKey::Role(role, account))
 }
 
 #[cfg(test)]

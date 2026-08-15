@@ -58,7 +58,9 @@ impl CreatorEscrow {
 
     pub fn set_paused(env: Env, paused: bool) -> Result<(), Error> {
         Self::require_admin(&env)?;
-        env.storage().instance().set(&DataKey::GlobalPaused, &paused);
+        env.storage()
+            .instance()
+            .set(&DataKey::GlobalPaused, &paused);
         Ok(())
     }
 

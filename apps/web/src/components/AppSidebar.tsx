@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import {
   User,
   Gamepad2,
@@ -172,14 +173,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
               data-testid="app-sidebar-brand"
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-teal-400 to-blue-500 text-black shadow-md shadow-teal-500/20">
-                <Sparkles className="size-4" />
+              <div className="flex aspect-square size-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 shadow-sm">
+                <Image
+                  src="/favicon-logo.webp"
+                  alt="StellarCade Logo"
+                  width={36}
+                  height={36}
+                  className="rounded-lg object-contain"
+                />
               </div>
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-sm font-extrabold tracking-tight bg-linear-to-r from-teal-300 to-blue-400 bg-clip-text text-transparent">
+                <span className="truncate text-sm font-bold tracking-tight text-foreground">
                   StellarCade
                 </span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate text-[11px] text-muted-foreground">
                   {t("common.tagline", "Provably-fair arcade")}
                 </span>
               </div>
@@ -191,7 +198,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
       <SidebarContent>
         {SECTION_CONFIGS.map((section) => (
           <SidebarGroup key={section.id}>
-            <SidebarGroupLabel>{t(section.titleKey, section.defaultTitle)}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground/70 uppercase">
+              {t(section.titleKey, section.defaultTitle)}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item) => {
@@ -205,9 +214,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
                         onClick={() => onNavigate(item.route)}
                         aria-current={isActive ? "page" : undefined}
                         data-testid={`app-sidebar-link-${item.route}`}
+                        className="data-[active=true]:bg-primary/12 data-[active=true]:font-semibold data-[active=true]:text-primary data-[active=true]:[&_svg]:text-primary"
                       >
                         {item.icon}
                         <span>{label}</span>
+                        {/* Active-state marker: colour alone shouldn't be the
+                            only cue for which route you're on. */}
+                        {isActive ? (
+                          <span
+                            className="ml-auto h-4 w-0.5 rounded-full bg-primary group-data-[collapsible=icon]:hidden"
+                            aria-hidden
+                          />
+                        ) : null}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -223,7 +241,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ currentRoute, onNavigate
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg" data-testid="sidebar-profile-card">
+                <SidebarMenuButton
+                  size="lg"
+                  data-testid="sidebar-profile-card"
+                  className="border border-border/60 bg-background/40"
+                >
                   <Avatar className="size-8 rounded-lg">
                     <AvatarFallback className="rounded-lg bg-linear-to-br from-teal-400 to-blue-500 font-bold text-black">
                       {initials}

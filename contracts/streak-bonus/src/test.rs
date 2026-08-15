@@ -234,7 +234,7 @@ fn bonus_multiplier_summary_before_init_not_configured() {
     let client = StreakBonusClient::new(&env, &contract_id);
 
     let summary = client.bonus_multiplier_summary();
-    assert_eq!(summary.configured, false);
+    assert!(!summary.configured);
     assert_eq!(summary.reward_per_streak, 0);
     assert_eq!(summary.min_streak_to_claim, 0);
     assert_eq!(summary.streak_window_secs, 0);
@@ -248,7 +248,7 @@ fn bonus_multiplier_summary_after_init() {
     // After init the contract sets default rules:
     //   min_streak_to_claim = 3, reward_per_streak = 1_000_000, streak_window_secs = 86400
     let summary = client.bonus_multiplier_summary();
-    assert_eq!(summary.configured, true);
+    assert!(summary.configured);
     assert_eq!(summary.min_streak_to_claim, 3);
     assert_eq!(summary.reward_per_streak, 1_000_000);
     assert_eq!(summary.streak_window_secs, 86_400);
@@ -288,7 +288,7 @@ fn decay_interval_reflects_reset_rules() {
     assert_eq!(client.decay_interval(), 3_600u64);
 
     let summary = client.bonus_multiplier_summary();
-    assert_eq!(summary.configured, true);
+    assert!(summary.configured);
     assert_eq!(summary.min_streak_to_claim, 5);
     assert_eq!(summary.reward_per_streak, 500_000);
     assert_eq!(summary.streak_window_secs, 3_600);

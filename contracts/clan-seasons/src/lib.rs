@@ -21,7 +21,9 @@ mod types;
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
-pub use types::{ParticipationSummary, RosterLock, SeasonCarryoverSnapshot, SeasonRecord, TransitionGap};
+pub use types::{
+    ParticipationSummary, RosterLock, SeasonCarryoverSnapshot, SeasonRecord, TransitionGap,
+};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 

@@ -1,6 +1,9 @@
 //! Unit tests for Cross-Contract Handler.
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger as _}, Address, Bytes, Env, Symbol};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger as _},
+    Address, Bytes, Env, Symbol,
+};
 
 fn setup(
     env: &Env,
@@ -42,12 +45,7 @@ fn test_register_route_returns_route_id() {
     let env = Env::default();
     let (client, admin, _, source, target) = setup(&env);
     env.mock_all_auths();
-    let route_id = client.register_route(
-        &admin,
-        &source,
-        &target,
-        &Symbol::new(&env, "handle"),
-    );
+    let route_id = client.register_route(&admin, &source, &target, &Symbol::new(&env, "handle"));
     assert_eq!(route_id, 1);
 }
 
@@ -166,7 +164,7 @@ fn test_get_call_status_pending() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let snapshot = client.get_call_status(&request_id);
     assert_eq!(snapshot.request_id, request_id);
     assert_eq!(snapshot.route_id, route_id);
@@ -188,10 +186,10 @@ fn test_get_call_status_acknowledged() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let result = Bytes::from_slice(&env, &[4, 5, 6]);
     client.acknowledge(&target, &request_id, &result);
-    
+
     let snapshot = client.get_call_status(&request_id);
     assert_eq!(snapshot.request_id, request_id);
     assert_eq!(snapshot.route_id, route_id);
@@ -213,10 +211,10 @@ fn test_get_call_status_failed() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let error_info = Bytes::from_slice(&env, &[9, 9, 9]);
     client.mark_failed(&target, &request_id, &error_info);
-    
+
     let snapshot = client.get_call_status(&request_id);
     assert_eq!(snapshot.request_id, request_id);
     assert_eq!(snapshot.route_id, route_id);
@@ -247,7 +245,7 @@ fn test_mark_failed_by_target_succeeds() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let error_info = Bytes::from_slice(&env, &[9, 9, 9]);
     client.mark_failed(&target, &request_id, &error_info);
 }
@@ -261,7 +259,7 @@ fn test_mark_failed_by_admin_succeeds() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let error_info = Bytes::from_slice(&env, &[9, 9, 9]);
     client.mark_failed(&admin, &request_id, &error_info);
 }
@@ -275,10 +273,10 @@ fn test_mark_failed_already_acknowledged_rejected() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let result = Bytes::from_slice(&env, &[4, 5, 6]);
     client.acknowledge(&target, &request_id, &result);
-    
+
     let error_info = Bytes::from_slice(&env, &[9, 9, 9]);
     let result2 = client.try_mark_failed(&target, &request_id, &error_info);
     assert!(result2.is_err());
@@ -293,10 +291,10 @@ fn test_mark_failed_already_failed_rejected() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let error_info = Bytes::from_slice(&env, &[9, 9, 9]);
     client.mark_failed(&target, &request_id, &error_info);
-    
+
     let error_info2 = Bytes::from_slice(&env, &[8, 8, 8]);
     let result = client.try_mark_failed(&target, &request_id, &error_info2);
     assert!(result.is_err());
@@ -311,10 +309,10 @@ fn test_acknowledge_after_failed_rejected() {
     let request_id = Symbol::new(&env, "req1");
     let payload = Bytes::from_slice(&env, &[1, 2, 3]);
     client.dispatch(&source, &request_id, &route_id, &payload);
-    
+
     let error_info = Bytes::from_slice(&env, &[9, 9, 9]);
     client.mark_failed(&target, &request_id, &error_info);
-    
+
     let result = Bytes::from_slice(&env, &[4, 5, 6]);
     let result2 = client.try_acknowledge(&target, &request_id, &result);
     assert!(result2.is_err());
@@ -382,7 +380,7 @@ fn test_route_timeout_accessor_timed_out() {
 
     let route_id = client.register_route(&admin, &source, &target, &Symbol::new(&env, "sel"));
     let current = env.ledger().sequence(); // 1000
-    // dispatched at ledger 400, timeout = 100 => deadline = 500, current (1000) > 500 => timed out
+                                           // dispatched at ledger 400, timeout = 100 => deadline = 500, current (1000) > 500 => timed out
     let dispatched_at = 400u32;
     let accessor = client.route_timeout_accessor(&route_id, &dispatched_at, &100u32);
     assert!(accessor.exists);

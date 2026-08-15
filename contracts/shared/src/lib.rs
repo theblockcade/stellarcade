@@ -111,7 +111,6 @@ pub enum DataKey {
 /// Constant for basis points divisor.
 pub const BASIS_POINTS_DIVISOR: u32 = 10_000;
 
-
 pub fn calculate_fee(amount: i128, fee_bps: u32) -> Result<i128, SharedError> {
     if amount < 0 {
         return Err(SharedError::InvalidAmount);

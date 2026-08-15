@@ -7,7 +7,9 @@
 //! sensitive function to fail fast when the platform is paused.
 #![no_std]
 
-use soroban_sdk::{contract, contracterror, contractevent, contractimpl, contracttype, Address, Env, String, Vec};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env, String, Vec,
+};
 
 // ---------------------------------------------------------------------------
 // Storage keys
@@ -58,10 +60,10 @@ pub struct PauseWindowSnapshot {
 #[repr(u32)]
 pub enum Error {
     AlreadyInitialized = 1,
-    NotInitialized     = 2,
-    NotAuthorized      = 3,
-    AlreadyPaused      = 4,
-    NotPaused          = 5,
+    NotInitialized = 2,
+    NotAuthorized = 3,
+    AlreadyPaused = 4,
+    NotPaused = 5,
 }
 
 // ---------------------------------------------------------------------------
@@ -114,8 +116,10 @@ impl EmergencyPause {
         };
 
         env.storage().instance().set(&DataKey::Paused, &true);
-        env.storage().instance().set(&DataKey::PauseMetadata, &metadata);
-        
+        env.storage()
+            .instance()
+            .set(&DataKey::PauseMetadata, &metadata);
+
         Paused { admin, reason_code }.publish(&env);
         Ok(())
     }

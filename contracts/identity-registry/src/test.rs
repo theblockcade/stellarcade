@@ -8,7 +8,7 @@ fn sample_string(env: &Env, value: &str) -> String {
 fn setup_client(env: &Env) -> (IdentityRegistryClient<'_>, Address, Address) {
     let admin = Address::generate(env);
     let user = Address::generate(env);
-    let contract_id = env.register_contract(None, IdentityRegistry);
+    let contract_id = env.register(IdentityRegistry, ());
     let client = IdentityRegistryClient::new(env, &contract_id);
     client.init(&admin);
     (client, admin, user)

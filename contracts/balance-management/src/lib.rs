@@ -56,7 +56,9 @@ impl BalanceManager {
         }
 
         state.last_update = env.ledger().sequence();
-        env.storage().persistent().set(&DataKey::Account(user), &state);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Account(user), &state);
     }
 
     /// View user balance.
@@ -107,7 +109,10 @@ mod tests {
     extern crate std;
 
     use super::{AccountSummary, BalanceManager, BalanceManagerClient};
-    use soroban_sdk::{testutils::{Address as _, Ledger as _}, Address, Env};
+    use soroban_sdk::{
+        testutils::{Address as _, Ledger as _},
+        Address, Env,
+    };
 
     #[test]
     fn empty_account_summary_is_explicitly_unknown() {
@@ -140,7 +145,7 @@ mod tests {
         client.update_balance(&user, &250, &true);
 
         let summary = client.get_account_summary(&user);
-        assert_eq!(summary.exists, true);
+        assert!(summary.exists);
         assert_eq!(summary.balance, 250);
         assert_eq!(summary.reserved, 0);
         assert_eq!(summary.last_update, 11);
@@ -165,7 +170,7 @@ mod tests {
         client.update_balance(&user, &40, &false);
 
         let after_spend = client.get_account_summary(&user);
-        assert_eq!(after_spend.exists, true);
+        assert!(after_spend.exists);
         assert_eq!(after_spend.balance, 60);
         assert_eq!(after_spend.reserved, 0);
         assert_eq!(after_spend.last_update, 9);

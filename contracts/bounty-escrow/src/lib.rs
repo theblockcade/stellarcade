@@ -6,7 +6,7 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec};
 
 use types::{
-    BountyRecord, BountyStatus, BountySummary, BountyStatusView, BountyView, OptionalBountyStatus,
+    BountyRecord, BountyStatus, BountyStatusView, BountySummary, BountyView, OptionalBountyStatus,
     PlatformConfigView,
 };
 
@@ -38,9 +38,7 @@ impl BountyEscrow {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Token, &token);
         env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
-        env.storage()
-            .instance()
-            .set(&DataKey::NextBountyId, &1u64);
+        env.storage().instance().set(&DataKey::NextBountyId, &1u64);
     }
 
     /// Post a new bounty. Validates inputs, assigns an ID, and writes to storage.

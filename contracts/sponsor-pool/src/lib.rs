@@ -79,8 +79,7 @@ impl SponsorPool {
     pub fn commit_funds(env: Env, sponsor: Address, campaign_id: u64, amount: i128) {
         sponsor.require_auth();
         assert!(amount > 0, "amount must be positive");
-        let mut campaign =
-            storage::get_campaign(&env, campaign_id).expect("Campaign not found");
+        let mut campaign = storage::get_campaign(&env, campaign_id).expect("Campaign not found");
         assert!(!campaign.cancelled, "Campaign cancelled");
         assert!(!campaign.settled, "Campaign already settled");
 
@@ -104,8 +103,7 @@ impl SponsorPool {
     pub fn settle(env: Env, admin: Address, campaign_id: u64) -> i128 {
         require_admin(&env, &admin);
         admin.require_auth();
-        let mut campaign =
-            storage::get_campaign(&env, campaign_id).expect("Campaign not found");
+        let mut campaign = storage::get_campaign(&env, campaign_id).expect("Campaign not found");
         assert!(!campaign.settled, "Already settled");
         assert!(!campaign.cancelled, "Campaign cancelled");
 
@@ -125,8 +123,7 @@ impl SponsorPool {
     pub fn cancel(env: Env, admin: Address, campaign_id: u64) -> i128 {
         require_admin(&env, &admin);
         admin.require_auth();
-        let mut campaign =
-            storage::get_campaign(&env, campaign_id).expect("Campaign not found");
+        let mut campaign = storage::get_campaign(&env, campaign_id).expect("Campaign not found");
         assert!(!campaign.settled, "Cannot cancel a settled campaign");
         assert!(!campaign.cancelled, "Already cancelled");
 
@@ -344,7 +341,7 @@ mod test {
     fn committed_funds_summary_starts_at_zero() {
         let (_env, _admin, client) = setup();
         let s = client.committed_funds_summary();
-        assert_eq!(s.configured, true);
+        assert!(s.configured);
         assert_eq!(s.open_campaigns, 0);
         assert_eq!(s.settled_campaigns, 0);
         assert_eq!(s.cancelled_campaigns, 0);
@@ -387,9 +384,9 @@ mod test {
     fn campaign_coverage_unknown_id_returns_unknown_state() {
         let (_env, _admin, client) = setup();
         let c = client.campaign_coverage(&999u64);
-        assert_eq!(c.exists, false);
+        assert!(!c.exists);
         assert_eq!(c.status, CampaignStatus::Unknown);
-        assert_eq!(c.configured, true);
+        assert!(c.configured);
         assert_eq!(c.coverage_bps, 0);
     }
 
@@ -486,7 +483,7 @@ mod test {
         let client = SponsorPoolClient::new(&env, &contract_id);
 
         let snap = client.sponsorship_coverage_snapshot();
-        assert_eq!(snap.configured, false);
+        assert!(!snap.configured);
         assert_eq!(snap.open_campaign_count, 0);
         assert_eq!(snap.total_target, 0);
         assert_eq!(snap.total_committed, 0);
@@ -505,7 +502,7 @@ mod test {
         client.commit_funds(&sponsor, &2u64, &100i128);
 
         let snap = client.sponsorship_coverage_snapshot();
-        assert_eq!(snap.configured, true);
+        assert!(snap.configured);
         assert_eq!(snap.open_campaign_count, 2);
         // total_committed mirrors OutstandingCommitted.
         assert_eq!(snap.total_committed, 300);

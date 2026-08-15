@@ -295,14 +295,14 @@ fn test_is_initialized_false_before_init() {
     let env = Env::default();
     let contract_id = env.register(ColorPrediction, ());
     let client = ColorPredictionClient::new(&env, &contract_id);
-    assert_eq!(client.is_initialized(), false);
+    assert!(!client.is_initialized());
 }
 
 #[test]
 fn test_is_initialized_true_after_init() {
     let env = Env::default();
     let (client, _, _, _, _) = setup(&env);
-    assert_eq!(client.is_initialized(), true);
+    assert!(client.is_initialized());
 }
 
 #[test]

@@ -1,8 +1,8 @@
 #![cfg(test)]
 extern crate std;
 
-use soroban_sdk::{testutils::Address as _, Address, Env};
 use crate::{VoucherEscrow, VoucherEscrowClient};
+use soroban_sdk::{testutils::Address as _, Address, Env};
 
 fn setup(env: &Env) -> (VoucherEscrowClient<'_>, Address) {
     let admin = Address::generate(env);

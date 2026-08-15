@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useCallback, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { I18nProvider, useI18n } from "../i18n/provider";
 import HeaderWalletControl from "./HeaderWalletControl";
@@ -13,8 +14,8 @@ import { Search } from "lucide-react";
 import CommandPalette, { commandStore, type Command } from "./CommandPalette";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import { useWalletStatus } from "../hooks/useWalletStatus";
-import { ApiClient } from "../services/typed-api-sdk";
-import { profileStore } from "./ProfileSettings";
+import { useProfile } from "../hooks/useProfile";
+import { ProfileOnboardingDialog } from "./ProfileOnboardingDialog";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "./ui/sidebar";
 import { Separator } from "./ui/separator";
 import { Button } from "./ui/button";
@@ -127,33 +128,16 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const route = useMemo(() => getAppRoute(pathname), [pathname]);
   const walletStatus = useWalletStatus();
 
-  // Automatic Cloud Profile Sync on Login / Connect / Disconnect
-  useEffect(() => {
-    if (!walletStatus.capabilities.isConnected || !walletStatus.address) {
-      profileStore.dispatch({ type: 'PROFILE_CLEAR' });
-      return;
-    }
-
-    let isMounted = true;
-    const syncCloudProfile = async () => {
-      try {
-        const client = new ApiClient({
-          baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
-        });
-        const result = await client.getProfile();
-        if (result?.success && result?.data && isMounted) {
-          profileStore.dispatch({ type: 'PROFILE_SET', payload: { profile: result.data } });
-        }
-      } catch {
-        // Non-fatal background sync
-      }
-    };
-
-    void syncCloudProfile();
-    return () => {
-      isMounted = false;
-    };
-  }, [walletStatus.capabilities.isConnected, walletStatus.address]);
+  /*
+   * Profile sync now goes through useProfile/profile-service rather than an
+   * ApiClient built inline here. The old inline client passed neither a
+   * session token nor the wallet address, so this sync silently failed on
+   * every route — the sidebar only ever showed a username after the user
+   * visited /profile, which was the one place that built an authenticated
+   * client. Sharing one store also means a rename on /profile repaints the
+   * sidebar immediately instead of on next reload.
+   */
+  const { needsOnboarding: profileNeedsOnboarding, refresh: refreshProfile } = useProfile();
 
   const handleNavigate = useCallback(
     (nextRoute: AppRoute) => {
@@ -260,6 +244,13 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <CommandPalette commands={commands} />
       <NotificationCenter />
 
+      {/* A wallet with no profile has to choose a username and confirm it is
+          18+ before using the app; the app must not pick either for them. */}
+      <ProfileOnboardingDialog
+        open={profileNeedsOnboarding}
+        onCompleted={() => void refreshProfile()}
+      />
+
       <a
         href={`#${MAIN_CONTENT_ID}`}
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:font-bold focus:text-primary-foreground"
@@ -278,37 +269,54 @@ const AppShellContent: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <AppSidebar currentRoute={route} onNavigate={handleNavigate} />
 
       <SidebarInset>
+        {/*
+          Header chrome sits one step up the surface ramp (bg-chrome), not on
+          --background: painted the page's own colour it read as an invisible
+          strip with a hairline rather than as a bar. The old left cluster —
+          trigger │ "PLAYER WORKSPACE" │ breadcrumbs — spent its best space on
+          a label that told the user nothing; the trigger and breadcrumbs
+          carry it alone now.
+        */}
         <header
-          className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-4 border-b border-border bg-background/95 px-3 shadow-sm backdrop-blur-md sm:px-4"
+          className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-4 border-b border-border/60 bg-chrome px-3 backdrop-blur-xl sm:px-4"
           role="banner"
         >
-          <div className="flex min-w-0 items-center gap-3">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-5" />
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-bold tracking-tight">StellarCade</p>
-              <p className="truncate text-[10px] font-semibold tracking-[0.12em] text-primary uppercase">Player workspace</p>
-            </div>
-            <Separator orientation="vertical" className="hidden h-5 sm:block" />
+          <div className="flex min-w-0 items-center gap-2">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+            <Separator orientation="vertical" className="h-4 opacity-60" />
             <Breadcrumbs />
           </div>
+
           <div className="hidden min-w-0 flex-1 justify-center lg:flex">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => commandStore.dispatch({ type: "COMMAND_PALETTE_OPEN" })}
-              className="w-full max-w-sm justify-start gap-2 rounded-md text-xs text-muted-foreground"
+              className="w-full max-w-md justify-start gap-2 rounded-full border border-border/60 bg-background/40 text-xs font-normal text-muted-foreground hover:border-primary/40 hover:bg-background/60"
               aria-label="Open command palette (Control or Command K)"
             >
-              <Search className="size-3.5 text-primary" />
+              <Search className="size-3.5" />
               <span className="flex-1 text-left">Search actions, routes, and tools…</span>
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted-foreground">
-                Ctrl/⌘ K
+              <kbd className="rounded border border-border bg-foreground/5 px-1.5 py-0.5 font-mono text-[10px] font-semibold">
+                ⌘K
               </kbd>
             </Button>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Small screens lose the centred palette bar, so the shortcut
+                needs its own affordance rather than vanishing entirely. */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-foreground lg:hidden"
+              onClick={() => commandStore.dispatch({ type: "COMMAND_PALETTE_OPEN" })}
+              aria-label="Open command palette"
+            >
+              <Search />
+            </Button>
             <HeaderWalletControl />
           </div>
         </header>

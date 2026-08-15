@@ -1,3 +1,4 @@
+import type { UserProfile } from "./api-client";
 import type { WalletSessionMeta } from "./wallet-session";
 
 // Auth slice
@@ -36,11 +37,14 @@ export interface SavedFilterPreset {
 }
 
 // Complete global state
-export interface UserProfileState {
-  address: string;
-  username?: string;
-  createdAt: string;
-}
+/**
+ * The profile slice holds the same record the API returns. This was
+ * previously a narrower re-declaration (address/username/createdAt only),
+ * which silently dropped fields the store was handed — including
+ * `ageConfirmedAt`, so a profile round-tripped through the store looked
+ * un-onboarded and re-triggered the setup dialog.
+ */
+export type UserProfileState = UserProfile;
 
 export interface CommandPaletteState {
   isOpen: boolean;

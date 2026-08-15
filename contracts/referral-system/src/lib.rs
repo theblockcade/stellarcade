@@ -188,11 +188,7 @@ fn calculate_reward(amount: i128, bps: u32) -> Result<i128, Error> {
         .ok_or(Error::Overflow)
 }
 
-fn preview_reward(
-    env: &Env,
-    user: &Address,
-    amount: i128,
-) -> Result<ReferralRewardPreview, Error> {
+fn preview_reward(env: &Env, user: &Address, amount: i128) -> Result<ReferralRewardPreview, Error> {
     let bps = get_reward_bps(env)?;
     let minimum_amount = 1;
     let no_cap = 0;
@@ -406,7 +402,10 @@ impl ReferralSystem {
         }
 
         // Lookup user's referrer
-        let referrer: Address = preview.referrer.clone().ok_or(Error::ReferrerNotRegistered)?;
+        let referrer: Address = preview
+            .referrer
+            .clone()
+            .ok_or(Error::ReferrerNotRegistered)?;
         bump_referred_by(&env, &user);
 
         // Calculate reward
@@ -965,7 +964,7 @@ mod test {
         assert_eq!(preview.referee_reward, 0);
         assert_eq!(preview.reward_bps, 500);
         assert_eq!(preview.reward_cap, 0);
-        assert_eq!(preview.cap_applied, false);
+        assert!(!preview.cap_applied);
 
         let state = client.referral_state(&referrer);
         assert_eq!(state.pending_reward, 0);
@@ -1003,7 +1002,7 @@ mod test {
         let preview = client.preview_referral_reward(&user, &25_000);
         assert!(preview.qualifies);
         assert_eq!(preview.reward_cap, 0);
-        assert_eq!(preview.cap_applied, false);
+        assert!(!preview.cap_applied);
         assert_eq!(preview.referrer_reward, 1_250);
     }
 }

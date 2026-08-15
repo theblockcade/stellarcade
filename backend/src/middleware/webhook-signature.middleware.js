@@ -9,7 +9,8 @@ const seenSignatures = new Map();
 
 const getToleranceMs = () => {
   const configured = Number(process.env.WEBHOOK_SIGNATURE_TOLERANCE_SEC);
-  const seconds = Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_TOLERANCE_SECONDS;
+  const seconds =
+    Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_TOLERANCE_SECONDS;
   return seconds * 1000;
 };
 

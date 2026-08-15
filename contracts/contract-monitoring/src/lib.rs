@@ -1,7 +1,9 @@
 #![no_std]
 #![allow(unexpected_cfgs)]
 
-use soroban_sdk::{contract, contracterror, contractevent, contractimpl, contracttype, Address, Env};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env,
+};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 const DEFAULT_FAILED_SETTLEMENT_ALERT_THRESHOLD: u64 = 3;
@@ -120,12 +122,21 @@ impl ContractMonitoring {
 
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Paused, &false);
-        env.storage().instance().set(&DataKey::Metrics, &Metrics::default());
-        env.storage().instance().set(&DataKey::Thresholds, &AlertThresholds::default());
+        env.storage()
+            .instance()
+            .set(&DataKey::Metrics, &Metrics::default());
+        env.storage()
+            .instance()
+            .set(&DataKey::Thresholds, &AlertThresholds::default());
         Ok(())
     }
 
-    pub fn ingest_event(env: Env, admin: Address, event_id: u64, kind: EventKind) -> Result<Metrics, Error> {
+    pub fn ingest_event(
+        env: Env,
+        admin: Address,
+        event_id: u64,
+        kind: EventKind,
+    ) -> Result<Metrics, Error> {
         require_admin(&env, &admin)?;
 
         let seen_key = DataKey::SeenEvent(event_id);
@@ -133,23 +144,44 @@ impl ContractMonitoring {
             return Err(Error::DuplicateEvent);
         }
 
-        let mut metrics: Metrics = env.storage().instance().get(&DataKey::Metrics).unwrap_or_default();
+        let mut metrics: Metrics = env
+            .storage()
+            .instance()
+            .get(&DataKey::Metrics)
+            .unwrap_or_default();
         apply_event(&mut metrics, &kind);
 
         env.storage().instance().set(&DataKey::Metrics, &metrics);
         env.storage().persistent().set(&seen_key, &true);
-        env.storage().persistent().extend_ttl(&seen_key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &seen_key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         // Record timed event for sliding window
         let now = env.ledger().timestamp();
-        let mut recent_events: soroban_sdk::Vec<TimedEvent> = env.storage().instance().get(&DataKey::RecentEvents).unwrap_or_else(|| soroban_sdk::Vec::new(&env));
-        recent_events.push_back(TimedEvent { timestamp: now, kind: kind.clone() });
+        let mut recent_events: soroban_sdk::Vec<TimedEvent> = env
+            .storage()
+            .instance()
+            .get(&DataKey::RecentEvents)
+            .unwrap_or_else(|| soroban_sdk::Vec::new(&env));
+        recent_events.push_back(TimedEvent {
+            timestamp: now,
+            kind: kind.clone(),
+        });
         if recent_events.len() > MAX_RECENT_EVENTS {
             recent_events.pop_front();
         }
-        env.storage().instance().set(&DataKey::RecentEvents, &recent_events);
+        env.storage()
+            .instance()
+            .set(&DataKey::RecentEvents, &recent_events);
 
-        EventIngested { event_id, kind: kind.clone() }.publish(&env);
+        EventIngested {
+            event_id,
+            kind: kind.clone(),
+        }
+        .publish(&env);
 
         let thresholds = get_thresholds(&env);
         let health = evaluate_health(&metrics, is_paused(&env), &thresholds);
@@ -180,7 +212,9 @@ impl ContractMonitoring {
         require_admin(&env, &admin)?;
 
         validate_thresholds(&thresholds)?;
-        env.storage().instance().set(&DataKey::Thresholds, &thresholds);
+        env.storage()
+            .instance()
+            .set(&DataKey::Thresholds, &thresholds);
         Ok(())
     }
 
@@ -189,12 +223,19 @@ impl ContractMonitoring {
     }
 
     pub fn get_metrics(env: Env) -> Metrics {
-        env.storage().instance().get(&DataKey::Metrics).unwrap_or_default()
+        env.storage()
+            .instance()
+            .get(&DataKey::Metrics)
+            .unwrap_or_default()
     }
 
     pub fn get_health(env: Env) -> HealthSnapshot {
         let thresholds = get_thresholds(&env);
-        evaluate_health(&Self::get_metrics(env.clone()), is_paused(&env), &thresholds)
+        evaluate_health(
+            &Self::get_metrics(env.clone()),
+            is_paused(&env),
+            &thresholds,
+        )
     }
 
     pub fn get_snapshot(env: Env) -> MonitoringSnapshot {
@@ -217,7 +258,11 @@ impl ContractMonitoring {
         }
         let now = env.ledger().timestamp();
         let start_time = now.saturating_sub(window_seconds);
-        let recent_events: soroban_sdk::Vec<TimedEvent> = env.storage().instance().get(&DataKey::RecentEvents).unwrap_or_else(|| soroban_sdk::Vec::new(&env));
+        let recent_events: soroban_sdk::Vec<TimedEvent> = env
+            .storage()
+            .instance()
+            .get(&DataKey::RecentEvents)
+            .unwrap_or_else(|| soroban_sdk::Vec::new(&env));
 
         let mut window_metrics = Metrics::default();
         for event in recent_events.iter() {
@@ -242,7 +287,10 @@ fn require_admin(env: &Env, admin: &Address) -> Result<(), Error> {
 }
 
 fn is_paused(env: &Env) -> bool {
-    env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+    env.storage()
+        .instance()
+        .get(&DataKey::Paused)
+        .unwrap_or(false)
 }
 
 fn get_thresholds(env: &Env) -> AlertThresholds {
@@ -268,15 +316,23 @@ fn validate_thresholds(thresholds: &AlertThresholds) -> Result<(), Error> {
 fn apply_event(metrics: &mut Metrics, kind: &EventKind) {
     metrics.total_events = metrics.total_events.saturating_add(1);
     match kind {
-        EventKind::SettlementSuccess => metrics.settlement_success = metrics.settlement_success.saturating_add(1),
-        EventKind::SettlementFailed => metrics.settlement_failed = metrics.settlement_failed.saturating_add(1),
+        EventKind::SettlementSuccess => {
+            metrics.settlement_success = metrics.settlement_success.saturating_add(1)
+        }
+        EventKind::SettlementFailed => {
+            metrics.settlement_failed = metrics.settlement_failed.saturating_add(1)
+        }
         EventKind::ContractError => metrics.error_events = metrics.error_events.saturating_add(1),
         EventKind::Paused => metrics.paused_events = metrics.paused_events.saturating_add(1),
         EventKind::Resumed => {}
     }
 }
 
-fn evaluate_health(metrics: &Metrics, paused: bool, thresholds: &AlertThresholds) -> HealthSnapshot {
+fn evaluate_health(
+    metrics: &Metrics,
+    paused: bool,
+    thresholds: &AlertThresholds,
+) -> HealthSnapshot {
     let high_error_rate = is_high_error_rate(
         metrics.error_events,
         metrics.total_events,
@@ -376,12 +432,12 @@ mod tests {
         let client = ContractMonitoringClient::new(&env, &contract_id);
 
         let snap = client.get_snapshot();
-        assert_eq!(snap.initialized, false);
+        assert!(!snap.initialized);
         assert_eq!(snap.metrics, Metrics::default());
         assert_eq!(snap.thresholds, AlertThresholds::default());
-        assert_eq!(snap.health.paused, false);
-        assert_eq!(snap.health.high_error_rate, false);
-        assert_eq!(snap.health.failed_settlement_alert, false);
+        assert!(!snap.health.paused);
+        assert!(!snap.health.high_error_rate);
+        assert!(!snap.health.failed_settlement_alert);
     }
 
     #[test]
@@ -405,7 +461,7 @@ mod tests {
         client.ingest_event(&admin, &1, &EventKind::SettlementFailed);
         let snap = client.get_snapshot();
         assert_eq!(snap.thresholds, new_thresholds);
-        assert_eq!(snap.health.failed_settlement_alert, true);
+        assert!(snap.health.failed_settlement_alert);
     }
 
     #[test]

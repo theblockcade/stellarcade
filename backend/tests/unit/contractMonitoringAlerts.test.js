@@ -12,7 +12,7 @@ describe('contractMonitoringAlerts', () => {
   it('builds alert payload', () => {
     const alerts = evaluateMonitoringAlerts(
       { totalEvents: 20, settlementFailed: 3, errorEvents: 5 },
-      true,
+      true
     );
 
     expect(alerts.paused).toBe(true);

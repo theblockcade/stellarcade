@@ -39,10 +39,7 @@ const AuditLog = {
    */
   async findByActor(actor, limit = 50) {
     try {
-      return await db('audit_logs')
-        .where({ actor })
-        .orderBy('created_at', 'desc')
-        .limit(limit);
+      return await db('audit_logs').where({ actor }).orderBy('created_at', 'desc').limit(limit);
     } catch (error) {
       logger.error('Error in AuditLog.findByActor:', error);
       throw error;
@@ -56,10 +53,7 @@ const AuditLog = {
    */
   async findByAction(action, limit = 50) {
     try {
-      return await db('audit_logs')
-        .where({ action })
-        .orderBy('created_at', 'desc')
-        .limit(limit);
+      return await db('audit_logs').where({ action }).orderBy('created_at', 'desc').limit(limit);
     } catch (error) {
       logger.error('Error in AuditLog.findByAction:', error);
       throw error;

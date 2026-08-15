@@ -172,11 +172,7 @@ impl LobbyGates {
         match get_gate(&env, id) {
             Some(g) => {
                 let is_released = now >= g.release_time;
-                let seconds_until_release = if is_released {
-                    0
-                } else {
-                    g.release_time - now
-                };
+                let seconds_until_release = if is_released { 0 } else { g.release_time - now };
                 ReleaseDelay {
                     gate_exists: true,
                     release_time: g.release_time,

@@ -3,9 +3,9 @@
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 mod storage;
-mod types;
 #[cfg(test)]
 mod test;
+mod types;
 
 pub use types::{ActiveSeasonSnapshot, SeasonData, SeasonPerformanceSummary, TierCutoffAccessor};
 

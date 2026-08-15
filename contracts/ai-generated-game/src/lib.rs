@@ -149,8 +149,12 @@ impl AIGeneratedGameContract {
         }
 
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::ModelOracle, &model_oracle);
-        env.storage().instance().set(&DataKey::RewardContract, &reward_contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::ModelOracle, &model_oracle);
+        env.storage()
+            .instance()
+            .set(&DataKey::RewardContract, &reward_contract);
 
         ContractInitialized {
             admin: admin.clone(),
@@ -169,8 +173,11 @@ impl AIGeneratedGameContract {
         config_hash: BytesN<32>,
     ) -> Result<(), Error> {
         admin.require_auth();
-        let stored_admin: Address =
-            env.storage().instance().get(&DataKey::Admin).ok_or(Error::NotInitialized)?;
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
 
         if admin != stored_admin {
             return Err(Error::Unauthorized);
@@ -188,7 +195,11 @@ impl AIGeneratedGameContract {
         };
 
         env.storage().persistent().set(&game_key, &state);
-        GameCreated { game_id, config_hash }.publish(&env);
+        GameCreated {
+            game_id,
+            config_hash,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -202,8 +213,11 @@ impl AIGeneratedGameContract {
         player.require_auth();
 
         let game_key = DataKey::Game(game_id);
-        let mut state: AIGameState =
-            env.storage().persistent().get(&game_key).ok_or(Error::GameNotFound)?;
+        let mut state: AIGameState = env
+            .storage()
+            .persistent()
+            .get(&game_key)
+            .ok_or(Error::GameNotFound)?;
 
         if state.status == GameStatus::Created {
             state.status = GameStatus::InProgress;
@@ -241,8 +255,11 @@ impl AIGeneratedGameContract {
         }
 
         let game_key = DataKey::Game(game_id);
-        let mut state: AIGameState =
-            env.storage().persistent().get(&game_key).ok_or(Error::GameNotFound)?;
+        let mut state: AIGameState = env
+            .storage()
+            .persistent()
+            .get(&game_key)
+            .ok_or(Error::GameNotFound)?;
 
         if state.status == GameStatus::Resolved {
             return Err(Error::InvalidStatus);
@@ -254,7 +271,9 @@ impl AIGeneratedGameContract {
         env.storage().persistent().set(&game_key, &state);
 
         if let Some(w) = winner.clone() {
-            env.storage().persistent().set(&DataKey::Reward(game_id, w.clone()), &true);
+            env.storage()
+                .persistent()
+                .set(&DataKey::Reward(game_id, w.clone()), &true);
         }
 
         GameResolved {
@@ -274,7 +293,11 @@ impl AIGeneratedGameContract {
     /// so callers never need to handle a hard error for a simple lookup.
     pub fn get_session_snapshot(env: Env, game_id: u64) -> SessionSnapshot {
         let game_key = DataKey::Game(game_id);
-        match env.storage().persistent().get::<DataKey, AIGameState>(&game_key) {
+        match env
+            .storage()
+            .persistent()
+            .get::<DataKey, AIGameState>(&game_key)
+        {
             None => SessionSnapshot {
                 game_id,
                 status: SnapshotStatus::Missing,
@@ -304,8 +327,11 @@ impl AIGeneratedGameContract {
         player.require_auth();
 
         let game_key = DataKey::Game(game_id);
-        let state: AIGameState =
-            env.storage().persistent().get(&game_key).ok_or(Error::GameNotFound)?;
+        let state: AIGameState = env
+            .storage()
+            .persistent()
+            .get(&game_key)
+            .ok_or(Error::GameNotFound)?;
 
         if state.status != GameStatus::Resolved {
             return Err(Error::InvalidStatus);

@@ -12,6 +12,6 @@ test.describe("Cleanup (/cleanup)", () => {
     await scanBtn.click();
 
     // Verify scan results appear
-    await expect(page.getByText(/Base Account Reserve/i)).toBeVisible();
+    await expect(page.getByText(/Base.*Account Reserve/i).first()).toBeVisible();
   });
 });

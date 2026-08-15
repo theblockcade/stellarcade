@@ -1,5 +1,4 @@
 import React from "react";
-import "./LoadingSkeletonSet.css";
 import {
   classNames,
   parseDimension,
@@ -12,6 +11,21 @@ import {
   skRadiusLg,
   type SkeletonPresetType,
 } from "./skeleton.tokens";
+
+/*
+ * Styling moved from LoadingSkeletonSet.css to Tailwind utilities; the
+ * `stellarcade-skeleton*` class names are kept as query/test hooks only. The
+ * shimmer keyframes now live in app/globals.css as the theme animation
+ * `animate-skeleton-shimmer`.
+ */
+
+/** The shimmering bar itself — a moving gradient over a 200%-wide backdrop. */
+const SKELETON_SURFACE =
+  "border border-white/5 bg-[linear-gradient(90deg,rgba(255,255,255,0.04)_0%,rgba(0,255,204,0.08)_50%,rgba(255,255,255,0.04)_100%)] bg-[length:200%_100%] " +
+  "animate-skeleton-shimmer motion-reduce:animate-none motion-reduce:opacity-60";
+
+const SKELETON_CARD =
+  "stellarcade-skeleton-card flex flex-col gap-4 rounded-[0.875rem] border border-white/8 bg-card p-6 backdrop-blur-md";
 
 export interface SkeletonBaseProps extends React.HTMLAttributes<HTMLDivElement> {
   width?: string | number;
@@ -28,10 +42,10 @@ export interface SkeletonBaseProps extends React.HTMLAttributes<HTMLDivElement> 
 function radiusTokenClass(radius?: string | number): string | undefined {
   if (radius === undefined) return undefined;
   const str = typeof radius === "number" ? `${radius}px` : radius;
-  if (str === "50%") return "stellarcade-skeleton--radius-circle";
-  if (str === skRadiusSm) return "stellarcade-skeleton--radius-sm";
-  if (str === skRadiusMd) return "stellarcade-skeleton--radius-md";
-  if (str === skRadiusLg) return "stellarcade-skeleton--radius-lg";
+  if (str === "50%") return "stellarcade-skeleton--radius-circle rounded-full";
+  if (str === skRadiusSm) return "stellarcade-skeleton--radius-sm rounded-md";
+  if (str === skRadiusMd) return "stellarcade-skeleton--radius-md rounded-[0.625rem]";
+  if (str === skRadiusLg) return "stellarcade-skeleton--radius-lg rounded-[0.875rem]";
   return undefined;
 }
 
@@ -59,8 +73,11 @@ export function SkeletonBase({
       className={classNames(
         "stellarcade-skeleton",
         "stellarcade-skeleton-base",
-        tokenCls,
-        reducedMotion ? "stellarcade-skeleton--no-motion" : undefined,
+        SKELETON_SURFACE,
+        tokenCls ?? "rounded-md",
+        reducedMotion
+          ? "stellarcade-skeleton--no-motion animate-none opacity-60"
+          : undefined,
         className,
       )}
       style={{
@@ -88,7 +105,7 @@ export function SkeletonCard({
 }: SkeletonCardProps) {
   return (
     <div
-      className={classNames("stellarcade-skeleton-card", className)}
+      className={classNames(SKELETON_CARD, className)}
       data-testid="skeleton-card"
       {...rest}
     >
@@ -117,19 +134,12 @@ export function SkeletonRow({
 }: SkeletonRowProps) {
   return (
     <div
-      className={classNames("stellarcade-skeleton-row", className)}
+      className={classNames("stellarcade-skeleton-row flex items-center gap-4 rounded-[0.625rem] border border-white/8 bg-white/2 px-4 py-3", className)}
       data-testid="skeleton-row"
       {...rest}
     >
       <SkeletonBase width={avatarSize} height={avatarSize} circle />
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.5rem",
-        }}
-      >
+      <div className="flex flex-1 flex-col gap-2">
         <SkeletonBase height="16px" width="60%" />
         <SkeletonBase height="12px" width="40%" />
       </div>
@@ -151,7 +161,7 @@ export function SkeletonList({
 }: SkeletonListProps) {
   return (
     <div
-      className={classNames("stellarcade-skeleton-list", className)}
+      className={classNames("stellarcade-skeleton-list flex flex-col gap-2", className)}
       data-testid="skeleton-list"
       {...rest}
     >
@@ -196,7 +206,12 @@ export function SkeletonPreset({
   return (
     <div
       className={classNames(
-        "stellarcade-skeleton-preset",
+        "stellarcade-skeleton-preset flex flex-col",
+        type === "detail"
+          ? `${SKELETON_CARD} gap-6`
+          : type === "card"
+            ? SKELETON_CARD
+            : "gap-2",
         `stellarcade-skeleton-preset--${type}`,
         className,
       )}
@@ -244,7 +259,7 @@ export function LoadingState({
   if (error) {
     if (errorFallback) return <>{errorFallback(error)}</>;
     return (
-      <div className="stellarcade-error-state" data-testid="skeleton-error">
+      <div className="stellarcade-error-state rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-rose-300" data-testid="skeleton-error">
         Failed to load data: {error.message}
       </div>
     );
@@ -259,7 +274,7 @@ export function LoadingState({
   if (empty) {
     if (emptyFallback) return <>{emptyFallback}</>;
     return (
-      <div className="stellarcade-empty-state" data-testid="skeleton-empty">
+      <div className="stellarcade-empty-state rounded-xl border border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground" data-testid="skeleton-empty">
         No data available
       </div>
     );
@@ -294,7 +309,7 @@ function renderSurface(surface: PageSkeletonSurface): React.ReactNode {
   if (surface.status === "error") {
     return (
       surface.errorFallback ?? (
-        <div className="stellarcade-error-state" role="alert">
+        <div className="stellarcade-error-state rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-rose-300" role="alert">
           {surface.label} could not be loaded.
         </div>
       )
@@ -304,7 +319,7 @@ function renderSurface(surface: PageSkeletonSurface): React.ReactNode {
   if (surface.status === "empty") {
     return (
       surface.emptyFallback ?? (
-        <div className="stellarcade-empty-state">
+        <div className="stellarcade-empty-state rounded-xl border border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground">
           No {surface.label.toLowerCase()} available
         </div>
       )
@@ -328,7 +343,7 @@ export function PageSkeletonOrchestrator({
   return (
     <div
       className={classNames(
-        "stellarcade-page-skeleton-orchestrator",
+        "stellarcade-page-skeleton-orchestrator flex flex-col gap-4",
         className,
       )}
       aria-busy={isLoading}
@@ -337,7 +352,7 @@ export function PageSkeletonOrchestrator({
       {...rest}
     >
       <span
-        className="stellarcade-page-skeleton-orchestrator__status"
+        className="stellarcade-page-skeleton-orchestrator__status sr-only"
         role="status"
         aria-live="polite"
       >

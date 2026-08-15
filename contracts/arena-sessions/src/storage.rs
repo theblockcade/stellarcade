@@ -6,11 +6,16 @@ use crate::{
 };
 
 pub fn get_next_session_id(env: &Env) -> u64 {
-    env.storage().instance().get(&DataKey::NextSessionId).unwrap_or(0)
+    env.storage()
+        .instance()
+        .get(&DataKey::NextSessionId)
+        .unwrap_or(0)
 }
 
 pub fn set_next_session_id(env: &Env, next_session_id: u64) {
-    env.storage().instance().set(&DataKey::NextSessionId, &next_session_id);
+    env.storage()
+        .instance()
+        .set(&DataKey::NextSessionId, &next_session_id);
 }
 
 pub fn get_session(env: &Env, session_id: u64) -> Option<ArenaSession> {

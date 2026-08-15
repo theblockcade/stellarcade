@@ -84,7 +84,7 @@ const deposit = async (req, res, next) => {
     const newBalance = parseFloat(user.balance || 0) + numAmount;
     await db('users').where({ id: user.id }).update({
       balance: newBalance,
-      updated_at: db.fn.now()
+      updated_at: db.fn.now(),
     });
 
     res.status(200).json({
@@ -92,7 +92,7 @@ const deposit = async (req, res, next) => {
       depositAddress: vaultAddress,
       amount: numAmount,
       balance: newBalance,
-      transaction: tx
+      transaction: tx,
     });
 
     audit.log({
@@ -153,7 +153,7 @@ const withdraw = async (req, res, next) => {
     const newBalance = parseFloat(user.balance || 0) - numAmount;
     await db('users').where({ id: user.id }).update({
       balance: newBalance,
-      updated_at: db.fn.now()
+      updated_at: db.fn.now(),
     });
 
     res.status(200).json({
@@ -162,7 +162,7 @@ const withdraw = async (req, res, next) => {
       amount: numAmount,
       destination,
       balance: newBalance,
-      transaction: tx
+      transaction: tx,
     });
 
     audit.log({

@@ -459,7 +459,9 @@ fn source_config_snapshot_returns_configured_sources() {
     let sources = vec![&env, oracle1.clone(), oracle2.clone()];
     client.init(&admin, &sources);
 
-    let snapshot = client.source_config_snapshot().expect("snapshot present after init");
+    let snapshot = client
+        .source_config_snapshot()
+        .expect("snapshot present after init");
     assert_eq!(snapshot.source_count, 2);
     assert!(snapshot.sources.contains(&oracle1));
     assert!(snapshot.sources.contains(&oracle2));
@@ -501,7 +503,10 @@ fn update_policy_summary_cadence_is_on_request() {
     let (client, _, _, _, _) = setup_initialized(&env);
 
     let summary = client.update_policy_summary();
-    assert_eq!(summary.cadence, soroban_sdk::Symbol::new(&env, "on_request"));
+    assert_eq!(
+        summary.cadence,
+        soroban_sdk::Symbol::new(&env, "on_request")
+    );
 }
 
 #[test]

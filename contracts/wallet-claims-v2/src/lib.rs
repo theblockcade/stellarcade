@@ -144,10 +144,7 @@ impl WalletClaimsV2 {
         }
     }
 
-    pub fn cooldown_threshold_accessor(
-        env: Env,
-        wallet: Address,
-    ) -> CooldownThresholdAccessor {
+    pub fn cooldown_threshold_accessor(env: Env, wallet: Address) -> CooldownThresholdAccessor {
         let now = env.ledger().timestamp();
         let configured = env.storage().instance().has(&DataKey::Admin);
         let Some(policy) = storage::get_policy(&env, &wallet) else {

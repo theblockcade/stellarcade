@@ -58,27 +58,25 @@ fn test_already_initialized() {
 #[test]
 fn test_non_admin_cannot_grant_role() {
     let env = Env::default();
-    
+
     let admin = Address::generate(&env);
     let non_admin = Address::generate(&env);
     let user = Address::generate(&env);
-    
+
     let contract_id = env.register(AccessControl, ());
     let client = AccessControlClient::new(&env, &contract_id);
 
     client.init(&admin);
 
-    env.mock_auths(&[
-        soroban_sdk::testutils::MockAuth {
-            address: &non_admin,
-            invoke: &soroban_sdk::testutils::MockAuthInvoke {
-                contract: &contract_id,
-                fn_name: "grant_role",
-                args: vec![&env, OPERATOR.into_val(&env), user.into_val(&env)],
-                sub_invokes: &[],
-            },
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &non_admin,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "grant_role",
+            args: vec![&env, OPERATOR.into_val(&env), user.into_val(&env)],
+            sub_invokes: &[],
         },
-    ]);
+    }]);
 
     let result = client.try_grant_role(&OPERATOR, &user);
     assert!(result.is_err());

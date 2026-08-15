@@ -127,7 +127,7 @@ fn test_is_initialized_returns_false_before_init() {
     let contract_id = env.register(ContractRoleRegistry, ());
     let client = ContractRoleRegistryClient::new(&env, &contract_id);
 
-    assert_eq!(client.is_initialized(), false);
+    assert!(!client.is_initialized());
 }
 
 #[test]
@@ -138,7 +138,7 @@ fn test_is_initialized_returns_true_after_init() {
     let client = ContractRoleRegistryClient::new(&env, &contract_id);
 
     client.init(&admin);
-    assert_eq!(client.is_initialized(), true);
+    assert!(client.is_initialized());
 }
 
 #[test]
@@ -151,7 +151,7 @@ fn test_admin_view_success_path() {
     client.init(&admin);
 
     let view = client.admin_view();
-    assert_eq!(view.initialized, true);
+    assert!(view.initialized);
     assert_eq!(view.admin.unwrap(), admin);
 }
 
@@ -162,7 +162,7 @@ fn test_admin_view_empty_state() {
     let client = ContractRoleRegistryClient::new(&env, &contract_id);
 
     let view = client.admin_view();
-    assert_eq!(view.initialized, false);
+    assert!(!view.initialized);
     assert!(view.admin.is_none());
 }
 
@@ -182,7 +182,7 @@ fn test_role_status_assigned() {
     client.assign_role(&target, &role);
 
     let status = client.role_status(&target, &role);
-    assert_eq!(status.assigned, true);
+    assert!(status.assigned);
     assert_eq!(status.target, target);
     assert_eq!(status.role, role);
 }
@@ -202,7 +202,7 @@ fn test_role_status_not_assigned() {
     client.init(&admin);
 
     let status = client.role_status(&target, &role);
-    assert_eq!(status.assigned, false);
+    assert!(!status.assigned);
 }
 
 #[test]

@@ -23,8 +23,7 @@ fn test_season_carryover_snapshot_success() {
     let (client, admin) = setup(&env);
 
     client.upsert_season(
-        &admin, &1, &5000, &12, &2_000_000, &true,
-        &1_900_000, &true, &25, &1,
+        &admin, &1, &5000, &12, &2_000_000, &true, &1_900_000, &true, &25, &1,
     );
 
     let snap = client.season_carryover_snapshot(&1);
@@ -46,8 +45,7 @@ fn test_season_carryover_snapshot_unlocked() {
     let (client, admin) = setup(&env);
 
     client.upsert_season(
-        &admin, &2, &1200, &5, &1_500_000, &false,
-        &0, &false, &0, &0,
+        &admin, &2, &1200, &5, &1_500_000, &false, &0, &false, &0, &0,
     );
 
     let snap = client.season_carryover_snapshot(&2);
@@ -83,8 +81,7 @@ fn test_roster_lock_season_end() {
     let (client, admin) = setup(&env);
 
     client.upsert_season(
-        &admin, &3, &3000, &8, &1_800_000, &true,
-        &1_750_000, &true, &30, &1,
+        &admin, &3, &3000, &8, &1_800_000, &true, &1_750_000, &true, &30, &1,
     );
 
     let lock = client.roster_lock(&3);
@@ -106,8 +103,7 @@ fn test_roster_lock_admin() {
     let (client, admin) = setup(&env);
 
     client.upsert_season(
-        &admin, &4, &800, &3, &1_200_000, &true,
-        &1_100_000, &true, &10, &2,
+        &admin, &4, &800, &3, &1_200_000, &true, &1_100_000, &true, &10, &2,
     );
 
     let lock = client.roster_lock(&4);
@@ -125,10 +121,7 @@ fn test_roster_lock_not_locked() {
     let env = Env::default();
     let (client, admin) = setup(&env);
 
-    client.upsert_season(
-        &admin, &5, &200, &1, &900_000, &false,
-        &0, &false, &0, &0,
-    );
+    client.upsert_season(&admin, &5, &200, &1, &900_000, &false, &0, &false, &0, &0);
 
     let lock = client.roster_lock(&5);
     assert!(lock.exists);
@@ -165,8 +158,7 @@ fn test_participation_summary_known_season() {
     let (client, admin) = setup(&env);
 
     client.upsert_season(
-        &admin, &10, &4000, &7, &3_000_000, &true,
-        &2_900_000, &true, &20, &1,
+        &admin, &10, &4000, &7, &3_000_000, &true, &2_900_000, &true, &20, &1,
     );
 
     let summary = client.participation_summary(&10);
@@ -207,13 +199,11 @@ fn test_transition_gap_two_known_seasons() {
 
     // from season ends at ledger 2_000_000
     client.upsert_season(
-        &admin, &20, &1000, &5, &2_000_000, &false,
-        &0, &false, &0, &0,
+        &admin, &20, &1000, &5, &2_000_000, &false, &0, &false, &0, &0,
     );
     // to season proxy-start (season_end_ledger) = 1_800_000
     client.upsert_season(
-        &admin, &21, &2000, &6, &1_800_000, &false,
-        &0, &false, &0, &0,
+        &admin, &21, &2000, &6, &1_800_000, &false, &0, &false, &0, &0,
     );
 
     let gap = client.transition_gap(&20, &21);
@@ -234,8 +224,7 @@ fn test_transition_gap_missing_season() {
     let (client, admin) = setup(&env);
 
     client.upsert_season(
-        &admin, &30, &500, &2, &1_500_000, &false,
-        &0, &false, &0, &0,
+        &admin, &30, &500, &2, &1_500_000, &false, &0, &false, &0, &0,
     );
 
     let gap = client.transition_gap(&30, &999);

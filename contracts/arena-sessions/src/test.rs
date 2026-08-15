@@ -13,7 +13,7 @@ fn setup_with_session(env: &Env) -> (ArenaSessionsClient<'_>, Address, u64) {
 fn setup(env: &Env) -> (ArenaSessionsClient<'_>, Address, Address) {
     let admin = Address::generate(env);
     let player = Address::generate(env);
-    let contract_id = env.register_contract(None, ArenaSessions);
+    let contract_id = env.register(ArenaSessions, ());
     let client = ArenaSessionsClient::new(env, &contract_id);
     client.init(&admin);
     (client, admin, player)
@@ -37,7 +37,10 @@ fn test_session_status_and_completion_happy_path() {
 
     let summary_before_completion = client.player_summary(&player);
     assert!(summary_before_completion.exists);
-    assert_eq!(summary_before_completion.active_session_id, Some(session_id));
+    assert_eq!(
+        summary_before_completion.active_session_id,
+        Some(session_id)
+    );
     assert_eq!(summary_before_completion.total_started, 1);
     assert_eq!(summary_before_completion.completed_count, 0);
     assert_eq!(summary_before_completion.expired_count, 0);

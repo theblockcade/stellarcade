@@ -8,11 +8,15 @@
    etc names the rest of the design vocabulary already uses, source the
    values from @stellarcade/tokens instead of hardcoding them twice. */
 :root {
-  /* --font-outfit is injected by next/font (see app/layout.tsx) — using it
-     here (rather than the literal "Outfit" family name) is what makes the
-     self-hosted build actually apply instead of silently falling back to
-     the sans-serif system font. */
-  --font-family: var(--font-outfit), var(--sc-font-base);
+  /* --font-space-grotesk is injected by next/font (see app/layout.tsx) —
+     using it here (rather than the literal "Space Grotesk" family name) is
+     what makes the self-hosted build actually apply instead of silently
+     falling back to the sans-serif system font. */
+  --font-family: var(--font-space-grotesk), var(--sc-font-base);
+  /* Display face for headings — chosen for cyberpunk-HUD character that
+     still holds up at the small sizes headings actually render at (unlike
+     --font-orbitron, which is reserved for the wordmark). */
+  --font-display: var(--font-chakra-petch), var(--sc-font-base);
   /* Same fix for the mono stack: the token names "JetBrains Mono" first but
      can't load it on its own, so every var(--sc-font-mono) consumer (hex
      digests on /verify, contract addresses, code snippets) fell back to
@@ -74,6 +78,13 @@
      background, same idea as --card) rather than the generic light-grey
      shadcn defaults — sourced from the same @stellarcade/tokens palette,
      not a third competing set of colors. */
+  /* Sticky header chrome. Deliberately NOT --background: a header painted
+     the same colour as the page it floats over reads as an invisible strip
+     with a hairline, not as chrome. One step up the surface ramp, and
+     translucent so content dimly shows through as it scrolls under. */
+  --chrome: var(--sc-bg-chrome);
+  --chrome-foreground: var(--sc-text-main);
+
   --sidebar: var(--sc-bg-surface);
   --sidebar-foreground: var(--sc-text-main);
   --sidebar-primary: var(--sc-accent);
@@ -82,6 +93,25 @@
   --sidebar-accent-foreground: var(--sc-text-main);
   --sidebar-border: var(--sc-border-glass);
   --sidebar-ring: var(--sc-accent);
+}
+
+/*
+ * Skeleton shimmer, previously LoadingSkeletonSet.css's @keyframes +
+ * .stellarcade-skeleton rule. Registered as a theme animation so components
+ * reach for `animate-skeleton-shimmer` like any other Tailwind utility.
+ * Keyframes must live in a plain `@theme` block, not `@theme inline`.
+ */
+@theme {
+  --animate-skeleton-shimmer: stellarcade-skeleton-shimmer 2s ease-in-out infinite;
+
+  @keyframes stellarcade-skeleton-shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
 }
 
 @theme inline {
@@ -101,6 +131,8 @@
   --color-accent-foreground: var(--shadcn-accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-chrome: var(--chrome);
+  --color-chrome-foreground: var(--chrome-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -150,6 +182,15 @@
 
   a {
     color: inherit;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
   }
 
   .skip-link {

@@ -1,8 +1,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address,
-    Env, Symbol, Vec, Map,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env, Map, Symbol,
+    Vec,
 };
 
 use stellarcade_shared::calculate_fee;
@@ -350,7 +350,7 @@ impl DynamicFeePolicy {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, symbol_short, Address, Env, vec, Map};
+    use soroban_sdk::{symbol_short, testutils::Address as _, vec, Address, Env, Map};
 
     struct Setup<'a> {
         _env: Env,
@@ -381,12 +381,15 @@ mod test {
     fn test_compute_base_fee() {
         let s = setup();
         let game = symbol_short!("game1");
-        
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 500, // 5%
-            tiers: None,
-            enabled: true,
-        });
+
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 500, // 5%
+                tiers: None,
+                enabled: true,
+            },
+        );
 
         let context = FeeContext {
             multiplier_bps: 10_000, // 1x
@@ -401,17 +404,27 @@ mod test {
     fn test_compute_tiered_fee() {
         let s = setup();
         let game = symbol_short!("game1");
-        
-        let tiers = vec![&s._env, 
-            FeeTier { threshold: 1000, fee_bps: 300 }, // 3% for >= 1000
-            FeeTier { threshold: 5000, fee_bps: 100 }, // 1% for >= 5000
+
+        let tiers = vec![
+            &s._env,
+            FeeTier {
+                threshold: 1000,
+                fee_bps: 300,
+            }, // 3% for >= 1000
+            FeeTier {
+                threshold: 5000,
+                fee_bps: 100,
+            }, // 1% for >= 5000
         ];
 
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 500, // 5% base
-            tiers: Some(tiers),
-            enabled: true,
-        });
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 500, // 5% base
+                tiers: Some(tiers),
+                enabled: true,
+            },
+        );
 
         let context = FeeContext {
             multiplier_bps: 10_000, // 1x
@@ -432,12 +445,15 @@ mod test {
     fn test_compute_context_multiplier() {
         let s = setup();
         let game = symbol_short!("game1");
-        
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 1000, // 10%
-            tiers: None,
-            enabled: true,
-        });
+
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 1000, // 10%
+                tiers: None,
+                enabled: true,
+            },
+        );
 
         // Promo: half fees
         let context = FeeContext {
@@ -454,11 +470,14 @@ mod test {
         let s = setup();
         let game = symbol_short!("game1");
 
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 500,
-            tiers: None,
-            enabled: false,
-        });
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 500,
+                tiers: None,
+                enabled: false,
+            },
+        );
 
         let context = FeeContext {
             multiplier_bps: 10_000,
@@ -476,11 +495,14 @@ mod test {
         let s = setup();
         let game = symbol_short!("game1");
 
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 500, // 5%
-            tiers: None,
-            enabled: true,
-        });
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 500, // 5%
+                tiers: None,
+                enabled: true,
+            },
+        );
 
         // No context → default 1× multiplier
         let preview = s.client.preview_fee(&game, &1000, &None);
@@ -496,15 +518,25 @@ mod test {
         let s = setup();
         let game = symbol_short!("game2");
 
-        let tiers = vec![&s._env,
-            FeeTier { threshold: 1000, fee_bps: 300 },
-            FeeTier { threshold: 5000, fee_bps: 100 },
+        let tiers = vec![
+            &s._env,
+            FeeTier {
+                threshold: 1000,
+                fee_bps: 300,
+            },
+            FeeTier {
+                threshold: 5000,
+                fee_bps: 100,
+            },
         ];
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 500,
-            tiers: Some(tiers),
-            enabled: true,
-        });
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 500,
+                tiers: Some(tiers),
+                enabled: true,
+            },
+        );
 
         // Below threshold: base fee applies
         let preview_low = s.client.preview_fee(&game, &500, &None);
@@ -523,11 +555,14 @@ mod test {
         let s = setup();
         let game = symbol_short!("game3");
 
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 1000, // 10%
-            tiers: None,
-            enabled: true,
-        });
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 1000, // 10%
+                tiers: None,
+                enabled: true,
+            },
+        );
 
         let ctx = Some(FeeContext {
             multiplier_bps: 5000, // 0.5×
@@ -544,11 +579,14 @@ mod test {
         let s = setup();
         let game = symbol_short!("game4");
 
-        s.client.set_fee_rule(&game, &FeeRuleConfig {
-            base_fee_bps: 500,
-            tiers: None,
-            enabled: false,
-        });
+        s.client.set_fee_rule(
+            &game,
+            &FeeRuleConfig {
+                base_fee_bps: 500,
+                tiers: None,
+                enabled: false,
+            },
+        );
 
         // preview_fee succeeds even when the rule is disabled
         let preview = s.client.preview_fee(&game, &1000, &None);

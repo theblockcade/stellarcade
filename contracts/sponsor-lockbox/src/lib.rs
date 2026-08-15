@@ -199,21 +199,33 @@ fn require_admin(env: &Env, caller: &Address) -> Result<(), Error> {
 
 fn bump_active(env: &Env, count_delta: i32, amount_delta: i128) {
     let count = storage::read_u32(env, &DataKey::ActiveCount);
-    storage::write_u32(env, &DataKey::ActiveCount, apply_count_delta(count, count_delta));
+    storage::write_u32(
+        env,
+        &DataKey::ActiveCount,
+        apply_count_delta(count, count_delta),
+    );
     let amount = storage::read_i128(env, &DataKey::ActiveAmount);
     storage::write_i128(env, &DataKey::ActiveAmount, amount + amount_delta);
 }
 
 fn bump_released(env: &Env, count_delta: i32, amount_delta: i128) {
     let count = storage::read_u32(env, &DataKey::ReleasedCount);
-    storage::write_u32(env, &DataKey::ReleasedCount, apply_count_delta(count, count_delta));
+    storage::write_u32(
+        env,
+        &DataKey::ReleasedCount,
+        apply_count_delta(count, count_delta),
+    );
     let amount = storage::read_i128(env, &DataKey::ReleasedAmount);
     storage::write_i128(env, &DataKey::ReleasedAmount, amount + amount_delta);
 }
 
 fn bump_cancelled(env: &Env, count_delta: i32, amount_delta: i128) {
     let count = storage::read_u32(env, &DataKey::CancelledCount);
-    storage::write_u32(env, &DataKey::CancelledCount, apply_count_delta(count, count_delta));
+    storage::write_u32(
+        env,
+        &DataKey::CancelledCount,
+        apply_count_delta(count, count_delta),
+    );
     let amount = storage::read_i128(env, &DataKey::CancelledAmount);
     storage::write_i128(env, &DataKey::CancelledAmount, amount + amount_delta);
 }

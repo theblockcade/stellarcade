@@ -45,6 +45,12 @@ export interface ApiClientError extends AppError {
   category: ApiErrorCategory;
   status?: number;
   originalMessage?: string;
+  /**
+   * Machine-readable hint from the handler (e.g. `PROFILE_NOT_FOUND`,
+   * `PROFILE_EXISTS`). Lets a caller distinguish conflicts that need
+   * different recovery without string-matching the human message.
+   */
+  serverCode?: string;
 }
 
 /**
@@ -104,6 +110,13 @@ export interface UserProfile {
   telegramUserId?: string;
   telegramLinked?: boolean;
   createdAt: string;
+  updatedAt?: string;
+  /**
+   * ISO timestamp of the player's 18-or-over confirmation. Absent means the
+   * player has not confirmed yet — treat that as "not onboarded", never as
+   * an implicit yes.
+   */
+  ageConfirmedAt?: string;
 }
 
 /** Response shape for `GET /api/users/profile`. */
@@ -116,6 +129,11 @@ export interface CreateProfileRequest {
   /** Stellar public key (G…). Must be a non-empty string. */
   address: string;
   username?: string;
+  /**
+   * The player ticked "I am 18 or over". The server records the timestamp;
+   * it will reject creation without it.
+   */
+  ageConfirmed?: boolean;
 }
 
 /** Response shape for `POST /api/users/create`. */
@@ -124,6 +142,15 @@ export type CreateProfileResponse = UserProfile;
 export interface UpdateProfileRequest {
   address: string;
   username: string;
+  /** Telegram bot linking — accepted by POST /api/users/update, which sets
+   *  telegramLinked itself when a telegramUserId is supplied. */
+  telegramHandle?: string;
+  telegramUserId?: string;
+  /**
+   * Records the 18-or-over confirmation on a profile that predates the age
+   * gate. The server only ever sets it, never clears it.
+   */
+  ageConfirmed?: boolean;
 }
 
 export type UpdateProfileResponse = UserProfile;

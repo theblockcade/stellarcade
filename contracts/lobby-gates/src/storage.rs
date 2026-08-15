@@ -18,7 +18,9 @@ pub fn set_gate(env: &Env, id: u64, gate: &Gate) {
 }
 
 pub fn has_entered(env: &Env, id: u64, player: Address) -> bool {
-    env.storage().persistent().has(&DataKey::Entrant(id, player))
+    env.storage()
+        .persistent()
+        .has(&DataKey::Entrant(id, player))
 }
 
 pub fn mark_entered(env: &Env, id: u64, player: Address) {

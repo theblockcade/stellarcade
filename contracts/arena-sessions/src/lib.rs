@@ -55,13 +55,17 @@ impl ArenaSessions {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::GlobalPaused, &false);
-        env.storage().instance().set(&DataKey::NextSessionId, &0_u64);
+        env.storage()
+            .instance()
+            .set(&DataKey::NextSessionId, &0_u64);
         Ok(())
     }
 
     pub fn set_paused(env: Env, paused: bool) -> Result<(), Error> {
         Self::require_admin(&env)?;
-        env.storage().instance().set(&DataKey::GlobalPaused, &paused);
+        env.storage()
+            .instance()
+            .set(&DataKey::GlobalPaused, &paused);
         Ok(())
     }
 
@@ -214,7 +218,8 @@ impl ArenaSessions {
 
         let active_session_id = storage::get_active_session_id(&env, &player).and_then(|value| {
             storage::get_session(&env, value).and_then(|session| {
-                if Self::resolved_state(env.ledger().sequence(), &session) == ArenaSessionState::Active
+                if Self::resolved_state(env.ledger().sequence(), &session)
+                    == ArenaSessionState::Active
                 {
                     Some(value)
                 } else {
@@ -242,9 +247,9 @@ impl ArenaSessions {
         let current_ledger = env.ledger().sequence();
         let active_id = storage::get_active_session_id(&env, &player);
 
-        let active_session = active_id.and_then(|id| storage::get_session(&env, id)).filter(|s| {
-            Self::resolved_state(current_ledger, s) == ArenaSessionState::Active
-        });
+        let active_session = active_id
+            .and_then(|id| storage::get_session(&env, id))
+            .filter(|s| Self::resolved_state(current_ledger, s) == ArenaSessionState::Active);
 
         match active_session {
             Some(session) => {

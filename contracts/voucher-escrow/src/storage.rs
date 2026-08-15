@@ -1,5 +1,5 @@
-use soroban_sdk::{contracttype, Env};
 use crate::types::{EscrowRecord, ReservedVoucherSummary};
+use soroban_sdk::{contracttype, Env};
 
 #[contracttype]
 pub enum DataKey {

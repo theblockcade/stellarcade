@@ -34,7 +34,9 @@ const { submitTransaction, STELLAR_ERRORS } = require('../../src/services/stella
  * parsing will succeed.
  */
 const buildValidXDR = () => {
-  const keypair = StellarSdk.Keypair.fromSecret('SCYTB56TGB76PRO74RTAA7RDKONFJDGXIWNX3M7VIF5JYYDRAEZ6RH2Q');
+  const keypair = StellarSdk.Keypair.fromSecret(
+    'SCYTB56TGB76PRO74RTAA7RDKONFJDGXIWNX3M7VIF5JYYDRAEZ6RH2Q'
+  );
   const sourceAccount = new StellarSdk.Account(keypair.publicKey(), '1000');
   const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
     fee: '100',

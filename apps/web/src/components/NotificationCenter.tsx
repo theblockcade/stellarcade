@@ -3,11 +3,29 @@
 import React from "react";
 import { useErrorStore } from "../store/errorStore";
 import { SegmentedControl } from "./SegmentedControl";
-import "./NotificationCenter.css";
+import { cn } from "../lib/utils";
 
-/** Ported verbatim from frontend/src/components/v1/NotificationCenter.tsx. */
+/**
+ * Ported from frontend/src/components/v1/NotificationCenter.tsx; styling has
+ * since moved from NotificationCenter.css to Tailwind utilities. The
+ * `toast-center*` class names remain as query/test hooks only.
+ */
 
 type NotificationView = "active" | "deferred" | "history";
+
+/** Per-tone border accent on an active toast. */
+const TONE_BORDER = {
+  success: "border-emerald-500/45",
+  info: "border-blue-500/45",
+  warning: "border-amber-500/45",
+  error: "border-red-500/45",
+} as const;
+
+const MUTED_TEXT = "m-0 leading-snug text-muted-foreground";
+const UTILITY_BTN =
+  "toast-center__utility justify-self-start cursor-pointer border-0 bg-transparent p-0 text-left text-foreground hover:text-primary";
+const LIST_ITEM =
+  "toast-center__list-item flex items-start justify-between gap-3 rounded-[0.9rem] border border-white/14 bg-[rgba(10,14,18,0.92)] px-4 py-3.5 [&_p]:m-0 [&_p]:leading-snug [&_p]:text-muted-foreground [&_button]:cursor-pointer [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-foreground";
 
 export interface NotificationCenterProps {
   /**
@@ -55,12 +73,18 @@ export function NotificationCenter({ showWhenEmpty = false }: NotificationCenter
   }
 
   return (
-    <aside className="toast-center" aria-label="Notifications" data-testid="notification-center">
-      <div className="toast-center__panel">
-        <div className="toast-center__toolbar">
+    <aside
+      className="toast-center fixed top-4 right-4 z-1200 w-[min(26rem,calc(100vw-2rem))] max-sm:inset-x-4 max-sm:top-auto max-sm:bottom-4 max-sm:w-auto"
+      aria-label="Notifications"
+      data-testid="notification-center"
+    >
+      <div className="toast-center__panel grid gap-3.5 rounded-2xl border border-border bg-[rgba(7,10,14,0.94)] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-[18px]">
+        <div className="toast-center__toolbar grid gap-3">
           <div>
-            <strong>Notifications</strong>
-            <p className="toast-center__subtitle">Deferred events wait here until the active stack has room.</p>
+            <strong className="text-foreground">Notifications</strong>
+            <p className={cn("toast-center__subtitle mt-0.5 text-sm", MUTED_TEXT)}>
+              Deferred events wait here until the active stack has room.
+            </p>
           </div>
           <SegmentedControl
             label="Notification views"
@@ -71,13 +95,13 @@ export function NotificationCenter({ showWhenEmpty = false }: NotificationCenter
             ]}
             value={view}
             onChange={(nextView) => setView(nextView)}
-            className="toast-center__switcher"
+            className="toast-center__switcher w-fit"
             testId="notification-center-view"
           />
         </div>
 
         {!hasContent ? (
-          <p className="toast-center__empty" data-testid="notification-center-empty-panel">
+          <p className={cn("toast-center__empty", MUTED_TEXT)} data-testid="notification-center-empty-panel">
             No notifications yet. New alerts, deferred items, and recent history will appear here.
           </p>
         ) : null}
@@ -85,33 +109,53 @@ export function NotificationCenter({ showWhenEmpty = false }: NotificationCenter
         {view === "active" && hasContent ? (
           <>
             {toasts.length > 0 ? (
-              <div className="toast-center__stack">
+              <div className="toast-center__stack grid gap-3">
                 {toasts.map((toast) => (
-                  <section key={toast.id} className={`toast-center__toast toast-center__toast--${toast.tone}`} role="status" aria-live="polite">
-                    <div className="toast-center__toast-header">
-                      <span className="toast-center__tone">{toneLabelMap[toast.tone]}</span>
-                      <button type="button" className="toast-center__dismiss" aria-label={`Dismiss ${toast.title}`} onClick={() => dismissToast(toast.id)}>
+                  <section
+                    key={toast.id}
+                    className={cn(
+                      "toast-center__toast rounded-[0.9rem] border bg-[rgba(10,14,18,0.92)] px-4 py-3.5",
+                      `toast-center__toast--${toast.tone}`,
+                      TONE_BORDER[toast.tone],
+                    )}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <div className="toast-center__toast-header flex items-start justify-between gap-3">
+                      <span className="toast-center__tone text-[0.72rem] tracking-[0.08em] text-primary uppercase">
+                        {toneLabelMap[toast.tone]}
+                      </span>
+                      <button
+                        type="button"
+                        className="toast-center__dismiss cursor-pointer border-0 bg-transparent text-foreground hover:text-primary"
+                        aria-label={`Dismiss ${toast.title}`}
+                        onClick={() => dismissToast(toast.id)}
+                      >
                         Dismiss
                       </button>
                     </div>
-                    <strong className="toast-center__title">{toast.title}</strong>
-                    <p className="toast-center__message">{toast.message}</p>
+                    <strong className="toast-center__title mt-1.5 mb-1 block text-foreground">
+                      {toast.title}
+                    </strong>
+                    <p className={cn("toast-center__message", MUTED_TEXT)}>{toast.message}</p>
                   </section>
                 ))}
               </div>
             ) : (
-              <p className="toast-center__empty">No active notifications right now.</p>
+              <p className={cn("toast-center__empty", MUTED_TEXT)}>
+                No active notifications right now.
+              </p>
             )}
 
             {deferredToasts.length > 0 ? (
-              <p className="toast-center__meta" data-testid="notification-center-queued-summary">
+              <p className={cn("toast-center__meta", MUTED_TEXT)} data-testid="notification-center-queued-summary">
                 {deferredToasts.length} deferred event
                 {deferredToasts.length === 1 ? "" : "s"} waiting for display.
               </p>
             ) : null}
 
             {toasts.length > 0 ? (
-              <button type="button" className="toast-center__utility" onClick={clearToasts}>
+              <button type="button" className={UTILITY_BTN} onClick={clearToasts}>
                 Dismiss active
               </button>
             ) : null}
@@ -121,11 +165,14 @@ export function NotificationCenter({ showWhenEmpty = false }: NotificationCenter
         {view === "deferred" && hasContent ? (
           deferredToasts.length > 0 ? (
             <>
-              <ul className="toast-center__list" data-testid="notification-center-deferred-list">
+              <ul
+                className="toast-center__list grid list-none gap-3 p-0"
+                data-testid="notification-center-deferred-list"
+              >
                 {deferredToasts.map((toast) => (
-                  <li key={toast.id} className="toast-center__list-item">
+                  <li key={toast.id} className={LIST_ITEM}>
                     <div>
-                      <strong>{toast.title}</strong>
+                      <strong className="text-foreground">{toast.title}</strong>
                       <p>{toast.message}</p>
                     </div>
                     <button type="button" onClick={() => dismissToast(toast.id)}>
@@ -134,35 +181,44 @@ export function NotificationCenter({ showWhenEmpty = false }: NotificationCenter
                   </li>
                 ))}
               </ul>
-              <button type="button" className="toast-center__utility" onClick={clearDeferredToasts}>
+              <button type="button" className={UTILITY_BTN} onClick={clearDeferredToasts}>
                 Clear deferred
               </button>
             </>
           ) : (
-            <p className="toast-center__empty">No deferred notifications queued.</p>
+            <p className={cn("toast-center__empty", MUTED_TEXT)}>No deferred notifications queued.</p>
           )
         ) : null}
 
         {view === "history" && hasContent ? (
           toastHistory.length > 0 ? (
             <>
-              <ul className="toast-center__list" data-testid="notification-center-history-list">
+              <ul
+                className="toast-center__list grid list-none gap-3 p-0"
+                data-testid="notification-center-history-list"
+              >
                 {toastHistory.map((toast) => (
-                  <li key={toast.id} className="toast-center__list-item">
+                  <li key={toast.id} className={LIST_ITEM}>
                     <div>
-                      <strong>{toast.title}</strong>
+                      <strong className="text-foreground">{toast.title}</strong>
                       <p>{toast.message}</p>
                     </div>
-                    <span className="toast-center__history-time">{toast.dismissedAt ? new Date(toast.dismissedAt).toLocaleTimeString() : "Dismissed"}</span>
+                    <span className="toast-center__history-time text-[0.82rem] whitespace-nowrap text-muted-foreground">
+                      {toast.dismissedAt
+                        ? new Date(toast.dismissedAt).toLocaleTimeString()
+                        : "Dismissed"}
+                    </span>
                   </li>
                 ))}
               </ul>
-              <button type="button" className="toast-center__utility" onClick={clearToastHistory}>
+              <button type="button" className={UTILITY_BTN} onClick={clearToastHistory}>
                 Clear recent
               </button>
             </>
           ) : (
-            <p className="toast-center__empty">No recent notification history yet.</p>
+            <p className={cn("toast-center__empty", MUTED_TEXT)}>
+              No recent notification history yet.
+            </p>
           )
         ) : null}
       </div>

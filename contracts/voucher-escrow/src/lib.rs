@@ -2,9 +2,9 @@
 #![allow(unexpected_cfgs)]
 
 mod storage;
-mod types;
 #[cfg(test)]
 mod test;
+mod types;
 
 use soroban_sdk::{contract, contractimpl, Address, Env};
 pub use types::{EscrowRecord, ExpiryPressure, ReservedVoucherSummary};

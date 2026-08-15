@@ -304,9 +304,16 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
   )
 }
 
-function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
+/**
+ * Renders a `div`, not shadcn's stock `main`. AppShell already owns the
+ * page's `<main id="main-content">` (the skip-link target), and nesting a
+ * second `<main>` inside it is invalid HTML — assistive tech sees two
+ * competing "main" landmarks and the skip link becomes ambiguous. The inset
+ * is layout chrome, so a plain div is the honest element for it.
+ */
+function SidebarInset({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <main
+    <div
       data-slot="sidebar-inset"
       className={cn(
         "relative flex w-full flex-1 flex-col bg-background",

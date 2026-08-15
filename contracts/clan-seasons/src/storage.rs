@@ -1,6 +1,6 @@
 use soroban_sdk::Env;
 
-use crate::{DataKey, types::SeasonRecord};
+use crate::{types::SeasonRecord, DataKey};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 

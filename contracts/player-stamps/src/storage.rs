@@ -24,22 +24,13 @@ pub fn set_campaign(env: &Env, campaign_id: u32, campaign: &StampCampaign) {
     );
 }
 
-pub fn get_progress(
-    env: &Env,
-    player: &Address,
-    campaign_id: u32,
-) -> Option<PlayerStampProgress> {
+pub fn get_progress(env: &Env, player: &Address, campaign_id: u32) -> Option<PlayerStampProgress> {
     env.storage()
         .persistent()
         .get(&DataKey::Progress(player.clone(), campaign_id))
 }
 
-pub fn set_progress(
-    env: &Env,
-    player: &Address,
-    campaign_id: u32,
-    progress: &PlayerStampProgress,
-) {
+pub fn set_progress(env: &Env, player: &Address, campaign_id: u32, progress: &PlayerStampProgress) {
     env.storage()
         .persistent()
         .set(&DataKey::Progress(player.clone(), campaign_id), progress);

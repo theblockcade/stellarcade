@@ -9,10 +9,7 @@ const app = require('../../src/server');
 
 const signPayload = (payload, timestamp, secret) => {
   const body = JSON.stringify(payload);
-  return crypto
-    .createHmac('sha256', secret)
-    .update(`${timestamp}.${body}`)
-    .digest('hex');
+  return crypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
 };
 
 describe('Webhook signature middleware', () => {

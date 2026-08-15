@@ -1,7 +1,13 @@
 import React from "react";
-import "./SegmentedControl.css";
 
-/** Ported verbatim from frontend/src/components/v1/SegmentedControl.tsx. */
+import { cn } from "../lib/utils";
+
+/**
+ * Ported from frontend/src/components/v1/SegmentedControl.tsx; styling has
+ * since moved from SegmentedControl.css to Tailwind utilities. The semantic
+ * class names (`segmented-control`, `is-active`, …) are kept as stable test
+ * and query hooks — they no longer carry any styling.
+ */
 
 export interface SegmentedControlOption<T extends string> {
   value: T;
@@ -28,7 +34,15 @@ export function SegmentedControl<T extends string>({
   testId = "segmented-control",
 }: SegmentedControlProps<T>): React.JSX.Element {
   return (
-    <div className={["segmented-control", className].filter(Boolean).join(" ")} role="group" aria-label={label} data-testid={testId}>
+    <div
+      className={cn(
+        "segmented-control inline-flex flex-wrap items-center gap-1.5 rounded-full border border-border bg-foreground/4 p-1",
+        className,
+      )}
+      role="group"
+      aria-label={label}
+      data-testid={testId}
+    >
       {options.map((option) => {
         const isActive = option.value === value;
 
@@ -36,7 +50,12 @@ export function SegmentedControl<T extends string>({
           <button
             key={option.value}
             type="button"
-            className={["segmented-control__button", isActive ? "is-active" : ""].filter(Boolean).join(" ")}
+            className={cn(
+              "segmented-control__button inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors",
+              "hover:text-foreground focus-visible:text-foreground focus-visible:outline-none",
+              "disabled:cursor-not-allowed disabled:opacity-45",
+              isActive ? "is-active bg-foreground/12 text-foreground" : "text-muted-foreground",
+            )}
             aria-pressed={isActive}
             disabled={option.disabled}
             onClick={() => onChange(option.value)}
@@ -44,7 +63,10 @@ export function SegmentedControl<T extends string>({
           >
             <span>{option.label}</span>
             {typeof option.count === "number" ? (
-              <span className="segmented-control__count" aria-hidden="true">
+              <span
+                className="segmented-control__count min-w-5 rounded-full bg-black/25 px-1.5 py-px text-center text-xs"
+                aria-hidden="true"
+              >
                 {option.count}
               </span>
             ) : null}

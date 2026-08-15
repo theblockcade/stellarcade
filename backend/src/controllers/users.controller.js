@@ -39,18 +39,18 @@ const getProfile = async (req, res, next) => {
     if (!walletAddress) {
       return res.status(400).json({ message: 'Wallet address missing from token claims.' });
     }
-    
+
     let user = await User.findByWallet(walletAddress);
     if (!user) {
       // Auto-create to support seamless login
       user = await User.create({ wallet_address: walletAddress, username: 'player', balance: 0 });
     }
-    
+
     res.status(200).json({
       id: user.id,
       username: user.username || 'player',
       walletAddress: user.wallet_address,
-      balance: parseFloat(user.balance || 0)
+      balance: parseFloat(user.balance || 0),
     });
   } catch (error) {
     next(error);
@@ -63,17 +63,17 @@ const createProfile = async (req, res, next) => {
     if (!walletAddress) {
       return res.status(400).json({ message: 'walletAddress is required.' });
     }
-    
+
     logger.info(`Creating profile for wallet: ${walletAddress}`);
     let user = await User.findByWallet(walletAddress);
     if (!user) {
       user = await User.create({
         wallet_address: walletAddress,
         username: username || 'player',
-        balance: 0
+        balance: 0,
       });
     }
-    
+
     res.status(201).json({ success: true, user });
   } catch (error) {
     next(error);

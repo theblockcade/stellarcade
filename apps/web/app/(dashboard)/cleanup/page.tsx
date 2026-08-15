@@ -4,32 +4,27 @@ import React, { useState, useEffect } from "react";
 import {
   Sparkles,
   Trash2,
-  Coins,
   ShieldCheck,
   RotateCcw,
   CheckCircle2,
-  AlertTriangle,
-  Layers,
-  ArrowRight,
 } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
-import { useWalletStatus } from "../../../src/hooks/useWalletStatus";
 import { motion } from "framer-motion";
+
+import { Button } from "../../../src/components/ui/button";
+import { PageHeader } from "../../../src/components/ui/page-header";
+import { StatTile } from "../../../src/components/ui/stat-tile";
+import { cn } from "../../../src/lib/utils";
+import { useWalletStatus } from "../../../src/hooks/useWalletStatus";
 import {
   scanAccountHygiene,
-  SAMPLE_HYGIENE_ACCOUNTS,
   type HygieneScanResult,
-  type CleanableSubentry,
 } from "../../../src/utils/account-hygiene";
-import styles from "./cleanup.module.css";
 
 const DEMO_PUBLIC_KEY = "GBBD47IF6LWK7P7MDEVSCADEPLAYERHYGIENE777SAMPLEPUBLICKEY";
 
 export default function CleanupPage() {
   const { address } = useWalletStatus();
-  const [targetAddress, setTargetAddress] = useState<string>(
-    address || DEMO_PUBLIC_KEY
-  );
+  const [targetAddress, setTargetAddress] = useState<string>(address || DEMO_PUBLIC_KEY);
   const [scanResult, setScanResult] = useState<HygieneScanResult | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isCleaning, setIsCleaning] = useState(false);
@@ -53,11 +48,12 @@ export default function CleanupPage() {
     } else {
       handleScan(targetAddress);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -74,7 +70,7 @@ export default function CleanupPage() {
 
     const reclaimedAmount = selectedIds.length * 0.5;
     const remainingSubentries = scanResult.reclaimableSubentries.filter(
-      (s) => !selectedIds.includes(s.id)
+      (s) => !selectedIds.includes(s.id),
     );
 
     setScanResult({
@@ -94,65 +90,61 @@ export default function CleanupPage() {
   };
 
   const selectedReclaimValue = selectedIds.length * 0.5;
+  const allSelected =
+    !!scanResult && selectedIds.length === scanResult.reclaimableSubentries.length;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.75rem",
-        width: "100%",
-      }}
+      className="mx-auto flex w-full max-w-7xl flex-col gap-6"
     >
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <Sparkles size={32} style={{ color: "var(--sc-accent)" }} />
-          <h1 className={styles.title}>Cleanup & Reserve Recovery</h1>
-        </div>
-        <p className={styles.subtitle}>
-          Reclaim XLM base reserves locked by zero-balance trustlines, expired event badges, and stale
-          session authorizations on the Stellar network (0.5 XLM per subentry).
-        </p>
-      </div>
-
-      {/* Account Scan Input */}
-      <section className={styles.scanSection} aria-labelledby="scan-heading">
-        <h2 id="scan-heading" className={styles.cardTitle}>
-          Stellar Account Scanner
-        </h2>
-        <div className={styles.searchRow}>
+      <PageHeader
+        icon={<Sparkles />}
+        title="Cleanup & Reserve Recovery"
+        description="Reclaim XLM base reserves locked by zero-balance trustlines, expired event badges, and stale session authorizations on the Stellar network (0.5 XLM per subentry)."
+      >
+        <div
+          className="flex flex-col gap-2 sm:flex-row"
+          role="search"
+          aria-label="Stellar account scanner"
+        >
+          <label htmlFor="input-hygiene-address" className="sr-only">
+            Stellar public key
+          </label>
           <input
-            className={styles.input}
+            id="input-hygiene-address"
+            className="w-full rounded-lg border border-border bg-background/60 px-3 py-2.5 font-mono text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-primary/60 focus-visible:ring-[3px] focus-visible:ring-primary/20"
             type="text"
-            placeholder="Enter Stellar Public Key (G...)"
+            placeholder="Enter Stellar Public Key (G…)"
             value={targetAddress}
             onChange={(e) => setTargetAddress(e.target.value)}
             data-testid="input-hygiene-address"
           />
           <Button
             type="button"
+            variant="brand"
+            className="shrink-0"
             onClick={() => handleScan(targetAddress)}
             data-testid="btn-scan-account"
           >
-            <RotateCcw size={14} style={{ marginRight: "0.5rem" }} />
+            <RotateCcw />
             Scan Account
           </Button>
         </div>
-      </section>
+      </PageHeader>
 
-      {/* Success Notification */}
       {reclaimSuccess && (
-        <div className={styles.successBanner} data-testid="reclaim-success-banner">
-          <CheckCircle2 size={24} />
+        <div
+          data-testid="reclaim-success-banner"
+          role="status"
+          className="flex items-start gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-4"
+        >
+          <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-emerald-400" aria-hidden />
           <div>
-            <strong>Reclamation Complete!</strong>
-            <p style={{ margin: "0.15rem 0 0", fontSize: "0.8125rem" }}>
+            <strong className="text-sm font-bold text-emerald-400">Reclamation Complete!</strong>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
               Successfully removed {reclaimSuccess.count} subentry item(s) and released +
               {reclaimSuccess.reclaimedXlm.toFixed(1)} XLM back to your spendable balance.
             </p>
@@ -160,128 +152,116 @@ export default function CleanupPage() {
         </div>
       )}
 
-      {/* Reserve Overview Bar */}
       {scanResult && (
-        <div className={styles.statsBar}>
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Total Subentries</span>
-            <span className={styles.statValue} data-testid="stat-total-subentries">
-              {scanResult.totalSubentries}
-            </span>
-            <span className={styles.statHint}>
-              {(scanResult.totalLockedReserveXlm).toFixed(1)} XLM locked in Base Account Reserve
-            </span>
-          </div>
-
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Reclaimable Reserve</span>
-            <span className={styles.statValue} style={{ color: "#4ade80" }} data-testid="stat-reclaimable-xlm">
-              +{scanResult.reclaimableReserveXlm.toFixed(1)} XLM
-            </span>
-            <span className={styles.statHint}>
-              {scanResult.reclaimableSubentries.length} inactive or empty entries found
-            </span>
-          </div>
-
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Selected for Cleanup</span>
-            <span className={styles.statValue} data-testid="stat-selected-xlm">
-              +{selectedReclaimValue.toFixed(1)} XLM
-            </span>
-            <span className={styles.statHint}>{selectedIds.length} item(s) selected</span>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatTile
+            label="Total Subentries"
+            value={String(scanResult.totalSubentries)}
+            caption={`${scanResult.totalLockedReserveXlm.toFixed(1)} XLM locked in base account reserve`}
+            data-testid="stat-total-subentries"
+          />
+          <StatTile
+            label="Reclaimable Reserve"
+            value={`+${scanResult.reclaimableReserveXlm.toFixed(1)} XLM`}
+            trend="up"
+            caption={`${scanResult.reclaimableSubentries.length} inactive or empty entries found`}
+            data-testid="stat-reclaimable-xlm"
+          />
+          <StatTile
+            label="Selected for Cleanup"
+            value={`+${selectedReclaimValue.toFixed(1)} XLM`}
+            caption={`${selectedIds.length} item(s) selected`}
+            data-testid="stat-selected-xlm"
+          />
         </div>
       )}
 
-      {/* Cleanable Subentries Card */}
       {scanResult && (
-        <section className={styles.itemsCard} aria-labelledby="subentries-heading">
-          <div className={styles.cardHeaderRow}>
-            <h2 id="subentries-heading" className={styles.cardTitle}>
-              Subentry Inventory ({scanResult.reclaimableSubentries.length} Reclaimable)
+        <section
+          aria-labelledby="subentries-heading"
+          className="flex flex-col rounded-2xl border border-border bg-card/60 backdrop-blur-sm"
+        >
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-4">
+            <h2 id="subentries-heading" className="text-sm font-semibold text-foreground">
+              Subentry Inventory ({scanResult.reclaimableSubentries.length} reclaimable)
             </h2>
             <Button
               size="sm"
               variant="outline"
               onClick={() =>
-                setSelectedIds(
-                  selectedIds.length === scanResult.reclaimableSubentries.length
-                    ? []
-                    : scanResult.reclaimableSubentries.map((s) => s.id)
-                )
+                setSelectedIds(allSelected ? [] : scanResult.reclaimableSubentries.map((s) => s.id))
               }
               data-testid="btn-toggle-select-all"
             >
-              {selectedIds.length === scanResult.reclaimableSubentries.length
-                ? "Deselect All"
-                : "Select All Reclaimable"}
+              {allSelected ? "Deselect All" : "Select All Reclaimable"}
             </Button>
-          </div>
+          </header>
 
           {scanResult.reclaimableSubentries.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--sc-text-dim)" }}>
-              <ShieldCheck size={36} style={{ color: "#4ade80", margin: "0 auto 0.5rem" }} />
-              <p>Account hygiene is in perfect shape! No stale or empty subentries found.</p>
+            <div className="flex flex-col items-center gap-2 px-5 py-12 text-center">
+              <ShieldCheck className="size-9 text-emerald-400" aria-hidden />
+              <p className="text-sm text-muted-foreground">
+                Account hygiene is in perfect shape! No stale or empty subentries found.
+              </p>
             </div>
           ) : (
-            <div className={styles.itemList}>
+            <ul className="divide-y divide-border/70">
               {scanResult.reclaimableSubentries.map((item) => {
                 const isSelected = selectedIds.includes(item.id);
                 return (
-                  <div
+                  <li
                     key={item.id}
-                    className={`${styles.itemRow} ${isSelected ? styles.itemRowSelected : ""}`}
                     data-testid={`subentry-row-${item.id}`}
+                    className={cn(
+                      "flex items-center gap-3 px-5 py-3.5 transition-colors",
+                      isSelected ? "bg-primary/5" : "hover:bg-background/40",
+                    )}
                   >
-                    <div className={styles.itemLeft}>
-                      <input
-                        type="checkbox"
-                        className={styles.checkbox}
-                        checked={isSelected}
-                        onChange={() => toggleSelect(item.id)}
-                        aria-label={`Select ${item.description}`}
-                        data-testid={`checkbox-${item.id}`}
-                      />
-                      <div className={styles.itemDetails}>
-                        <span className={styles.itemTitle}>{item.description}</span>
-                        {item.assetCode && (
-                          <span className={styles.itemSub}>
-                            Asset: {item.assetCode} • Issuer: {item.assetIssuer}
-                          </span>
-                        )}
-                      </div>
+                    <input
+                      type="checkbox"
+                      className="size-4 shrink-0 cursor-pointer accent-[color:var(--sc-accent)]"
+                      checked={isSelected}
+                      onChange={() => toggleSelect(item.id)}
+                      aria-label={`Select ${item.description}`}
+                      data-testid={`checkbox-${item.id}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-foreground">{item.description}</p>
+                      {item.assetCode && (
+                        <p className="truncate font-mono text-[11px] text-muted-foreground">
+                          Asset: {item.assetCode} · Issuer: {item.assetIssuer}
+                        </p>
+                      )}
                     </div>
-
-                    <div className={styles.itemRight}>
-                      <span className={styles.reserveBadge}>
-                        +{item.lockedReserveXlm.toFixed(1)} XLM
-                      </span>
-                    </div>
-                  </div>
+                    <span className="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 font-mono text-xs font-semibold text-emerald-400">
+                      +{item.lockedReserveXlm.toFixed(1)} XLM
+                    </span>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
 
           {scanResult.reclaimableSubentries.length > 0 && (
-            <div className={styles.actionFooter}>
-              <div>
-                <span style={{ fontWeight: 600 }}>Total Recovery Potential: </span>
-                <span style={{ color: "#4ade80", fontWeight: 700 }}>
+            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-4">
+              <p className="text-sm">
+                <span className="font-semibold text-foreground">Total Recovery Potential: </span>
+                <span className="font-mono font-bold text-emerald-400">
                   +{selectedReclaimValue.toFixed(1)} XLM
                 </span>
-              </div>
+              </p>
 
               <Button
                 type="button"
+                variant="brand"
                 disabled={selectedIds.length === 0 || isCleaning}
                 onClick={handleExecuteCleanup}
                 data-testid="btn-execute-cleanup"
               >
-                <Trash2 size={14} style={{ marginRight: "0.5rem" }} />
-                {isCleaning ? "Reclaiming Reserves..." : `Reclaim (${selectedIds.length}) Entries`}
+                <Trash2 />
+                {isCleaning ? "Reclaiming Reserves…" : `Reclaim (${selectedIds.length}) Entries`}
               </Button>
-            </div>
+            </footer>
           )}
         </section>
       )}

@@ -6,7 +6,7 @@ use soroban_sdk::Env;
 fn setup() -> (Env, LobbyGatesClient<'static>) {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register_contract(None, LobbyGates);
+    let contract_id = env.register(LobbyGates, ());
     let client = LobbyGatesClient::new(&env, &contract_id);
     (env, client)
 }

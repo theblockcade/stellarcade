@@ -238,7 +238,9 @@ impl SpeedTrivia {
             opened_at: now,
         };
         env.storage().persistent().set(&key, &round);
-        env.storage().instance().set(&DataKey::LatestRoundId, &round_id);
+        env.storage()
+            .instance()
+            .set(&DataKey::LatestRoundId, &round_id);
 
         QuestionOpened {
             round_id,
@@ -292,10 +294,7 @@ impl SpeedTrivia {
         let correct = answer_hash == round.answer_commitment;
 
         if correct {
-            round.winner_count = round
-                .winner_count
-                .checked_add(1)
-                .ok_or(Error::Overflow)?;
+            round.winner_count = round.winner_count.checked_add(1).ok_or(Error::Overflow)?;
             env.storage().persistent().set(&key, &round);
         }
 
@@ -366,7 +365,9 @@ impl SpeedTrivia {
         round.status = RoundStatus::Finalized;
         round.payout_per_winner = payout_per_winner;
         env.storage().persistent().set(&key, &round);
-        env.storage().instance().set(&DataKey::LatestRoundId, &round_id);
+        env.storage()
+            .instance()
+            .set(&DataKey::LatestRoundId, &round_id);
 
         RoundFinalized {
             round_id,
@@ -450,7 +451,11 @@ impl SpeedTrivia {
     pub fn get_round_snapshot(env: Env) -> RoundSnapshot {
         let now = env.ledger().timestamp();
 
-        let Some(round_id) = env.storage().instance().get::<DataKey, u64>(&DataKey::LatestRoundId) else {
+        let Some(round_id) = env
+            .storage()
+            .instance()
+            .get::<DataKey, u64>(&DataKey::LatestRoundId)
+        else {
             return RoundSnapshot {
                 status: RoundSnapshotStatus::Uninitialized,
                 round_id: 0,
@@ -503,7 +508,11 @@ impl SpeedTrivia {
     }
 
     pub fn get_leaderboard_snapshot(env: Env) -> LeaderboardSnapshot {
-        let Some(round_id) = env.storage().instance().get::<DataKey, u64>(&DataKey::LatestRoundId) else {
+        let Some(round_id) = env
+            .storage()
+            .instance()
+            .get::<DataKey, u64>(&DataKey::LatestRoundId)
+        else {
             return LeaderboardSnapshot {
                 status: RoundSnapshotStatus::Uninitialized,
                 round_id: 0,
@@ -626,7 +635,9 @@ fn read_leaderboard(env: &Env, round_id: u64) -> soroban_sdk::Vec<LeaderboardEnt
 mod test {
     use super::*;
     use soroban_sdk::{
-        contract, contractimpl, contracttype, testutils::{Address as _, Ledger}, Address, Env, IntoVal,
+        contract, contractimpl, contracttype,
+        testutils::{Address as _, Ledger},
+        Address, Env, IntoVal,
     };
 
     #[contract]
@@ -642,15 +653,21 @@ mod test {
     #[contractimpl]
     impl MockPrizePool {
         pub fn reserve(env: Env, _admin: Address, game_id: u64, amount: i128) {
-            env.storage().persistent().set(&PoolKey::Reserved(game_id), &amount);
+            env.storage()
+                .persistent()
+                .set(&PoolKey::Reserved(game_id), &amount);
         }
 
         pub fn release(env: Env, _admin: Address, game_id: u64, amount: i128) {
-            env.storage().persistent().set(&PoolKey::Released(game_id), &amount);
+            env.storage()
+                .persistent()
+                .set(&PoolKey::Released(game_id), &amount);
         }
 
         pub fn payout(env: Env, _admin: Address, _to: Address, game_id: u64, amount: i128) {
-            env.storage().persistent().set(&PoolKey::Paid(game_id), &amount);
+            env.storage()
+                .persistent()
+                .set(&PoolKey::Paid(game_id), &amount);
         }
     }
 
@@ -734,11 +751,11 @@ mod test {
         let commitment = hash_answer(&env, &payload);
 
         client.open_question(&1, &commitment, &deadline, &1000);
-        
+
         client.submit_answer(&player, &1, &payload, &env.ledger().timestamp());
-        
+
         client.finalize_round(&1);
-        
+
         let reward = client.claim_reward(&player, &1);
         assert_eq!(reward, 1000);
         assert_eq!(balance.balance_of(&player), 1000);
@@ -754,9 +771,9 @@ mod test {
         let commitment = hash_answer(&env, &payload);
 
         client.open_question(&1, &commitment, &deadline, &1000);
-        
+
         env.ledger().set_timestamp(deadline + 1);
-        
+
         let result = client.try_submit_answer(&player, &1, &payload, &env.ledger().timestamp());
         assert!(result.is_err());
     }
@@ -768,7 +785,7 @@ mod test {
         let other = Address::generate(&env);
 
         let commitment = hash_answer(&env, &Bytes::from_array(&env, &[1]));
-        
+
         // Try to open question as non-admin
         env.mock_auths(&[soroban_sdk::testutils::MockAuth {
             address: &other,
@@ -840,13 +857,13 @@ mod test {
         let snap = client.get_round_snapshot();
         assert_eq!(snap.status, RoundSnapshotStatus::Open);
         assert_eq!(snap.round_id, 7);
-        assert_eq!(snap.answer_window_open, true);
+        assert!(snap.answer_window_open);
 
         // move past deadline -> window closed but round still open
         env.ledger().set_timestamp(deadline + 1);
         let snap2 = client.get_round_snapshot();
         assert_eq!(snap2.status, RoundSnapshotStatus::Open);
-        assert_eq!(snap2.answer_window_open, false);
+        assert!(!snap2.answer_window_open);
 
         // ensure leaderboard has an entry after a submission
         env.ledger().set_timestamp(deadline);

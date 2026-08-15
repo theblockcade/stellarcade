@@ -1,6 +1,9 @@
 use soroban_sdk::Env;
 
-use crate::{DataKey, types::{VoucherRecord, VoucherTypeRecord}};
+use crate::{
+    types::{VoucherRecord, VoucherTypeRecord},
+    DataKey,
+};
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 

@@ -44,19 +44,19 @@ fn cooldown_threshold_accessor_returns_missing_defaults_and_blocking_window() {
     let wallet = Address::generate(&env);
 
     let missing = client.cooldown_threshold_accessor(&wallet);
-    assert_eq!(missing.policy_exists, false);
-    assert_eq!(missing.currently_blocked, false);
+    assert!(!missing.policy_exists);
+    assert!(!missing.currently_blocked);
 
     client.set_cooldown_policy(&admin, &wallet, &600u64, &100i128, &false);
     client.queue_claim(&admin, &9u64, &wallet, &200i128, &1_800u64);
     let blocked = client.cooldown_threshold_accessor(&wallet);
-    assert_eq!(blocked.policy_exists, true);
-    assert_eq!(blocked.currently_blocked, true);
+    assert!(blocked.policy_exists);
+    assert!(blocked.currently_blocked);
     assert_eq!(blocked.next_available_at, 1_800);
     assert_eq!(blocked.seconds_until_next_window, 800);
 
     env.ledger().set_timestamp(1_900);
     let open = client.cooldown_threshold_accessor(&wallet);
-    assert_eq!(open.currently_blocked, false);
+    assert!(!open.currently_blocked);
     assert_eq!(open.seconds_until_next_window, 0);
 }
