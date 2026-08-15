@@ -1,8 +1,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address,
-    BytesN, Env, Symbol,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
+    Symbol,
 };
 
 // ---------------------------------------------------------------------------
@@ -115,16 +115,26 @@ impl EpochScheduler {
         admin.require_auth();
 
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::EpochDuration, &epoch_duration);
+        env.storage()
+            .instance()
+            .set(&DataKey::EpochDuration, &epoch_duration);
 
-        ContractInitialized { admin, epoch_duration }.publish(&env);
+        ContractInitialized {
+            admin,
+            epoch_duration,
+        }
+        .publish(&env);
 
         Ok(())
     }
 
     /// View the current epoch based on ledger sequence.
     pub fn current_epoch(env: Env) -> u64 {
-        let duration: u32 = env.storage().instance().get(&DataKey::EpochDuration).unwrap_or(0);
+        let duration: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::EpochDuration)
+            .unwrap_or(0);
         if duration == 0 {
             return 0;
         }
@@ -147,7 +157,7 @@ impl EpochScheduler {
         }
 
         let key = DataKey::Task(task_id.clone());
-        
+
         // Prevent overwriting if we wanted to enforce unique task_ids across all time
         // or just allow updating before execution. Let's allow update if not executed.
         if let Some(existing) = env.storage().persistent().get::<_, TaskData>(&key) {
@@ -181,7 +191,7 @@ impl EpochScheduler {
 
         let current = Self::current_epoch(env.clone());
         let key = DataKey::Task(task_id.clone());
-        
+
         let mut task: TaskData = env
             .storage()
             .persistent()
@@ -253,7 +263,11 @@ impl EpochScheduler {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{testutils::{Address as _, Ledger}, Address, Env, BytesN, symbol_short};
+    use soroban_sdk::{
+        symbol_short,
+        testutils::{Address as _, Ledger},
+        Address, BytesN, Env,
+    };
 
     struct Setup<'a> {
         env: Env,
@@ -283,7 +297,7 @@ mod test {
     #[test]
     fn test_current_epoch() {
         let s = setup();
-        
+
         s.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
             timestamp: 0,
             protocol_version: 25,
@@ -337,13 +351,13 @@ mod test {
             min_persistent_entry_ttl: 0,
             max_entry_ttl: 1000000,
         });
-        
+
         // Schedule for epoch 2
         s.client.schedule_task(&task_id, &2, &hash);
-        
+
         let state = s.client.task_state(&task_id).unwrap();
         assert_eq!(state.epoch, 2);
-        assert_eq!(state.executed, false);
+        assert!(!state.executed);
 
         // Attempt to execute in epoch 1 - should fail
         s.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -373,7 +387,7 @@ mod test {
         s.client.mark_executed(&task_id);
 
         let state = s.client.task_state(&task_id).unwrap();
-        assert_eq!(state.executed, true);
+        assert!(state.executed);
     }
 
     #[test]
@@ -429,7 +443,7 @@ mod test {
         assert_eq!(snap.current_epoch, 2);
         assert_eq!(snap.epoch_duration, 100);
         assert_eq!(snap.current_epoch_start_ledger, 200); // 2 * 100
-        assert_eq!(snap.next_epoch_start_ledger, 300);    // 3 * 100
+        assert_eq!(snap.next_epoch_start_ledger, 300); // 3 * 100
     }
 
     #[test]
