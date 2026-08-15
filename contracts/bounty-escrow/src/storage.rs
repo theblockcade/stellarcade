@@ -1,9 +1,6 @@
 use soroban_sdk::{Address, Env, Vec};
 
-use crate::{
-    types::BountyRecord,
-    DataKey, BUMP_AMOUNT, LIFETIME_THRESHOLD,
-};
+use crate::{types::BountyRecord, DataKey, BUMP_AMOUNT, LIFETIME_THRESHOLD};
 
 // ── Persistent: individual bounty records ─────────────────────────────────────
 
