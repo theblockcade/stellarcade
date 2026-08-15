@@ -42,12 +42,12 @@ pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 #[repr(u32)]
 pub enum Error {
     AlreadyInitialized = 1,
-    NotInitialized     = 2,
-    NotAuthorized      = 3,
-    BadgeNotFound      = 4,
+    NotInitialized = 2,
+    NotAuthorized = 3,
+    BadgeNotFound = 4,
     BadgeAlreadyExists = 5,
     BadgeAlreadyAwarded = 6,
-    InvalidInput       = 7,
+    InvalidInput = 7,
 }
 
 // ---------------------------------------------------------------------------
@@ -232,9 +232,11 @@ impl AchievementBadge {
             reward,
         };
         env.storage().persistent().set(&key, &definition);
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         BadgeDefined {
             badge_id,
@@ -256,18 +258,19 @@ impl AchievementBadge {
     /// This is an administrative action that emits an auditable event. It does
     /// not award the badge; call `award_badge` separately if the evaluation
     /// determines the user qualifies. The badge must exist.
-    pub fn evaluate_user(env: Env, admin: Address, user: Address, badge_id: u64) -> Result<(), Error> {
+    pub fn evaluate_user(
+        env: Env,
+        admin: Address,
+        user: Address,
+        badge_id: u64,
+    ) -> Result<(), Error> {
         require_initialized(&env)?;
         require_admin(&env, &admin)?;
 
         // Badge must exist before an evaluation can be recorded.
         require_badge_exists(&env, badge_id)?;
 
-        UserEvaluated {
-            user,
-            badge_id,
-        }
-        .publish(&env);
+        UserEvaluated { user, badge_id }.publish(&env);
 
         Ok(())
     }
@@ -285,7 +288,12 @@ impl AchievementBadge {
     /// If `badge.reward > 0`, a `BadgeAwarded` event is emitted with the
     /// reward amount so off-chain services can trigger the downstream payout
     /// via the reward contract.
-    pub fn award_badge(env: Env, admin: Address, user: Address, badge_id: u64) -> Result<(), Error> {
+    pub fn award_badge(
+        env: Env,
+        admin: Address,
+        user: Address,
+        badge_id: u64,
+    ) -> Result<(), Error> {
         require_initialized(&env)?;
         require_admin(&env, &admin)?;
 
@@ -307,9 +315,11 @@ impl AchievementBadge {
 
         badges.push_back(badge_id);
         env.storage().persistent().set(&user_key, &badges);
-        env.storage()
-            .persistent()
-            .extend_ttl(&user_key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &user_key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         BadgeAwarded {
             user,
@@ -362,12 +372,18 @@ impl AchievementBadge {
         require_admin(&env, &admin)?;
         require_badge_exists(&env, badge_id)?;
 
-        let entry = BadgeMetaEntry { title, description, award_rules };
+        let entry = BadgeMetaEntry {
+            title,
+            description,
+            award_rules,
+        };
         let key = DataKey::BadgeMeta(badge_id);
         env.storage().persistent().set(&key, &entry);
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         Ok(())
     }
@@ -397,8 +413,10 @@ impl AchievementBadge {
                 award_rules: String::from_str(&env, ""),
             },
             Some(def) => {
-                let meta: Option<BadgeMetaEntry> =
-                    env.storage().persistent().get(&DataKey::BadgeMeta(badge_id));
+                let meta: Option<BadgeMetaEntry> = env
+                    .storage()
+                    .persistent()
+                    .get(&DataKey::BadgeMeta(badge_id));
                 let (title, description, award_rules) = match meta {
                     Some(m) => (m.title, m.description, m.award_rules),
                     None => (
@@ -433,7 +451,11 @@ impl AchievementBadge {
         let badge_found = env.storage().persistent().has(&DataKey::Badge(badge_id));
 
         if !badge_found {
-            return ClaimStatusSnapshot { badge_id, claimed: false, badge_found: false };
+            return ClaimStatusSnapshot {
+                badge_id,
+                claimed: false,
+                badge_found: false,
+            };
         }
 
         let badges: Vec<u64> = env
@@ -444,7 +466,11 @@ impl AchievementBadge {
 
         let claimed = badges.iter().any(|id| id == badge_id);
 
-        ClaimStatusSnapshot { badge_id, claimed, badge_found: true }
+        ClaimStatusSnapshot {
+            badge_id,
+            claimed,
+            badge_found: true,
+        }
     }
 }
 
@@ -536,7 +562,9 @@ mod test {
         let user = Address::generate(&env);
         let hash = make_hash(&env, 1);
 
-        assert!(client.try_define_badge(&admin, &1u64, &hash, &0i128).is_err());
+        assert!(client
+            .try_define_badge(&admin, &1u64, &hash, &0i128)
+            .is_err());
         assert!(client.try_evaluate_user(&admin, &user, &1u64).is_err());
         assert!(client.try_award_badge(&admin, &user, &1u64).is_err());
     }
@@ -830,7 +858,10 @@ mod test {
 
         let summary = client.get_badge_summary(&6u64);
         assert!(summary.found);
-        assert_eq!(summary.title, soroban_sdk::String::from_str(&env, "First Win"));
+        assert_eq!(
+            summary.title,
+            soroban_sdk::String::from_str(&env, "First Win")
+        );
         assert_eq!(
             summary.description,
             soroban_sdk::String::from_str(&env, "Win your first game")
