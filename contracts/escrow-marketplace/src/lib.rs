@@ -171,8 +171,7 @@ impl EscrowMarketplace {
         let now = env.ledger().timestamp();
         match storage::get_escrow(&env, escrow_id) {
             Some(r) => {
-                let is_active =
-                    matches!(r.status, EscrowLifecycleState::Locked) && !r.dispute_open;
+                let is_active = matches!(r.status, EscrowLifecycleState::Locked) && !r.dispute_open;
                 ActiveListingSnapshot {
                     escrow_id,
                     exists: true,
