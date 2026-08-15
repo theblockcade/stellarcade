@@ -9,13 +9,15 @@ import {
   Copy,
   Check,
   CheckCircle2,
-  XCircle,
-  HelpCircle,
   Dices,
   Sparkles,
 } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
 import { motion } from "framer-motion";
+
+import { Badge } from "../../../src/components/ui/badge";
+import { Button } from "../../../src/components/ui/button";
+import { PageHeader } from "../../../src/components/ui/page-header";
+import { cn } from "../../../src/lib/utils";
 import {
   verifyFairnessProof,
   FAIRNESS_TEST_VECTORS,
@@ -23,7 +25,6 @@ import {
   type VerificationInput,
   type TestVectorPreset,
 } from "../../../src/utils/fairness-verifier";
-import styles from "./verify.module.css";
 
 const DEFAULT_INPUT: VerificationInput = {
   serverSeed: FAIRNESS_TEST_VECTORS[0].input.serverSeed,
@@ -34,12 +35,75 @@ const DEFAULT_INPUT: VerificationInput = {
   rangeSize: 2,
 };
 
+/** Shared field chrome — dark glass input with an accent focus ring. */
+const FIELD_CLASS =
+  "w-full rounded-lg border border-border bg-background/60 px-3 py-2.5 font-mono text-[13px] text-foreground " +
+  "outline-none transition-colors placeholder:text-muted-foreground/60 " +
+  "focus-visible:border-primary/60 focus-visible:ring-[3px] focus-visible:ring-primary/20";
+
+function Field({
+  id,
+  label,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-semibold tracking-wide text-foreground">{label}</span>
+        {hint ? (
+          <span className="text-[10px] tracking-[0.1em] text-muted-foreground uppercase">{hint}</span>
+        ) : null}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function SectionCard({
+  id,
+  icon,
+  title,
+  className,
+  children,
+}: {
+  id: string;
+  icon: React.ReactNode;
+  title: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      aria-labelledby={id}
+      className={cn(
+        "flex flex-col rounded-2xl border border-border bg-card/60 backdrop-blur-sm",
+        className,
+      )}
+    >
+      <h2
+        id={id}
+        className="flex items-center gap-2 border-b border-border/70 px-5 py-4 text-sm font-semibold text-foreground [&_svg]:size-4.5 [&_svg]:text-primary"
+      >
+        {icon}
+        {title}
+      </h2>
+      <div className="flex flex-1 flex-col gap-4 p-5">{children}</div>
+    </section>
+  );
+}
+
 function VerifyPageContent() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState<VerificationInput>(DEFAULT_INPUT);
   const [result, setResult] = useState<FairnessVerificationOutcome | null>(null);
   const [copied, setCopied] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     if (!searchParams) return;
@@ -70,6 +134,7 @@ function VerifyPageContent() {
 
   useEffect(() => {
     runVerification();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input.serverSeed, input.commitHash, input.clientSeed, input.nonce, input.ledgerHash, input.rangeSize]);
 
   const handleApplyPreset = (preset: TestVectorPreset) => {
@@ -90,7 +155,7 @@ function VerifyPageContent() {
         input,
       },
       null,
-      2
+      2,
     );
     navigator.clipboard?.writeText(report);
     setCopied(true);
@@ -102,141 +167,107 @@ function VerifyPageContent() {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.75rem",
-        width: "100%",
-      }}
+      className="mx-auto flex w-full max-w-7xl flex-col gap-6"
     >
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <ShieldCheck size={32} style={{ color: "var(--sc-accent)" }} />
-          <h1 className={styles.title}>Provable Fairness Verifier</h1>
-        </div>
-        <p className={styles.subtitle}>
-          Verify the cryptographic fairness of any StellarCade game round client-side.
-          Recomputes SHA-256 seed commitments, entropy mixes, and game outcomes offline without
-          relying on server trust.
-        </p>
-      </div>
-
-      {/* Preset Selector */}
-      <section className={styles.presetBar} aria-labelledby="presets-heading">
-        <div className={styles.presetLabel} id="presets-heading">
-          Quick-Load Verified Test Vectors:
-        </div>
-        <div className={styles.presetButtons}>
+      <PageHeader
+        icon={<ShieldCheck />}
+        eyebrow={
+          <Badge variant="outline" className="gap-1.5 border-primary/40 text-primary">
+            <Sparkles className="size-3" aria-hidden />
+            Runs entirely in your browser
+          </Badge>
+        }
+        title="Provable Fairness Verifier"
+        description="Verify the cryptographic fairness of any StellarCade round client-side. Recomputes SHA-256 seed commitments, entropy mixes, and game outcomes offline — no server trust required."
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            Quick-load test vectors
+          </span>
           {FAIRNESS_TEST_VECTORS.map((preset) => (
             <button
               key={preset.id}
               type="button"
-              className={styles.presetBtn}
               onClick={() => handleApplyPreset(preset)}
               data-testid={`preset-${preset.id}`}
+              className="rounded-full border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
             >
               {preset.name}
             </button>
           ))}
         </div>
-      </section>
+      </PageHeader>
 
-      {/* Main Grid */}
-      <div className={styles.mainGrid}>
-        {/* Verification Form */}
-        <section className={styles.formCard} aria-labelledby="verifier-inputs-heading">
-          <div className={styles.cardHeading} id="verifier-inputs-heading">
-            <Dices size={18} style={{ color: "var(--sc-accent)" }} />
-            Round Proof Inputs
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="server-seed-input">
-              <span>Revealed Server Seed (Hex)</span>
-              <span className={styles.labelOptional}>Required</span>
-            </label>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <SectionCard id="verifier-inputs-heading" icon={<Dices />} title="Round Proof Inputs">
+          <Field id="server-seed-input" label="Revealed Server Seed (Hex)" hint="Required">
             <input
               id="server-seed-input"
-              className={styles.input}
+              className={FIELD_CLASS}
               type="text"
               placeholder="e.g. d9e87b92f..."
               value={input.serverSeed}
               onChange={(e) => setInput({ ...input, serverSeed: e.target.value })}
               data-testid="input-server-seed"
             />
-          </div>
+          </Field>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="commit-hash-input">
-              <span>Published Commitment Hash (SHA-256)</span>
-              <span className={styles.labelOptional}>Optional (Pre-bet hash)</span>
-            </label>
+          <Field
+            id="commit-hash-input"
+            label="Published Commitment Hash (SHA-256)"
+            hint="Optional · pre-bet hash"
+          >
             <input
               id="commit-hash-input"
-              className={styles.input}
+              className={FIELD_CLASS}
               type="text"
               placeholder="e.g. 0b15a6cfec..."
               value={input.commitHash || ""}
               onChange={(e) => setInput({ ...input, commitHash: e.target.value })}
               data-testid="input-commit-hash"
             />
-          </div>
+          </Field>
 
-          <div className={styles.row2}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.label} htmlFor="client-seed-input">
-                <span>Client Seed</span>
-              </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="client-seed-input" label="Client Seed">
               <input
                 id="client-seed-input"
-                className={styles.input}
+                className={FIELD_CLASS}
                 type="text"
                 value={input.clientSeed}
                 onChange={(e) => setInput({ ...input, clientSeed: e.target.value })}
                 data-testid="input-client-seed"
               />
-            </div>
+            </Field>
 
-            <div className={styles.fieldGroup}>
-              <label className={styles.label} htmlFor="nonce-input">
-                <span>Round Nonce</span>
-              </label>
+            <Field id="nonce-input" label="Round Nonce">
               <input
                 id="nonce-input"
-                className={styles.input}
+                className={FIELD_CLASS}
                 type="text"
                 value={String(input.nonce)}
                 onChange={(e) => setInput({ ...input, nonce: e.target.value })}
                 data-testid="input-nonce"
               />
-            </div>
+            </Field>
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="ledger-hash-input">
-              <span>Stellar Ledger Hash</span>
-            </label>
+          <Field id="ledger-hash-input" label="Stellar Ledger Hash">
             <input
               id="ledger-hash-input"
-              className={styles.input}
+              className={FIELD_CLASS}
               type="text"
               placeholder="e.g. 4b6c317db..."
               value={input.ledgerHash}
               onChange={(e) => setInput({ ...input, ledgerHash: e.target.value })}
               data-testid="input-ledger-hash"
             />
-          </div>
+          </Field>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="game-range-select">
-              <span>Game Outcome Space</span>
-            </label>
+          <Field id="game-range-select" label="Game Outcome Space">
             <select
               id="game-range-select"
-              className={styles.select}
+              className={cn(FIELD_CLASS, "font-sans")}
               value={input.rangeSize || 2}
               onChange={(e) => setInput({ ...input, rangeSize: Number(e.target.value) })}
               data-testid="select-game-range"
@@ -246,50 +277,56 @@ function VerifyPageContent() {
               <option value={100}>Number Guess / Percentile (100 outcomes: 1 to 100)</option>
               <option value={37}>Roulette (37 outcomes: 0 to 36)</option>
             </select>
-          </div>
+          </Field>
 
           <Button
             type="button"
+            variant="brand"
             onClick={runVerification}
-            style={{ marginTop: "0.5rem" }}
+            className="mt-auto self-start"
             data-testid="verify-execute-btn"
           >
-            <RotateCcw size={14} style={{ marginRight: "0.5rem" }} />
+            <RotateCcw />
             Recompute Proof
           </Button>
-        </section>
+        </SectionCard>
 
-        {/* Verification Results Panel */}
-        <section className={styles.resultsCard} aria-labelledby="verifier-results-heading">
-          <div className={styles.cardHeading} id="verifier-results-heading">
-            <Sparkles size={18} style={{ color: "var(--sc-accent)" }} />
-            Cryptographic Audit Results
-          </div>
-
+        <SectionCard
+          id="verifier-results-heading"
+          icon={<Sparkles />}
+          title="Cryptographic Audit Results"
+        >
           {result ? (
             <>
-              {/* Status Banner */}
               <div
-                className={`${styles.statusBanner} ${
-                  result.isValid ? styles.statusBannerValid : styles.statusBannerInvalid
-                }`}
                 data-testid="verification-status-banner"
+                className={cn(
+                  "flex items-start gap-3.5 rounded-xl border p-4",
+                  result.isValid
+                    ? "border-emerald-400/30 bg-emerald-400/5"
+                    : "border-rose-400/30 bg-rose-400/5",
+                )}
               >
                 {result.isValid ? (
-                  <CheckCircle2 size={28} />
+                  <CheckCircle2 className="mt-0.5 size-7 shrink-0 text-emerald-400" aria-hidden />
                 ) : (
-                  <ShieldAlert size={28} />
+                  <ShieldAlert className="mt-0.5 size-7 shrink-0 text-rose-400" aria-hidden />
                 )}
-                <div>
-                  <h3 className={styles.statusBannerTitle}>
+                <div className="min-w-0">
+                  <h3
+                    className={cn(
+                      "text-sm font-bold tracking-wide",
+                      result.isValid ? "text-emerald-400" : "text-rose-400",
+                    )}
+                  >
                     {result.isValid ? "PROVABLY FAIR VERIFIED" : "VERIFICATION FAILED"}
                   </h3>
                   {result.isValid && (
-                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--sc-accent, #00ffcc)", textTransform: "uppercase", marginTop: "2px" }}>
+                    <p className="mt-0.5 text-[11px] font-bold tracking-wide text-primary uppercase">
                       Commitment Verified
-                    </div>
+                    </p>
                   )}
-                  <p className={styles.statusBannerSubtitle}>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {result.isValid
                       ? "All seed commitments match and the outcome is cryptographically authentic."
                       : "The revealed seed material does not match the published commitments."}
@@ -297,56 +334,63 @@ function VerifyPageContent() {
                 </div>
               </div>
 
-              {/* Outcome Box */}
-              <div className={styles.outcomeBox} data-testid="verification-outcome-box">
-                <span className={styles.outcomeLabel}>Derived Outcome Value</span>
-                <span className={styles.outcomeValue} data-testid="outcome-value-text">
+              <div
+                data-testid="verification-outcome-box"
+                className="flex flex-col items-center gap-1 rounded-xl border border-primary/25 bg-primary/5 px-4 py-5 text-center"
+              >
+                <span className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                  Derived Outcome Value
+                </span>
+                <span
+                  data-testid="outcome-value-text"
+                  className="font-mono text-2xl font-bold text-primary"
+                >
                   {result.gameLabel}
                 </span>
-                <span style={{ fontSize: "0.75rem", color: "var(--sc-text-dim)" }}>
+                <span className="text-xs text-muted-foreground">
                   Modulo mapped from 256-bit entropy digest
                 </span>
               </div>
 
-              {/* Step by Step Breakdown */}
-              <div className={styles.stepList}>
+              <ol className="flex flex-col gap-2.5">
                 {result.steps.map((step, idx) => (
-                  <div key={idx} className={styles.stepItem} data-testid={`step-item-${idx}`}>
-                    <div className={styles.stepHeader}>
-                      <span className={styles.stepTitle}>{step.step}</span>
+                  <li
+                    key={idx}
+                    data-testid={`step-item-${idx}`}
+                    className="rounded-xl border border-border bg-background/40 p-3.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-foreground">{step.step}</span>
                       <span
-                        className={`${styles.stepTag} ${
-                          step.passed ? styles.stepPass : styles.stepFail
-                        }`}
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider",
+                          step.passed
+                            ? "bg-emerald-400/10 text-emerald-400"
+                            : "bg-rose-400/10 text-rose-400",
+                        )}
                       >
                         {step.passed ? "PASSED" : "FAILED"}
                       </span>
                     </div>
-                    <div className={styles.stepHash}>Actual: {step.actual}</div>
-                    <p className={styles.stepDetails}>{step.details}</p>
-                  </div>
+                    <p className="mt-2 truncate font-mono text-[11px] text-primary/80">
+                      Actual: {step.actual}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{step.details}</p>
+                  </li>
                 ))}
-              </div>
+              </ol>
 
-              {/* Copy Audit Report */}
-              <div className={styles.copyArea}>
-                <span style={{ fontSize: "0.8125rem", color: "var(--sc-text-dim)" }}>
-                  Export Proof Audit Summary
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCopyReport}
-                  data-testid="btn-copy-report"
-                >
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
+                <span className="text-[13px] text-muted-foreground">Export Proof Audit Summary</span>
+                <Button size="sm" variant="outline" onClick={handleCopyReport} data-testid="btn-copy-report">
                   {copied ? (
                     <>
-                      <Check size={14} style={{ marginRight: "0.4rem", color: "#4ade80" }} />
+                      <Check className="text-emerald-400" />
                       Copied!
                     </>
                   ) : (
                     <>
-                      <Copy size={14} style={{ marginRight: "0.4rem" }} />
+                      <Copy />
                       Copy Audit JSON
                     </>
                   )}
@@ -354,11 +398,9 @@ function VerifyPageContent() {
               </div>
             </>
           ) : (
-            <div style={{ color: "var(--sc-text-dim)", fontSize: "0.875rem" }}>
-              Evaluating proof...
-            </div>
+            <p className="text-sm text-muted-foreground">Evaluating proof…</p>
           )}
-        </section>
+        </SectionCard>
       </div>
     </motion.div>
   );
@@ -366,7 +408,7 @@ function VerifyPageContent() {
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<div style={{ padding: "2rem", color: "var(--sc-text-dim)" }}>Loading verifier...</div>}>
+    <Suspense fallback={<p className="p-8 text-sm text-muted-foreground">Loading verifier…</p>}>
       <VerifyPageContent />
     </Suspense>
   );

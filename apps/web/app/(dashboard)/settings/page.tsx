@@ -1,50 +1,173 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   Settings as SettingsIcon,
   Shield,
-  Volume2,
-  VolumeX,
-  Eye,
   Sliders,
   CheckCircle2,
   Trash2,
-  RefreshCw,
-  Lock,
 } from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
-import { useWalletStatus } from "../../../src/hooks/useWalletStatus";
 import { motion } from "framer-motion";
-import GlobalStateStore, {
+
+import { PageHeader } from "../../../src/components/ui/page-header";
+import { cn } from "../../../src/lib/utils";
+import {
   getTableDensityPreference,
   persistTableDensityPreference,
   type TableDensityPreference,
 } from "../../../src/services/global-state-store";
 
+/* ── Building blocks ────────────────────────────────────────────────────── */
+
+function SettingsCard({
+  icon,
+  title,
+  tone = "default",
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  tone?: "default" | "danger";
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
+      <h2
+        className={cn(
+          "flex items-center gap-2 border-b border-border/70 px-5 py-4 text-sm font-semibold text-foreground [&_svg]:size-4.5",
+          tone === "danger" ? "[&_svg]:text-destructive" : "[&_svg]:text-primary",
+        )}
+      >
+        {icon}
+        {title}
+      </h2>
+      <div className="divide-y divide-border/70">{children}</div>
+    </section>
+  );
+}
+
+function SettingRow({
+  title,
+  description,
+  control,
+}: {
+  title: string;
+  description: string;
+  control: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+      <div className="min-w-0 max-w-xl">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">{description}</p>
+      </div>
+      <div className="shrink-0">{control}</div>
+    </div>
+  );
+}
+
+/**
+ * A real `role="switch"` rather than a styled button with a text label.
+ * Screen readers announce on/off state from aria-checked, so the visible
+ * label no longer has to carry it.
+ */
+function Switch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors",
+        "focus-visible:ring-[3px] focus-visible:ring-primary/30 focus-visible:outline-none",
+        checked ? "border-primary bg-primary/25" : "border-border bg-background/60",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block size-4 rounded-full transition-transform",
+          checked ? "translate-x-6 bg-primary" : "translate-x-1 bg-muted-foreground",
+        )}
+        aria-hidden
+      />
+    </button>
+  );
+}
+
+function SegmentedChoice<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: ReadonlyArray<{ id: T; label: string }>;
+  onChange: (next: T) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="flex rounded-lg border border-border bg-background/50 p-0.5"
+    >
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onChange(option.id)}
+          aria-pressed={value === option.id}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+            value === option.id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ── Page ───────────────────────────────────────────────────────────────── */
+
+const DENSITY_OPTIONS = [
+  { id: "standard", label: "Standard" },
+  { id: "compact", label: "Compact" },
+] as const satisfies ReadonlyArray<{ id: TableDensityPreference; label: string }>;
+
 export default function SettingsPage() {
-  const wallet = useWalletStatus();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [autoVerify, setAutoVerify] = useState(true);
   const [tableDensity, setTableDensity] = useState<TableDensityPreference>("compact");
-  const [networkGuard, setNetworkGuard] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
-    const density = getTableDensityPreference("dashboard-surfaces");
-    setTableDensity(density);
+    setTableDensity(getTableDensityPreference("dashboard-surfaces"));
   }, []);
+
+  const triggerSaveAlert = () => {
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
+  };
 
   const handleDensityChange = (density: TableDensityPreference) => {
     setTableDensity(density);
     persistTableDensityPreference("dashboard-surfaces", density);
     triggerSaveAlert();
-  };
-
-  const triggerSaveAlert = () => {
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2500);
   };
 
   const handleClearCache = () => {
@@ -60,229 +183,86 @@ export default function SettingsPage() {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.75rem",
-        width: "100%",
-      }}
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))",
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-            <SettingsIcon size={28} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>System & Game Preferences</h1>
-          </div>
-          <p style={{ color: "var(--sc-text-dim, #94a3b8)", margin: 0, fontSize: "0.95rem" }}>
-            Configure client-side gameplay behavior, cryptographic auto-verification, audio, and session security.
-          </p>
-        </div>
+      <PageHeader
+        icon={<SettingsIcon />}
+        title="System & Game Preferences"
+        description="Configure client-side gameplay behavior, cryptographic auto-verification, audio, and session security."
+        actions={
+          savedSuccess ? (
+            <span
+              role="status"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3.5 py-1.5 text-[13px] font-semibold text-primary"
+            >
+              <CheckCircle2 className="size-4" aria-hidden />
+              Saved locally
+            </span>
+          ) : null
+        }
+      />
 
-        {savedSuccess && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 14px",
-              borderRadius: "999px",
-              background: "rgba(0, 255, 204, 0.15)",
-              color: "var(--sc-accent, #00ffcc)",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          >
-            <CheckCircle2 size={16} /> Saved locally
-          </div>
-        )}
-      </div>
+      <SettingsCard icon={<Shield />} title="Provable Fairness & Audio">
+        <SettingRow
+          title="Background SHA-256 Auto-Verification"
+          description="Automatically verify revealed server seed commitments client-side after every round."
+          control={
+            <Switch
+              checked={autoVerify}
+              label="Background SHA-256 auto-verification"
+              onChange={(next) => {
+                setAutoVerify(next);
+                triggerSaveAlert();
+              }}
+            />
+          }
+        />
+        <SettingRow
+          title="Arcade Sound FX & Cues"
+          description="Play audio effects on round reveals, dice rolls, and jackpot prize disbursements."
+          control={
+            <Switch
+              checked={soundEnabled}
+              label="Arcade sound effects"
+              onChange={(next) => {
+                setSoundEnabled(next);
+                triggerSaveAlert();
+              }}
+            />
+          }
+        />
+      </SettingsCard>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-        {/* Gameplay & Cryptography Settings */}
-        <div
-          style={{
-            background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
-            borderRadius: "16px",
-            border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))",
-            padding: "1.75rem",
-          }}
-        >
-          <h2 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 1.25rem 0", display: "flex", alignItems: "center", gap: "8px" }}>
-            <Shield size={20} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-            Provable Fairness & Audio
-          </h2>
+      <SettingsCard icon={<Sliders />} title="Display & Table Density">
+        <SettingRow
+          title="Data Table Row Density"
+          description="Adjust table spacing across Live Arena, Match History, and Leaderboards."
+          control={
+            <SegmentedChoice
+              label="Data table row density"
+              value={tableDensity}
+              options={DENSITY_OPTIONS}
+              onChange={handleDensityChange}
+            />
+          }
+        />
+      </SettingsCard>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <strong style={{ display: "block", fontSize: "0.95rem" }}>Background SHA-256 Auto-Verification</strong>
-                <span style={{ fontSize: "0.85rem", color: "var(--sc-text-dim, #94a3b8)" }}>
-                  Automatically verify revealed server seed commitments client-side after every round.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setAutoVerify(!autoVerify);
-                  triggerSaveAlert();
-                }}
-                style={{
-                  padding: "6px 16px",
-                  borderRadius: "999px",
-                  border: autoVerify ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.2)",
-                  background: autoVerify ? "rgba(0, 255, 204, 0.15)" : "transparent",
-                  color: autoVerify ? "#00ffcc" : "#fff",
-                  fontWeight: 700,
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
-                {autoVerify ? "Enabled" : "Disabled"}
-              </button>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <div>
-                <strong style={{ display: "block", fontSize: "0.95rem" }}>Arcade Sound FX & Cues</strong>
-                <span style={{ fontSize: "0.85rem", color: "var(--sc-text-dim, #94a3b8)" }}>
-                  Play audio effects on round reveals, dice rolls, and jackpot prize disbursements.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSoundEnabled(!soundEnabled);
-                  triggerSaveAlert();
-                }}
-                style={{
-                  padding: "6px 16px",
-                  borderRadius: "999px",
-                  border: soundEnabled ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.2)",
-                  background: soundEnabled ? "rgba(0, 255, 204, 0.15)" : "transparent",
-                  color: soundEnabled ? "#00ffcc" : "#fff",
-                  fontWeight: 700,
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
-                {soundEnabled ? "🔊 Sound On" : "🔇 Muted"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard Display & Table Density */}
-        <div
-          style={{
-            background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
-            borderRadius: "16px",
-            border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))",
-            padding: "1.75rem",
-          }}
-        >
-          <h2 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 1.25rem 0", display: "flex", alignItems: "center", gap: "8px" }}>
-            <Sliders size={20} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-            Display & Table Density
-          </h2>
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <strong style={{ display: "block", fontSize: "0.95rem" }}>Data Table Row Density</strong>
-              <span style={{ fontSize: "0.85rem", color: "var(--sc-text-dim, #94a3b8)" }}>
-                Adjust table spacing across Live Arena, Match History, and Leaderboards.
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: "6px" }}>
-              <button
-                type="button"
-                onClick={() => handleDensityChange("standard")}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: "8px",
-                  border: tableDensity === "standard" ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.1)",
-                  background: tableDensity === "standard" ? "rgba(0, 255, 204, 0.15)" : "transparent",
-                  color: tableDensity === "standard" ? "#00ffcc" : "#fff",
-                  fontWeight: 600,
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
-                Standard
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDensityChange("compact")}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: "8px",
-                  border: tableDensity === "compact" ? "1px solid #00ffcc" : "1px solid rgba(255,255,255,0.1)",
-                  background: tableDensity === "compact" ? "rgba(0, 255, 204, 0.15)" : "transparent",
-                  color: tableDensity === "compact" ? "#00ffcc" : "#fff",
-                  fontWeight: 600,
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
-                Compact
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Local Storage & Session Data */}
-        <div
-          style={{
-            background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
-            borderRadius: "16px",
-            border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))",
-            padding: "1.75rem",
-          }}
-        >
-          <h2 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 1.25rem 0", display: "flex", alignItems: "center", gap: "8px" }}>
-            <Trash2 size={20} style={{ color: "#ef4444" }} />
-            Session Storage & Cache
-          </h2>
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <strong style={{ display: "block", fontSize: "0.95rem" }}>Clear Cached Context & Toolbars</strong>
-              <span style={{ fontSize: "0.85rem", color: "var(--sc-text-dim, #94a3b8)" }}>
-                Reset dismissed onboarding tooltips, search filters, and draft inputs stored in browser storage.
-              </span>
-            </div>
+      <SettingsCard icon={<Trash2 />} title="Session Storage & Cache" tone="danger">
+        <SettingRow
+          title="Clear Cached Context & Toolbars"
+          description="Reset dismissed onboarding tooltips, search filters, and draft inputs stored in browser storage."
+          control={
             <button
               type="button"
               onClick={handleClearCache}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "8px",
-                border: "1px solid rgba(239, 68, 68, 0.4)",
-                background: "rgba(239, 68, 68, 0.1)",
-                color: "#f87171",
-                fontWeight: 600,
-                fontSize: "13px",
-                cursor: "pointer",
-              }}
+              className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2 text-[13px] font-semibold text-rose-400 transition-colors hover:bg-destructive/20"
             >
               Clear Local Cache
             </button>
-          </div>
-        </div>
-      </div>
+          }
+        />
+      </SettingsCard>
     </motion.div>
   );
 }

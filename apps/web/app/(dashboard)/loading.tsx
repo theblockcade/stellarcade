@@ -1,173 +1,82 @@
 import React from "react";
 
+import { Skeleton } from "../../src/components/ui/skeleton";
+
+/**
+ * Route-group loading state. The block layout deliberately mirrors the real
+ * dashboard (masthead → four KPI tiles → chart grid) so the page doesn't
+ * visibly re-flow when the content swaps in.
+ */
 export default function DashboardLoading() {
   return (
     <div
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        padding: "1.5rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: "2rem",
-      }}
       data-testid="dashboard-loading-skeleton"
+      className="mx-auto flex w-full max-w-7xl flex-col gap-6"
+      aria-busy="true"
+      aria-live="polite"
     >
-      {/* Top Banner Shimmer */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <div
-            style={{
-              width: "180px",
-              height: "28px",
-              borderRadius: "8px",
-              background: "linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(0,255,204,0.08) 50%, rgba(255,255,255,0.04) 75%)",
-              backgroundSize: "200% 100%",
-              animation: "shimmer 1.8s infinite linear",
-            }}
-          />
-          <div
-            style={{
-              width: "320px",
-              height: "16px",
-              borderRadius: "6px",
-              background: "rgba(255, 255, 255, 0.04)",
-            }}
-          />
-        </div>
+      <span className="sr-only">Loading dashboard…</span>
 
-        <div
-          style={{
-            width: "140px",
-            height: "38px",
-            borderRadius: "999px",
-            background: "rgba(255, 255, 255, 0.05)",
-          }}
-        />
+      {/* Masthead */}
+      <div className="rounded-2xl border border-border bg-card/50 p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex flex-col gap-2.5">
+            <Skeleton className="h-5 w-40 rounded-full" />
+            <Skeleton className="h-8 w-56" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-32 rounded-full" />
+            <Skeleton className="h-8 w-36 rounded-full" />
+          </div>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton key={i} className="h-7 w-28 rounded-full" />
+          ))}
+        </div>
       </div>
 
-      {/* KPI Cards Grid Shimmer */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "1.25rem",
-        }}
-      >
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            style={{
-              background: "rgba(255, 255, 255, 0.03)",
-              borderRadius: "16px",
-              border: "1px solid rgba(255, 255, 255, 0.06)",
-              padding: "1.5rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <div
-                style={{
-                  width: "90px",
-                  height: "18px",
-                  borderRadius: "4px",
-                  background: "rgba(255, 255, 255, 0.08)",
-                }}
-              />
-              <div
-                style={{
-                  width: "40px",
-                  height: "14px",
-                  borderRadius: "4px",
-                  background: "rgba(0, 255, 204, 0.1)",
-                }}
-              />
+      {/* KPI tiles */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="rounded-xl border border-border bg-card/60 p-4">
+            <div className="flex items-start justify-between">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="size-4 rounded" />
             </div>
-            <div
-              style={{
-                width: "140px",
-                height: "28px",
-                borderRadius: "6px",
-                background: "rgba(255, 255, 255, 0.06)",
-              }}
-            />
-            <div
-              style={{
-                width: "100%",
-                height: "12px",
-                borderRadius: "4px",
-                background: "rgba(255, 255, 255, 0.04)",
-              }}
-            />
+            <Skeleton className="mt-3 h-8 w-32" />
+            <Skeleton className="mt-2 h-3 w-28" />
+            <Skeleton className="mt-3 h-10 w-full" />
           </div>
         ))}
       </div>
 
-      {/* Main Content Area Shimmer */}
-      <div
-        style={{
-          background: "rgba(255, 255, 255, 0.02)",
-          borderRadius: "16px",
-          border: "1px solid rgba(255, 255, 255, 0.06)",
-          padding: "2rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1.25rem",
-          minHeight: "320px",
-        }}
-      >
-        <div
-          style={{
-            width: "220px",
-            height: "22px",
-            borderRadius: "6px",
-            background: "rgba(255, 255, 255, 0.06)",
-          }}
-        />
-        <div
-          style={{
-            width: "100%",
-            height: "50px",
-            borderRadius: "10px",
-            background: "rgba(255, 255, 255, 0.03)",
-          }}
-        />
-        <div
-          style={{
-            width: "100%",
-            height: "50px",
-            borderRadius: "10px",
-            background: "rgba(255, 255, 255, 0.03)",
-          }}
-        />
-        <div
-          style={{
-            width: "100%",
-            height: "50px",
-            borderRadius: "10px",
-            background: "rgba(255, 255, 255, 0.03)",
-          }}
-        />
-      </div>
+      {/* Chart grid */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-card/60 xl:col-span-2">
+          <div className="flex items-center justify-between border-b border-border/70 px-5 py-4">
+            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-7 w-32 rounded-lg" />
+          </div>
+          <div className="p-5">
+            <Skeleton className="h-64 w-full sm:h-72" />
+          </div>
+        </div>
 
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
+        <div className="rounded-2xl border border-border bg-card/60">
+          <div className="border-b border-border/70 px-5 py-4">
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <div className="flex flex-col items-center gap-4 p-5">
+            <Skeleton className="size-40 rounded-full" />
+            <div className="grid w-full grid-cols-2 gap-3">
+              <Skeleton className="h-16 rounded-lg" />
+              <Skeleton className="h-16 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,192 +1,175 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import {
-  History,
-  ShieldCheck,
-  ArrowRight,
-  ExternalLink,
-  Coins,
-  Dices,
-  Trophy,
-} from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
-import { useWalletStatus } from "../../../src/hooks/useWalletStatus";
+import { History, ShieldCheck, Coins, Dices, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface MatchRecord {
-  id: string;
-  game: string;
-  gameType: "coinflip" | "dice" | "gauntlet";
-  wagerXlm: number;
-  outcome: "WIN" | "LOSS";
-  payoutXlm: number;
-  serverSeed: string;
-  commitHash: string;
-  clientSeed: string;
-  nonce: number;
-  rangeSize: number;
-  timestamp: string;
-}
+import { Button } from "../../../src/components/ui/button";
+import { EmptyState } from "../../../src/components/ui/empty-state";
+import { PageHeader } from "../../../src/components/ui/page-header";
+import { StatTile } from "../../../src/components/ui/stat-tile";
+import { cn } from "../../../src/lib/utils";
+import { useSettledRounds, type SettledRound } from "../../../src/services/player-data";
 
-const RECENT_MATCHES: MatchRecord[] = [
-  {
-    id: "cf-104859",
-    game: "Coinflip Duel",
-    gameType: "coinflip",
-    wagerXlm: 25,
-    outcome: "WIN",
-    payoutXlm: 49,
-    serverSeed: "d4e5f601728394a5b6c7d8e9f0123456789abcdef0123456789abcdef0123456",
-    commitHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    clientSeed: "GBZXN7PIRZGNMHGA72STUFIO-4921",
-    nonce: 1,
-    rangeSize: 2,
-    timestamp: "10 mins ago",
-  },
-  {
-    id: "dice-49281",
-    game: "Verifiable Dice Roll",
-    gameType: "dice",
-    wagerXlm: 10,
-    outcome: "LOSS",
-    payoutXlm: 0,
-    serverSeed: "a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0",
-    commitHash: "c8996fb92427ae41e4649b934ca495991b7852b855e3b0c44298fc1c149afbf4",
-    clientSeed: "DICE-PLAYER-ENTROPY-88",
-    nonce: 2,
-    rangeSize: 6,
-    timestamp: "25 mins ago",
-  },
-  {
-    id: "cf-104842",
-    game: "Coinflip Duel",
-    gameType: "coinflip",
-    wagerXlm: 50,
-    outcome: "WIN",
-    payoutXlm: 98,
-    serverSeed: "9876543210fedcba0123456789abcdef0123456789abcdef0123456789abcdef",
-    commitHash: "4ca495991b7852b855e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b93",
-    clientSeed: "GBZXN7PIRZGNMHGA72STUFIO-4921",
-    nonce: 3,
-    rangeSize: 2,
-    timestamp: "1 hour ago",
-  },
-];
+const GAME_ICON: Record<SettledRound["gameType"], React.ElementType> = {
+  coinflip: Coins,
+  dice: Dices,
+  gauntlet: Trophy,
+};
 
 export default function HistoryPage() {
-  const wallet = useWalletStatus();
+  const { items: rounds } = useSettledRounds();
+
+  const settled = rounds.length;
+  const hasRounds = settled > 0;
+  const wins = rounds.filter((m) => m.outcome === "WIN").length;
+  const netXlm = rounds.reduce((sum, m) => sum + m.payoutXlm - m.wagerXlm, 0);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.75rem",
-        width: "100%",
-      }}
+      className="mx-auto flex w-full max-w-7xl flex-col gap-6"
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          gap: "1rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))",
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-            <History size={30} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>Match History & Proofs</h1>
-          </div>
-          <p style={{ color: "var(--sc-text-dim, #94a3b8)", margin: 0, fontSize: "1rem" }}>
-            Review your on-chain gameplay history and independently verify the SHA-256 commit-reveal proof for any settled round.
-          </p>
-        </div>
+      <PageHeader
+        icon={<History />}
+        title="Match History & Proofs"
+        description="Review your on-chain gameplay history and independently verify the SHA-256 commit-reveal proof for any settled round."
+        actions={
+          <Button asChild variant="brand" size="sm">
+            <Link href="/verify">
+              <ShieldCheck />
+              Open Fairness Verifier
+            </Link>
+          </Button>
+        }
+      />
 
-        <Button asChild variant="brand" size="sm">
-          <Link href="/verify">
-            <ShieldCheck size={16} style={{ marginRight: "6px" }} /> Open Fairness Verifier
-          </Link>
-        </Button>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatTile
+          label="Rounds settled"
+          value={String(settled)}
+          empty={!hasRounds}
+          caption={hasRounds ? "In this window" : "Nothing settled on this wallet"}
+        />
+        <StatTile
+          label="Win rate"
+          value={`${hasRounds ? Math.round((wins / settled) * 100) : 0}%`}
+          empty={!hasRounds}
+          trend={hasRounds && wins * 2 >= settled ? "up" : "down"}
+          caption={hasRounds ? `${wins} of ${settled} rounds won` : "Needs at least one round"}
+        />
+        <StatTile
+          label="Net result"
+          value={`${netXlm >= 0 ? "+" : ""}${netXlm} XLM`}
+          empty={!hasRounds}
+          trend={netXlm > 0 ? "up" : netXlm < 0 ? "down" : "flat"}
+          caption={hasRounds ? "Payout minus wagers" : "Nothing wagered yet"}
+        />
       </div>
 
-      {/* History Table */}
-      <div
-        style={{
-          background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
-          borderRadius: "16px",
-          border: "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))",
-          overflow: "hidden",
-        }}
+      <section
+        aria-labelledby="match-history-heading"
+        className="overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm"
       >
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem", textAlign: "left" }}>
-            <thead>
-              <tr style={{ background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.06)", color: "var(--sc-text-dim, #94a3b8)" }}>
-                <th style={{ padding: "14px 16px" }}>Game</th>
-                <th style={{ padding: "14px 16px" }}>Wager</th>
-                <th style={{ padding: "14px 16px" }}>Result</th>
-                <th style={{ padding: "14px 16px" }}>Payout</th>
-                <th style={{ padding: "14px 16px" }}>Settled</th>
-                <th style={{ padding: "14px 16px", textAlign: "right" }}>Cryptographic Audit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {RECENT_MATCHES.map((m) => (
-                <tr key={m.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                  <td style={{ padding: "14px 16px" }}>
-                    <strong style={{ display: "block", color: "#fff" }}>{m.game}</strong>
-                    <span style={{ fontSize: "11px", color: "var(--sc-text-dim, #94a3b8)", fontFamily: "monospace" }}>
-                      ID: {m.id}
-                    </span>
-                  </td>
-                  <td style={{ padding: "14px 16px", fontWeight: 600 }}>{m.wagerXlm} XLM</td>
-                  <td style={{ padding: "14px 16px" }}>
-                    <span
-                      style={{
-                        padding: "3px 8px",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        background: m.outcome === "WIN" ? "rgba(0, 255, 204, 0.15)" : "rgba(239, 68, 68, 0.15)",
-                        color: m.outcome === "WIN" ? "var(--sc-accent, #00ffcc)" : "#f87171",
-                      }}
-                    >
-                      {m.outcome}
-                    </span>
-                  </td>
-                  <td style={{ padding: "14px 16px", fontWeight: 700, color: m.outcome === "WIN" ? "var(--sc-accent, #00ffcc)" : "#fff" }}>
-                    {m.payoutXlm > 0 ? `+${m.payoutXlm} XLM` : "0 XLM"}
-                  </td>
-                  <td style={{ padding: "14px 16px", color: "var(--sc-text-dim, #94a3b8)" }}>{m.timestamp}</td>
-                  <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                    <Button asChild variant="outline" size="sm">
-                      <Link
-                        href={`/verify?serverSeed=${m.serverSeed}&commitHash=${m.commitHash}&clientSeed=${m.clientSeed}&nonce=${m.nonce}&rangeSize=${m.rangeSize}`}
-                      >
-                        <ShieldCheck size={14} style={{ marginRight: "4px", color: "var(--sc-accent, #00ffcc)" }} />
-                        Verify Proof
-                      </Link>
-                    </Button>
-                  </td>
+        <header className="border-b border-border/70 px-5 py-4">
+          <h2 id="match-history-heading" className="text-sm font-semibold text-foreground">
+            Settled Rounds
+          </h2>
+        </header>
+
+        {!hasRounds ? (
+          <EmptyState
+            size="lg"
+            icon={History}
+            title="No rounds settled yet"
+            body="Every round you play lands here with its commit-reveal proof attached, so you can re-verify any result yourself. Nothing has settled on this wallet so far."
+            action={
+              <Button asChild size="sm" variant="brand">
+                <Link href="/games">Play a game</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-200 text-sm">
+              <thead>
+                <tr className="border-b border-border/70 text-[11px] tracking-wide text-muted-foreground uppercase">
+                  <th scope="col" className="px-5 py-3 text-left font-semibold">Game</th>
+                  <th scope="col" className="px-5 py-3 text-right font-semibold">Wager</th>
+                  <th scope="col" className="px-5 py-3 text-left font-semibold">Result</th>
+                  <th scope="col" className="px-5 py-3 text-right font-semibold">Payout</th>
+                  <th scope="col" className="px-5 py-3 text-left font-semibold">Settled</th>
+                  <th scope="col" className="px-5 py-3 text-right font-semibold">
+                    Cryptographic Audit
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-border/70">
+                {rounds.map((m) => {
+                  const Icon = GAME_ICON[m.gameType];
+                  const isWin = m.outcome === "WIN";
+                  return (
+                    <tr key={m.id} className="transition-colors hover:bg-primary/5">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <Icon className="size-4" aria-hidden />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground">{m.game}</p>
+                            <p className="font-mono text-[11px] text-muted-foreground">
+                              ID: {m.id}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono font-semibold tabular-nums text-foreground">
+                        {m.wagerXlm} XLM
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wider",
+                            isWin
+                              ? "bg-emerald-400/10 text-emerald-400"
+                              : "bg-rose-400/10 text-rose-400",
+                          )}
+                        >
+                          {m.outcome}
+                        </span>
+                      </td>
+                      <td
+                        className={cn(
+                          "px-5 py-3.5 text-right font-mono font-bold tabular-nums",
+                          isWin ? "text-emerald-400" : "text-muted-foreground",
+                        )}
+                      >
+                        {m.payoutXlm > 0 ? `+${m.payoutXlm} XLM` : "0 XLM"}
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground">
+                        {new Date(m.settledAt).toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <Button asChild variant="outline" size="sm">
+                          <Link
+                            href={`/verify?serverSeed=${m.serverSeed}&commitHash=${m.commitHash}&clientSeed=${m.clientSeed}&nonce=${m.nonce}&rangeSize=${m.rangeSize}`}
+                          >
+                            <ShieldCheck className="text-primary" />
+                            Verify Proof
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </motion.div>
   );
 }

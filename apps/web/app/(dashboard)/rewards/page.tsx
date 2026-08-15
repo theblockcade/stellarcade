@@ -2,57 +2,21 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import {
-  Coins,
-  Trophy,
-  Award,
-  Sparkles,
-  ArrowRight,
-  CheckCircle2,
-  Lock,
-} from "lucide-react";
-import { Button } from "../../../src/components/ui/button";
-import { useWalletStatus } from "../../../src/hooks/useWalletStatus";
+import { Coins, CheckCircle2, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface RewardItem {
-  id: string;
-  title: string;
-  source: string;
-  amountXlm: number;
-  status: "claimable" | "claimed" | "locked";
-  expiry: string;
-}
-
-const REWARDS: RewardItem[] = [
-  {
-    id: "rew-1",
-    title: "Weekly Tournament Top 10 Split",
-    source: "Weekly Soroban Gauntlet",
-    amountXlm: 125,
-    status: "claimable",
-    expiry: "6 days remaining",
-  },
-  {
-    id: "rew-2",
-    title: "Quest Milestone: Provable Fairness Auditor",
-    source: "Daily Quests",
-    amountXlm: 15,
-    status: "claimable",
-    expiry: "23 hours remaining",
-  },
-  {
-    id: "rew-3",
-    title: "Community Vault Season 1 Jackpot",
-    source: "Prize Pool Vault",
-    amountXlm: 250,
-    status: "locked",
-    expiry: "Draw in 2 days",
-  },
-];
+import { Badge } from "../../../src/components/ui/badge";
+import { Button } from "../../../src/components/ui/button";
+import { EmptyState } from "../../../src/components/ui/empty-state";
+import { PageHeader } from "../../../src/components/ui/page-header";
+import { StatTile } from "../../../src/components/ui/stat-tile";
+import { cn } from "../../../src/lib/utils";
+import { useWalletStatus } from "../../../src/hooks/useWalletStatus";
+import { useClaimableRewards, type RewardItem } from "../../../src/services/player-data";
 
 export default function RewardsPage() {
   const wallet = useWalletStatus();
+  const { items: rewards } = useClaimableRewards();
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedIds, setClaimedIds] = useState<string[]>([]);
 
@@ -71,142 +35,141 @@ export default function RewardsPage() {
     }
   };
 
+  const hasRewards = rewards.length > 0;
+  const claimableTotal = rewards
+    .filter((r) => r.status === "claimable" && !claimedIds.includes(r.id))
+    .reduce((sum, r) => sum + r.amountXlm, 0);
+  const claimedTotal = rewards
+    .filter((r) => claimedIds.includes(r.id))
+    .reduce((sum, r) => sum + r.amountXlm, 0);
+  const lockedTotal = rewards
+    .filter((r) => r.status === "locked")
+    .reduce((sum, r) => sum + r.amountXlm, 0);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.75rem",
-        width: "100%",
-      }}
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          gap: "1rem",
-          marginBottom: "2rem",
-          paddingBottom: "1.5rem",
-          borderBottom: "1px solid var(--sc-border-glass, rgba(255,255,255,0.1))",
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-            <Coins size={30} style={{ color: "var(--sc-accent, #00ffcc)" }} />
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>Claimable Rewards & Vaults</h1>
-          </div>
-          <p style={{ color: "var(--sc-text-dim, #94a3b8)", margin: 0, fontSize: "1rem" }}>
-            Withdraw your tournament prizes, quest payouts, and accumulated jackpot shares directly to your connected wallet.
-          </p>
-        </div>
+      <PageHeader
+        icon={<Coins />}
+        title="Claimable Rewards & Vaults"
+        description="Withdraw your tournament prizes, quest payouts, and accumulated jackpot shares directly to your connected wallet."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/portfolio">View Portfolio</Link>
+          </Button>
+        }
+      />
 
-        <Button asChild variant="outline" size="sm">
-          <Link href="/portfolio">View Portfolio</Link>
-        </Button>
+      {/* These read empty rather than showing sample balances: a placeholder
+          "125 XLM claimable" is money the player does not have. */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatTile
+          label="Ready to claim"
+          value={`${claimableTotal.toLocaleString()} XLM`}
+          empty={!hasRewards}
+          trend={claimableTotal > 0 ? "up" : "flat"}
+          caption={hasRewards ? "Available now" : "Nothing to claim yet"}
+          icon={<Coins />}
+        />
+        <StatTile
+          label="Disbursed"
+          value={`${claimedTotal.toLocaleString()} XLM`}
+          empty={!hasRewards}
+          caption={hasRewards ? "This session" : "No payouts yet"}
+          icon={<CheckCircle2 />}
+        />
+        <StatTile
+          label="Locked in vault"
+          value={`${lockedTotal.toLocaleString()} XLM`}
+          empty={!hasRewards}
+          caption={hasRewards ? "Releases at epoch close" : "No vault balance yet"}
+          icon={<Lock />}
+        />
       </div>
 
-      {/* Rewards Grid */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        {REWARDS.map((rew, idx) => {
-          const isClaimed = claimedIds.includes(rew.id);
-          const isProcessing = claimingId === rew.id;
+      {!hasRewards ? (
+        <section className="rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
+          <EmptyState
+            size="lg"
+            icon={Coins}
+            title="No rewards to claim yet"
+            body="Tournament prizes, quest payouts and jackpot shares land here as they are awarded, and settle straight to your wallet from the prize-pool contract. You have not earned any yet."
+            action={
+              <Button asChild size="sm" variant="brand">
+                <Link href="/games">Start playing</Link>
+              </Button>
+            }
+          />
+        </section>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {rewards.map((rew, idx) => {
+            const isClaimed = claimedIds.includes(rew.id);
+            const isProcessing = claimingId === rew.id;
+            const isClaimable = rew.status === "claimable" && !isClaimed;
 
-          return (
-            <motion.div
-              key={rew.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: idx * 0.08 }}
-              style={{
-                background: "var(--sc-bg-card, rgba(255,255,255,0.04))",
-                borderRadius: "16px",
-                border: rew.status === "claimable" && !isClaimed
-                  ? "1px solid var(--sc-accent, #00ffcc)"
-                  : "1px solid var(--sc-border-glass, rgba(255,255,255,0.08))",
-                padding: "1.5rem",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
-              }}
-            >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      padding: "2px 8px",
-                      borderRadius: "4px",
-                      background: rew.status === "claimable" ? "rgba(0, 255, 204, 0.15)" : "rgba(255, 255, 255, 0.08)",
-                      color: rew.status === "claimable" ? "var(--sc-accent, #00ffcc)" : "#cbd5e1",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {rew.source}
-                  </span>
-                  <span style={{ fontSize: "12px", color: "var(--sc-text-dim, #94a3b8)" }}>
-                    {rew.expiry}
-                  </span>
+            return (
+              <motion.li
+                key={rew.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: idx * 0.08 }}
+                className={cn(
+                  "flex flex-wrap items-center justify-between gap-5 rounded-2xl border bg-card/60 p-5 backdrop-blur-sm",
+                  isClaimable ? "border-primary/50" : "border-border",
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "rounded-md",
+                        isClaimable ? "border-primary/40 text-primary" : "text-muted-foreground",
+                      )}
+                    >
+                      {rew.source}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{rew.expiry}</span>
+                  </div>
+
+                  <h2 className="mt-2 text-base font-bold text-foreground">{rew.title}</h2>
+                  <p className="mt-0.5 font-mono text-xl font-bold tabular-nums text-primary">
+                    {rew.amountXlm.toLocaleString()} XLM
+                  </p>
                 </div>
 
-                <h3 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 4px 0" }}>{rew.title}</h3>
-                <span style={{ fontSize: "1.25rem", color: "var(--sc-accent, #00ffcc)", fontWeight: 800 }}>
-                  {rew.amountXlm} XLM
-                </span>
-              </div>
-
-              <div>
-                {isClaimed ? (
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      fontSize: "14px",
-                      color: "var(--sc-accent, #00ffcc)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <CheckCircle2 size={18} /> Payout Disbursed
-                  </span>
-                ) : rew.status === "claimable" ? (
-                  <button
-                    type="button"
-                    onClick={() => handleClaim(rew)}
-                    disabled={isProcessing}
-                    style={{
-                      padding: "10px 22px",
-                      borderRadius: "8px",
-                      background: "var(--sc-accent, #00ffcc)",
-                      color: "#000",
-                      fontWeight: 700,
-                      fontSize: "14px",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {isProcessing ? "Signing on Soroban..." : "Claim Payout"}
-                  </button>
-                ) : (
-                  <span style={{ fontSize: "13px", color: "var(--sc-text-dim, #94a3b8)", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <Lock size={14} /> Locked until Epoch Close
-                  </span>
-                )}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+                <div className="shrink-0">
+                  {isClaimed ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                      <CheckCircle2 className="size-4.5" aria-hidden />
+                      Payout Disbursed
+                    </span>
+                  ) : rew.status === "claimable" ? (
+                    <Button
+                      type="button"
+                      variant="brand"
+                      onClick={() => handleClaim(rew)}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? "Signing on Soroban…" : "Claim Payout"}
+                    </Button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                      <Lock className="size-4" aria-hidden />
+                      Locked until Epoch Close
+                    </span>
+                  )}
+                </div>
+              </motion.li>
+            );
+          })}
+        </ul>
+      )}
     </motion.div>
   );
 }

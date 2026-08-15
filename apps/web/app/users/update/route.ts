@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+
+import { isStellarPublicKey } from '@/utils/validation';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,6 +24,8 @@ interface StoredProfile {
   telegramLinked?: boolean;
   createdAt: string;
   updatedAt?: string;
+  /** ISO timestamp of the player's 18-or-over confirmation. */
+  ageConfirmedAt?: string;
 }
 
 function readProfiles(): Record<string, StoredProfile> {
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
   try {
     const rawText = await request.text();
     const body = rawText ? JSON.parse(rawText) : {};
-    const { address, username, telegramHandle, telegramUserId } = body || {};
+    const { address, username, telegramHandle, telegramUserId, ageConfirmed } = body || {};
 
     if (!address || !username) {
       return NextResponse.json(
@@ -68,8 +72,13 @@ export async function POST(request: Request) {
 
     // Enforce Username Uniqueness across all registered players (case-insensitive)
     const normalizedUsername = trimmedName.toLowerCase();
+    // Only real wallets reserve a username — see the note in create/route.ts
+    // about the 'G_GUEST_PLAYER' sentinel rows an older client path wrote.
     const duplicate = Object.values(profiles).find(
-      (p) => p.address !== address && p.username?.trim().toLowerCase() === normalizedUsername
+      (p) =>
+        p.address !== address &&
+        isStellarPublicKey(p.address) &&
+        p.username?.trim().toLowerCase() === normalizedUsername
     );
 
     if (duplicate) {
@@ -91,6 +100,12 @@ export async function POST(request: Request) {
       username: trimmedName,
       ...(telegramHandle ? { telegramHandle } : {}),
       ...(telegramUserId ? { telegramUserId, telegramLinked: true } : {}),
+      // Records the 18+ confirmation for a profile created before the age
+      // gate existed. Only ever set, never cleared, and only on an explicit
+      // `true` — absence must not read as consent.
+      ...(ageConfirmed === true && !existing.ageConfirmedAt
+        ? { ageConfirmedAt: new Date().toISOString() }
+        : {}),
       updatedAt: new Date().toISOString(),
     };
 

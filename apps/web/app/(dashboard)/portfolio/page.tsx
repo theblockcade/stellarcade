@@ -17,10 +17,8 @@ export default function PortfolioPage() {
   return (
     <Portfolio
       onOpenWallet={() => router.push("/profile")}
-      // There is no dedicated /games route (see AppShell's routeToPath) —
-      // GameLobby at /app serves both the lobby and the games concern.
-      onBrowseRewards={() => router.push("/app")}
-      onBrowseCollectibles={() => router.push("/app")}
+      onBrowseRewards={() => router.push("/rewards")}
+      onBrowseCollectibles={() => router.push("/quests")}
     />
   );
 }
