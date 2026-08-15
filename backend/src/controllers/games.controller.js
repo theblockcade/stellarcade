@@ -72,7 +72,7 @@ const playSimpleGame = async (req, res, next) => {
   try {
     const { gameType, gameId, wager, amount, choice, side } = req.body;
     const resolvedGameType = gameType || gameId || 'coin-flip';
-    const resolvedWager = wager !== undefined ? wager : (amount !== undefined ? amount : 0);
+    const resolvedWager = wager !== undefined ? wager : amount !== undefined ? amount : 0;
     const resolvedChoice = choice || side || 'heads';
 
     const result = await gameService.playSimpleGame({
