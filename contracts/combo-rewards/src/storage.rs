@@ -13,7 +13,9 @@ pub fn set_config(env: &Env, cfg: &ComboRewardsConfig) {
 }
 
 pub fn get_player(env: &Env, player: &Address) -> Option<StreakComboRecord> {
-    env.storage().persistent().get(&DataKey::Player(player.clone()))
+    env.storage()
+        .persistent()
+        .get(&DataKey::Player(player.clone()))
 }
 
 pub fn set_player(env: &Env, record: &StreakComboRecord) {
