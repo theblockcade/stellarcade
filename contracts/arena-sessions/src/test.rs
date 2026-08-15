@@ -37,7 +37,10 @@ fn test_session_status_and_completion_happy_path() {
 
     let summary_before_completion = client.player_summary(&player);
     assert!(summary_before_completion.exists);
-    assert_eq!(summary_before_completion.active_session_id, Some(session_id));
+    assert_eq!(
+        summary_before_completion.active_session_id,
+        Some(session_id)
+    );
     assert_eq!(summary_before_completion.total_started, 1);
     assert_eq!(summary_before_completion.completed_count, 0);
     assert_eq!(summary_before_completion.expired_count, 0);
