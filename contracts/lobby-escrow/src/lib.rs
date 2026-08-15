@@ -19,8 +19,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    EscrowConfig, EscrowCoverageSummary, EscrowState, ParticipantStake,
-    ReleaseDelayInfo, ReleaseDelayState,
+    EscrowConfig, EscrowCoverageSummary, EscrowState, ParticipantStake, ReleaseDelayInfo,
+    ReleaseDelayState,
 };
 
 #[contracttype]
@@ -99,16 +99,10 @@ impl LobbyEscrow {
     /// only contribute once — subsequent calls revert so the aggregate
     /// counters stay consistent. A paused or already-released escrow
     /// rejects new deposits.
-    pub fn fund(
-        env: Env,
-        participant: Address,
-        escrow_id: u32,
-        amount: u128,
-    ) {
+    pub fn fund(env: Env, participant: Address, escrow_id: u32, amount: u128) {
         participant.require_auth();
         assert!(amount > 0, "amount must be positive");
-        let mut escrow =
-            storage::get_escrow(&env, escrow_id).expect("Escrow not found");
+        let mut escrow = storage::get_escrow(&env, escrow_id).expect("Escrow not found");
         assert!(!escrow.paused, "Escrow paused");
         assert!(!escrow.released, "Escrow already released");
         assert!(
@@ -142,8 +136,7 @@ impl LobbyEscrow {
     /// already released.
     pub fn release_funds(env: Env, admin: Address, escrow_id: u32) {
         require_admin(&env, &admin);
-        let mut escrow =
-            storage::get_escrow(&env, escrow_id).expect("Escrow not found");
+        let mut escrow = storage::get_escrow(&env, escrow_id).expect("Escrow not found");
         assert!(!escrow.paused, "Escrow paused");
         assert!(!escrow.released, "Escrow already released");
         assert!(
@@ -151,9 +144,7 @@ impl LobbyEscrow {
             "Escrow underfunded"
         );
         let now = env.ledger().timestamp();
-        let opens_at = escrow
-            .created_at
-            .saturating_add(escrow.release_delay_secs);
+        let opens_at = escrow.created_at.saturating_add(escrow.release_delay_secs);
         assert!(now >= opens_at, "Release window not yet open");
 
         escrow.released = true;
@@ -190,15 +181,13 @@ impl LobbyEscrow {
         };
 
         let fully_funded = escrow.total_funded >= escrow.required_amount;
-        let remaining_amount = escrow
-            .required_amount
-            .saturating_sub(escrow.total_funded);
-        let coverage_bps = if escrow.required_amount == 0 {
-            0
-        } else {
-            let bps = escrow.total_funded.saturating_mul(10_000) / escrow.required_amount;
-            core::cmp::min(bps, 10_000) as u32
-        };
+        let remaining_amount = escrow.required_amount.saturating_sub(escrow.total_funded);
+        let bps = escrow
+            .total_funded
+            .saturating_mul(10_000)
+            .checked_div(escrow.required_amount)
+            .unwrap_or(0);
+        let coverage_bps = core::cmp::min(bps, 10_000) as u32;
 
         let state = if escrow.released {
             EscrowState::Released
@@ -252,9 +241,7 @@ impl LobbyEscrow {
         };
 
         let fully_funded = escrow.total_funded >= escrow.required_amount;
-        let opens_at = escrow
-            .created_at
-            .saturating_add(escrow.release_delay_secs);
+        let opens_at = escrow.created_at.saturating_add(escrow.release_delay_secs);
         let seconds_until_release = opens_at.saturating_sub(now);
 
         let state = if escrow.released {
