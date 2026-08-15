@@ -74,7 +74,10 @@ impl VaultClaims {
     pub fn release(env: Env, beneficiary: Address, claim_id: u64) -> i128 {
         beneficiary.require_auth();
         let mut claim = storage::get_claim(&env, claim_id).expect("Claim not found");
-        assert!(claim.beneficiary == beneficiary, "Caller is not beneficiary");
+        assert!(
+            claim.beneficiary == beneficiary,
+            "Caller is not beneficiary"
+        );
         assert!(!claim.released, "Already released");
         assert!(!claim.cancelled, "Claim cancelled");
         assert!(
@@ -355,7 +358,7 @@ mod test {
         let (_env, _admin, client) = setup();
 
         let s = client.outstanding_claim_summary();
-        assert_eq!(s.configured, true);
+        assert!(s.configured);
         assert_eq!(s.outstanding_count, 0);
         assert_eq!(s.outstanding_amount, 0);
         assert_eq!(s.released_count, 0);
@@ -397,9 +400,9 @@ mod test {
     fn release_window_unknown_id_returns_unknown_state() {
         let (_env, _admin, client) = setup();
         let w = client.release_window(&99u64);
-        assert_eq!(w.exists, false);
+        assert!(!w.exists);
         assert_eq!(w.state, ClaimState::Unknown);
-        assert_eq!(w.configured, true);
+        assert!(w.configured);
         assert_eq!(w.seconds_until_releasable, 0);
     }
 
@@ -436,12 +439,12 @@ mod test {
         let client = VaultClaimsClient::new(&env, &contract_id);
 
         let exposure = client.reserve_exposure_snapshot();
-        assert_eq!(exposure.configured, false);
+        assert!(!exposure.configured);
         assert_eq!(exposure.total_tracked_amount, 0);
         assert_eq!(exposure.exposure_bps, 0);
 
         let queue = client.release_queue_accessor();
-        assert_eq!(queue.configured, false);
+        assert!(!queue.configured);
         assert_eq!(queue.indexed_claims, 0);
         assert_eq!(queue.pending_count, 0);
         assert_eq!(queue.releasable_count, 0);
