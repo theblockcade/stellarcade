@@ -213,8 +213,7 @@ const submitTransaction = async (transactionXDR) => {
     };
   }
 
-  const normalizedMaxRetries =
-    Number.isInteger(maxRetries) && maxRetries >= 0 ? maxRetries : 0;
+  const normalizedMaxRetries = Number.isInteger(maxRetries) && maxRetries >= 0 ? maxRetries : 0;
   const normalizedRetryInterval =
     Number.isFinite(retryInterval) && retryInterval >= 0 ? retryInterval : 0;
 
@@ -348,7 +347,9 @@ const submitTransactionAsync = async (transactionXDR) => {
 };
 
 const normalizeNetworkName = (networkName) => {
-  return String(networkName || '').trim().toLowerCase();
+  return String(networkName || '')
+    .trim()
+    .toLowerCase();
 };
 
 const assertWalletNetwork = ({ walletNetwork, expectedNetwork }) => {

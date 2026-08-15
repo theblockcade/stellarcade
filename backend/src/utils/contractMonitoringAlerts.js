@@ -7,7 +7,7 @@ const isHighErrorRate = (errorEvents, totalEvents) => {
     return false;
   }
 
-  return ((errorEvents * 100) / totalEvents) >= HIGH_ERROR_RATE_PERCENT;
+  return (errorEvents * 100) / totalEvents >= HIGH_ERROR_RATE_PERCENT;
 };
 
 const evaluateMonitoringAlerts = (metrics, paused = false) => ({

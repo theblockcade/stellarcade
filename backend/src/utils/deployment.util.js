@@ -6,128 +6,135 @@ const path = require('path');
  */
 
 class DeploymentUtil {
-    /**
-     * Helper to resolve the location of a deterministic machine-readable deployment file.
-     */
-    static getDeploymentPath(networkProfile = 'Dev') {
-        // Expects deployment artifacts typically stored at platform root or specific scripts directory.
-        return path.join(__dirname, `../../../../deployments/${networkProfile.toLowerCase()}_deployments.json`);
+  /**
+   * Helper to resolve the location of a deterministic machine-readable deployment file.
+   */
+  static getDeploymentPath(networkProfile = 'Dev') {
+    // Expects deployment artifacts typically stored at platform root or specific scripts directory.
+    return path.join(
+      __dirname,
+      `../../../../deployments/${networkProfile.toLowerCase()}_deployments.json`
+    );
+  }
+
+  /**
+   * Safely loads contract addresses mapped by the deployment execution environment context.
+   */
+  static loadDeploymentMap(networkProfile = 'Dev') {
+    const deployPath = this.getDeploymentPath(networkProfile);
+
+    if (!fs.existsSync(deployPath)) {
+      throw new Error(
+        `Deployment artifact not found for profile: ${networkProfile} at ${deployPath}`
+      );
     }
 
-    /**
-     * Safely loads contract addresses mapped by the deployment execution environment context.
-     */
-    static loadDeploymentMap(networkProfile = 'Dev') {
-        const deployPath = this.getDeploymentPath(networkProfile);
+    try {
+      const deploySource = fs.readFileSync(deployPath, 'utf8');
+      const deployJson = JSON.parse(deploySource);
 
-        if (!fs.existsSync(deployPath)) {
-            throw new Error(`Deployment artifact not found for profile: ${networkProfile} at ${deployPath}`);
-        }
+      const contractMap = {};
 
-        try {
-            const deploySource = fs.readFileSync(deployPath, 'utf8');
-            const deployJson = JSON.parse(deploySource);
-
-            const contractMap = {};
-
-            // Iterate over explicitly deployed contracts to collect addresses gracefully
-            if (deployJson.contracts) {
-                for (const [contractAlias, state] of Object.entries(deployJson.contracts)) {
-                    if (state && state.Deployed?.address) {
-                        contractMap[contractAlias] = state.Deployed.address;
-                    } else if (state && state.Initialized) {
-                        // In the state representation, initialized overrides properties, but assuming
-                        // initial deploy output saves state transitions appropriately.
-                        // If rust script outputs `{ Initialized: { address: '...' }}` we map it:
-                        if (state.Initialized.address) {
-                            contractMap[contractAlias] = state.Initialized.address;
-                        }
-                    }
-                }
+      // Iterate over explicitly deployed contracts to collect addresses gracefully
+      if (deployJson.contracts) {
+        for (const [contractAlias, state] of Object.entries(deployJson.contracts)) {
+          if (state && state.Deployed?.address) {
+            contractMap[contractAlias] = state.Deployed.address;
+          } else if (state && state.Initialized) {
+            // In the state representation, initialized overrides properties, but assuming
+            // initial deploy output saves state transitions appropriately.
+            // If rust script outputs `{ Initialized: { address: '...' }}` we map it:
+            if (state.Initialized.address) {
+              contractMap[contractAlias] = state.Initialized.address;
             }
-
-            return {
-                network: deployJson.network,
-                adminAddress: deployJson.admin_address,
-                contracts: contractMap,
-                timestamp: deployJson.timestamp
-            };
-        } catch (e) {
-            throw new Error(`Malformed machine-readable deployment metadata: ${e.message}`);
+          }
         }
+      }
+
+      return {
+        network: deployJson.network,
+        adminAddress: deployJson.admin_address,
+        contracts: contractMap,
+        timestamp: deployJson.timestamp,
+      };
+    } catch (e) {
+      throw new Error(`Malformed machine-readable deployment metadata: ${e.message}`);
     }
+  }
 
-    /**
-     * Extracts a specific verified contract address cleanly for dependencies.
-     */
-    static getContractAddress(contractName, networkProfile = 'Dev') {
-        const deployment = this.loadDeploymentMap(networkProfile);
-        if (!deployment.contracts[contractName]) {
-            throw new Error(`Validation Error: Address sequence for ${contractName} not found cleanly in registry.`);
-        }
-        return deployment.contracts[contractName];
+  /**
+   * Extracts a specific verified contract address cleanly for dependencies.
+   */
+  static getContractAddress(contractName, networkProfile = 'Dev') {
+    const deployment = this.loadDeploymentMap(networkProfile);
+    if (!deployment.contracts[contractName]) {
+      throw new Error(
+        `Validation Error: Address sequence for ${contractName} not found cleanly in registry.`
+      );
     }
+    return deployment.contracts[contractName];
+  }
 
-    /**
-     * Validates that all required environment variables for Stellar deployment are present.
-     */
-    static validateEnvironment() {
-        const required = ['STELLAR_NETWORK', 'HORIZON_URL', 'NETWORK_PASSPHRASE'];
-        const missing = required.filter((key) => !process.env[key]);
+  /**
+   * Validates that all required environment variables for Stellar deployment are present.
+   */
+  static validateEnvironment() {
+    const required = ['STELLAR_NETWORK', 'HORIZON_URL', 'NETWORK_PASSPHRASE'];
+    const missing = required.filter((key) => !process.env[key]);
 
-        return {
-            valid: missing.length === 0,
-            missing,
-            values: {
-                network: process.env.STELLAR_NETWORK,
-                horizon: process.env.HORIZON_URL,
-            },
-        };
-    }
+    return {
+      valid: missing.length === 0,
+      missing,
+      values: {
+        network: process.env.STELLAR_NETWORK,
+        horizon: process.env.HORIZON_URL,
+      },
+    };
+  }
 
-    /**
-     * Checks if the required WASM artifacts exist for deployment.
-     */
-    static checkArtifacts(contractNames = ['prize_pool', 'rng', 'coin_flip']) {
-        const results = {};
-        let allExist = true;
+  /**
+   * Checks if the required WASM artifacts exist for deployment.
+   */
+  static checkArtifacts(contractNames = ['prize_pool', 'rng', 'coin_flip']) {
+    const results = {};
+    let allExist = true;
 
-        // Assuming contracts are located relative to the workspace root in target/wasm32-unknown-unknown/release/
-        const artifactDir = path.join(__dirname, '../../../target/wasm32-unknown-unknown/release/');
+    // Assuming contracts are located relative to the workspace root in target/wasm32-unknown-unknown/release/
+    const artifactDir = path.join(__dirname, '../../../target/wasm32-unknown-unknown/release/');
 
-        contractNames.forEach((name) => {
-            const fileName = `${name.replace(/-/g, '_')}.wasm`;
-            const filePath = path.join(artifactDir, fileName);
-            const exists = fs.existsSync(filePath);
-            results[name] = { exists, path: filePath };
-            if (!exists) allExist = false;
-        });
+    contractNames.forEach((name) => {
+      const fileName = `${name.replace(/-/g, '_')}.wasm`;
+      const filePath = path.join(artifactDir, fileName);
+      const exists = fs.existsSync(filePath);
+      results[name] = { exists, path: filePath };
+      if (!exists) allExist = false;
+    });
 
-        return { allExist, artifacts: results };
-    }
+    return { allExist, artifacts: results };
+  }
 
-    /**
-     * Generates a comprehensive validation report for a deployment dry-run.
-     */
-    static generateValidationReport() {
-        const env = this.validateEnvironment();
-        const artifacts = this.checkArtifacts();
+  /**
+   * Generates a comprehensive validation report for a deployment dry-run.
+   */
+  static generateValidationReport() {
+    const env = this.validateEnvironment();
+    const artifacts = this.checkArtifacts();
 
-        return {
-            timestamp: new Date().toISOString(),
-            success: env.valid && artifacts.allExist,
-            checks: {
-                environment: env,
-                artifacts,
-            },
-            summary: {
-                missingVars: env.missing,
-                missingArtifacts: Object.entries(artifacts.artifacts)
-                    .filter(([_, status]) => !status.exists)
-                    .map(([name]) => name),
-            },
-        };
-    }
+    return {
+      timestamp: new Date().toISOString(),
+      success: env.valid && artifacts.allExist,
+      checks: {
+        environment: env,
+        artifacts,
+      },
+      summary: {
+        missingVars: env.missing,
+        missingArtifacts: Object.entries(artifacts.artifacts)
+          .filter(([_, status]) => !status.exists)
+          .map(([name]) => name),
+      },
+    };
+  }
 }
 
 module.exports = DeploymentUtil;
