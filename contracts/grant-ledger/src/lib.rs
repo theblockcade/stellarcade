@@ -8,7 +8,9 @@ pub mod types;
 mod test;
 
 use crate::storage::{get_grant, set_grant};
-use crate::types::{AllocationSnapshot, ExhaustionRisk, Grant, GrantAllocationSummary, MilestoneWindow, RiskLevel};
+use crate::types::{
+    AllocationSnapshot, ExhaustionRisk, Grant, GrantAllocationSummary, MilestoneWindow, RiskLevel,
+};
 
 // Utilization thresholds, in basis points (10_000 == fully allocated).
 const HIGH_RISK_BPS: u32 = 8_000;
@@ -174,12 +176,11 @@ impl GrantLedger {
                 } else {
                     0
                 };
-                let calls_until_exhaustion =
-                    if has_estimate && avg_allocation_per_call > 0 {
-                        (g.remaining / avg_allocation_per_call) as u32
-                    } else {
-                        0
-                    };
+                let calls_until_exhaustion = if has_estimate && avg_allocation_per_call > 0 {
+                    (g.remaining / avg_allocation_per_call) as u32
+                } else {
+                    0
+                };
                 MilestoneWindow {
                     grant_exists: true,
                     has_estimate,

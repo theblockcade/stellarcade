@@ -5,7 +5,7 @@ use soroban_sdk::Env;
 
 fn setup() -> (Env, GrantLedgerClient<'static>) {
     let env = Env::default();
-    let contract_id = env.register_contract(None, GrantLedger);
+    let contract_id = env.register(GrantLedger, ());
     let client = GrantLedgerClient::new(&env, &contract_id);
     (env, client)
 }
