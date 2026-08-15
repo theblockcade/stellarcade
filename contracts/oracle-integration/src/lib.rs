@@ -330,10 +330,7 @@ impl OracleIntegration {
     /// treat a `None` result as "no sources configured" and not attempt data
     /// requests until the contract is initialized.
     pub fn source_config_snapshot(env: Env) -> Option<OracleSourceSnapshot> {
-        let sources: Option<Vec<Address>> = env
-            .storage()
-            .instance()
-            .get(&DataKey::OracleSources);
+        let sources: Option<Vec<Address>> = env.storage().instance().get(&DataKey::OracleSources);
 
         sources.map(|s| {
             let source_count = s.len();
