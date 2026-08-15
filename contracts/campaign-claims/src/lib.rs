@@ -7,8 +7,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    BudgetExhaustion, CampaignRecord, ClaimSaturationSummary, ClaimWindowState,
-    ClaimWindowSummary, CooldownWindowAccessor,
+    BudgetExhaustion, CampaignRecord, ClaimSaturationSummary, ClaimWindowState, ClaimWindowSummary,
+    CooldownWindowAccessor,
 };
 
 #[contracttype]
