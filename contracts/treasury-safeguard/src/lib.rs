@@ -1,20 +1,19 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
-pub mod types;
 pub mod storage;
+pub mod types;
 
 #[cfg(test)]
 mod test;
 
+use crate::storage::{
+    get_breach_count, get_config, get_cooldown_end, get_current_value, get_last_breach_time,
+    set_breach_count, set_config, set_cooldown_end, set_current_value, set_last_breach_time,
+};
 use crate::types::{
     CooldownRelease, OverrideWindowAccessor, SafeguardConfig, SafeguardLimitsSummary,
     ThresholdBreachSummary,
-};
-use crate::storage::{
-    get_config, set_config, get_breach_count, set_breach_count,
-    get_last_breach_time, set_last_breach_time, get_current_value,
-    set_current_value, get_cooldown_end, set_cooldown_end
 };
 
 #[contract]
@@ -28,12 +27,15 @@ impl TreasurySafeguard {
             panic!("Already initialized");
         }
         admin.require_auth();
-        set_config(&env, &SafeguardConfig {
-            admin,
-            threshold_limit,
-            cooldown_period,
-            paused: false,
-        });
+        set_config(
+            &env,
+            &SafeguardConfig {
+                admin,
+                threshold_limit,
+                cooldown_period,
+                paused: false,
+            },
+        );
     }
 
     /// Toggles the paused state of the safeguard. Admin only.
@@ -53,7 +55,7 @@ impl TreasurySafeguard {
         let threshold_value = config.clone().map(|c| c.threshold_limit).unwrap_or(0);
         let current_value = get_current_value(&env);
         let is_paused = config.map(|c| c.paused).unwrap_or(false);
-        
+
         ThresholdBreachSummary {
             is_breached: current_value >= threshold_value && threshold_value > 0,
             breach_count: get_breach_count(&env),
@@ -71,7 +73,7 @@ impl TreasurySafeguard {
         let cooldown_end = get_cooldown_end(&env);
         let config = get_config(&env);
         let is_paused = config.map(|c| c.paused).unwrap_or(false);
-        
+
         let is_in_cooldown = now < cooldown_end;
         let remaining_seconds = if is_in_cooldown {
             cooldown_end - now
@@ -166,7 +168,11 @@ impl TreasurySafeguard {
         let is_paused = config.map(|c| c.paused).unwrap_or(false);
 
         let is_in_cooldown = now < cooldown_end;
-        let remaining_cooldown_secs = if is_in_cooldown { cooldown_end - now } else { 0 };
+        let remaining_cooldown_secs = if is_in_cooldown {
+            cooldown_end - now
+        } else {
+            0
+        };
 
         OverrideWindowAccessor {
             is_configured,

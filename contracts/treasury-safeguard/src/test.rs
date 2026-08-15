@@ -1,6 +1,9 @@
 #![cfg(test)]
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger}, Address, Env};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger},
+    Address, Env,
+};
 
 #[test]
 fn test_initialization() {
@@ -14,7 +17,7 @@ fn test_initialization() {
 
     let summary = client.get_threshold_breach_summary();
     assert_eq!(summary.threshold_value, 1000);
-    assert_eq!(summary.is_breached, false);
+    assert!(!summary.is_breached);
 }
 
 #[test]
@@ -34,21 +37,21 @@ fn test_threshold_breach_and_cooldown() {
     // Record activity below threshold
     client.record_activity(&admin, &500);
     let summary = client.get_threshold_breach_summary();
-    assert_eq!(summary.is_breached, false);
+    assert!(!summary.is_breached);
     assert_eq!(summary.current_value, 500);
 
     let cooldown_info = client.get_cooldown_release();
-    assert_eq!(cooldown_info.is_in_cooldown, false);
+    assert!(!cooldown_info.is_in_cooldown);
 
     // Record activity at/above threshold
     client.record_activity(&admin, &1200);
     let summary = client.get_threshold_breach_summary();
-    assert_eq!(summary.is_breached, true);
+    assert!(summary.is_breached);
     assert_eq!(summary.breach_count, 1);
     assert!(summary.last_breach_timestamp > 0);
 
     let cooldown_info = client.get_cooldown_release();
-    assert_eq!(cooldown_info.is_in_cooldown, true);
+    assert!(cooldown_info.is_in_cooldown);
     assert!(cooldown_info.remaining_seconds > 0);
 }
 
@@ -61,11 +64,11 @@ fn test_missing_state_behavior() {
     // Summary before init
     let summary = client.get_threshold_breach_summary();
     assert_eq!(summary.threshold_value, 0);
-    assert_eq!(summary.is_breached, false);
+    assert!(!summary.is_breached);
 
     // Cooldown before init
     let cooldown_info = client.get_cooldown_release();
-    assert_eq!(cooldown_info.is_in_cooldown, false);
+    assert!(!cooldown_info.is_in_cooldown);
 }
 
 #[test]
@@ -80,13 +83,13 @@ fn test_reset_functionality() {
     client.init(&admin, &1000, &3600);
     client.record_activity(&admin, &1000);
 
-    assert_eq!(client.get_threshold_breach_summary().is_breached, true);
+    assert!(client.get_threshold_breach_summary().is_breached);
 
     client.reset_safeguard(&admin);
     let summary = client.get_threshold_breach_summary();
-    assert_eq!(summary.is_breached, false);
+    assert!(!summary.is_breached);
     assert_eq!(summary.breach_count, 0);
-    assert_eq!(client.get_cooldown_release().is_in_cooldown, false);
+    assert!(!client.get_cooldown_release().is_in_cooldown);
 }
 
 #[test]
@@ -101,15 +104,15 @@ fn test_pause_behavior() {
     client.init(&admin, &1000, &3600);
 
     client.set_paused(&admin, &true);
-    assert_eq!(client.get_threshold_breach_summary().is_paused, true);
-    assert_eq!(client.get_cooldown_release().is_paused, true);
+    assert!(client.get_threshold_breach_summary().is_paused);
+    assert!(client.get_cooldown_release().is_paused);
 
     // Recording activity while paused should fail
     let res = client.try_record_activity(&admin, &500);
     assert!(res.is_err());
 
     client.set_paused(&admin, &false);
-    assert_eq!(client.get_threshold_breach_summary().is_paused, false);
+    assert!(!client.get_threshold_breach_summary().is_paused);
 
     let res = client.try_record_activity(&admin, &500);
     assert!(res.is_ok());
