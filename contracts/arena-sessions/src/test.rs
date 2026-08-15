@@ -13,7 +13,7 @@ fn setup_with_session(env: &Env) -> (ArenaSessionsClient<'_>, Address, u64) {
 fn setup(env: &Env) -> (ArenaSessionsClient<'_>, Address, Address) {
     let admin = Address::generate(env);
     let player = Address::generate(env);
-    let contract_id = env.register_contract(None, ArenaSessions);
+    let contract_id = env.register(ArenaSessions, ());
     let client = ArenaSessionsClient::new(env, &contract_id);
     client.init(&admin);
     (client, admin, player)
