@@ -7,7 +7,7 @@ use soroban_sdk::{Env, Vec};
 #[test]
 fn test_get_commitment_success() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -16,14 +16,14 @@ fn test_get_commitment_success() {
     let commitment = client.get_partner_commitment(&partner);
     assert_eq!(commitment.total_amount, 1000);
     assert_eq!(commitment.remaining_amount, 1000);
-    assert_eq!(commitment.is_active, true);
+    assert!(commitment.is_active);
     assert_eq!(commitment.partner, partner);
 }
 
 #[test]
 fn test_get_commitment_paused() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -31,27 +31,27 @@ fn test_get_commitment_paused() {
     client.set_paused(&partner, &true);
 
     let commitment = client.get_partner_commitment(&partner);
-    assert_eq!(commitment.is_paused, true);
+    assert!(commitment.is_paused);
 }
 
 #[test]
 fn test_get_commitment_missing() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
     let commitment = client.get_partner_commitment(&partner);
 
     assert_eq!(commitment.total_amount, 0);
-    assert_eq!(commitment.is_active, false);
+    assert!(!commitment.is_active);
     assert_eq!(commitment.partner, partner);
 }
 
 #[test]
 fn test_get_schedule_success() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -78,7 +78,7 @@ fn test_get_schedule_success() {
 #[test]
 fn test_get_schedule_missing() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -94,7 +94,7 @@ fn test_get_schedule_missing() {
 #[test]
 fn test_ledger_balance_summary_success() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -113,7 +113,7 @@ fn test_ledger_balance_summary_success() {
 #[test]
 fn test_ledger_balance_summary_missing() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -128,7 +128,7 @@ fn test_ledger_balance_summary_missing() {
 #[test]
 fn test_ledger_balance_summary_paused() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -145,7 +145,7 @@ fn test_ledger_balance_summary_paused() {
 #[test]
 fn test_revocation_window_with_pending_releases() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -179,7 +179,7 @@ fn test_revocation_window_with_pending_releases() {
 #[test]
 fn test_revocation_window_missing_partner() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
@@ -193,7 +193,7 @@ fn test_revocation_window_missing_partner() {
 #[test]
 fn test_revocation_window_paused_cannot_revoke() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, SponsorshipLedger);
+    let contract_id = env.register(SponsorshipLedger, ());
     let client = SponsorshipLedgerClient::new(&env, &contract_id);
 
     let partner = Address::generate(&env);
