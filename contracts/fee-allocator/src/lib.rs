@@ -77,9 +77,8 @@ impl FeeAllocator {
         let mut max_route_drift = 0i128;
 
         for route in routes.iter() {
-            let expected_amount = total_allocated
-                .saturating_mul(route.target_bps as i128)
-                / BPS_DENOMINATOR as i128;
+            let expected_amount =
+                total_allocated.saturating_mul(route.target_bps as i128) / BPS_DENOMINATOR as i128;
             let drift_amount = abs_diff(route.allocated_amount, expected_amount);
             total_drift = total_drift.saturating_add(drift_amount);
             if drift_amount > max_route_drift {
