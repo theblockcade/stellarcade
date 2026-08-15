@@ -22,7 +22,8 @@ mod types;
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    FundingGap, SettlementReadiness, StreamBacklogSnapshot, StreamOutflowSummary, StreamRecord, StreamDisbursementSnapshot,
+    FundingGap, SettlementReadiness, StreamBacklogSnapshot, StreamDisbursementSnapshot,
+    StreamOutflowSummary, StreamRecord,
 };
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
