@@ -7,8 +7,25 @@
  */
 export const colors = {
   bg: {
-    dark: "#050505",
-    card: "rgba(255, 255, 255, 0.05)",
+    /**
+     * Deep navy, not pure black. Was #050505 (neutral black), which put the
+     * page background in a different colour family from every surface
+     * stacked on it — `bg.surface` (#0d0f17) and `bg.card` (#121622) are
+     * both blue-tinted, so the greys never resolved into one ramp. Shifted
+     * to the same hue so page → sidebar → card reads as one family.
+     */
+    dark: "#070910",
+    /** Sidebar / rail surface — one step up from the page. */
+    surface: "#0d0f17",
+    /** Sticky header chrome — translucent, sits over scrolling content. */
+    chrome: "rgba(15, 18, 28, 0.82)",
+    /**
+     * Card surface. Was declared here as rgba(255,255,255,0.05) while
+     * tokens.css shipped rgba(18,22,34,0.95); the CSS value is the one
+     * actually rendering, so this now names it (per this file's rule of
+     * recording live values rather than inventing them).
+     */
+    card: "rgba(18, 22, 34, 0.95)",
   },
   accent: {
     default: "#00ffcc",

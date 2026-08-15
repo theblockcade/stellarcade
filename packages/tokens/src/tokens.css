@@ -7,9 +7,13 @@
  * shared app-wide.
  */
 :root {
-  --sc-bg-dark: #050505;
-  --sc-bg-card: rgba(18, 22, 34, 0.95);
+  /* Surface ramp, darkest → lightest. All four share the same blue-navy hue
+     so the page, the sidebar, the header chrome and cards read as one
+     family; --sc-bg-dark was #050505 (neutral black), which sat outside it. */
+  --sc-bg-dark: #070910;
   --sc-bg-surface: #0d0f17;
+  --sc-bg-chrome: rgba(15, 18, 28, 0.82);
+  --sc-bg-card: rgba(18, 22, 34, 0.95);
 
   --sc-accent: #00ffcc;
   --sc-accent-glow: rgba(0, 255, 204, 0.4);
