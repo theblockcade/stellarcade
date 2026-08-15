@@ -9,8 +9,8 @@
 mod storage;
 mod types;
 
-pub use types::*;
 use storage::{DataKey, BPS_DENOMINATOR, PERSISTENT_BUMP};
+pub use types::*;
 
 use soroban_sdk::{contract, contracterror, contractimpl, Address, Env};
 
@@ -22,15 +22,15 @@ use soroban_sdk::{contract, contracterror, contractimpl, Address, Env};
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum Error {
-    AlreadyInitialized  = 1,
-    NotInitialized      = 2,
-    NotAuthorized       = 3,
-    AffiliateNotFound   = 4,
-    AffiliateInactive   = 5,
-    ContractPaused      = 6,
-    InvalidAmount       = 7,
-    BelowThreshold      = 8,
-    Overflow            = 9,
+    AlreadyInitialized = 1,
+    NotInitialized = 2,
+    NotAuthorized = 3,
+    AffiliateNotFound = 4,
+    AffiliateInactive = 5,
+    ContractPaused = 6,
+    InvalidAmount = 7,
+    BelowThreshold = 8,
+    Overflow = 9,
 }
 
 const DEFAULT_MIN_THRESHOLD: i128 = 100;
@@ -81,9 +81,7 @@ impl AffiliateLedgerContract {
 
     pub fn set_commission_bps(env: Env, admin: Address, bps: u32) -> Result<(), Error> {
         require_admin(&env, &admin)?;
-        env.storage()
-            .instance()
-            .set(&DataKey::CommissionBps, &bps);
+        env.storage().instance().set(&DataKey::CommissionBps, &bps);
         Ok(())
     }
 
@@ -240,8 +238,7 @@ impl AffiliateLedgerContract {
                 unpaid_balance: 0,
             },
             Some(record) => {
-                let unpaid_balance =
-                    record.total_commission_earned - record.total_commission_paid;
+                let unpaid_balance = record.total_commission_earned - record.total_commission_paid;
                 ReferralVolumeSummary {
                     exists: true,
                     referral_count: record.referral_count,
