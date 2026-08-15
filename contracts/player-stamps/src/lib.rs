@@ -7,8 +7,7 @@ mod types;
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    ClaimWindowAccessor, PlayerStampProgress, StampCampaign, StampClaimState,
-    StampProgressSummary,
+    ClaimWindowAccessor, PlayerStampProgress, StampCampaign, StampClaimState, StampProgressSummary,
 };
 
 #[contracttype]
@@ -81,12 +80,11 @@ impl PlayerStamps {
             return Err(Error::CampaignPaused);
         }
 
-        let mut progress = storage::get_progress(&env, &player, campaign_id).unwrap_or(
-            PlayerStampProgress {
+        let mut progress =
+            storage::get_progress(&env, &player, campaign_id).unwrap_or(PlayerStampProgress {
                 earned_stamps: 0,
                 claimed: false,
-            },
-        );
+            });
         progress.earned_stamps = progress.earned_stamps.saturating_add(amount);
         storage::set_progress(&env, &player, campaign_id, &progress);
         Ok(())
@@ -106,12 +104,11 @@ impl PlayerStamps {
             return Err(Error::NotReadyToClaim);
         }
 
-        let mut progress = storage::get_progress(&env, &player, campaign_id).unwrap_or(
-            PlayerStampProgress {
+        let mut progress =
+            storage::get_progress(&env, &player, campaign_id).unwrap_or(PlayerStampProgress {
                 earned_stamps: 0,
                 claimed: false,
-            },
-        );
+            });
         if progress.claimed {
             return Err(Error::AlreadyClaimed);
         }
@@ -144,13 +141,14 @@ impl PlayerStamps {
             };
         };
 
-        let progress = storage::get_progress(&env, &player, campaign_id).unwrap_or(
-            PlayerStampProgress {
+        let progress =
+            storage::get_progress(&env, &player, campaign_id).unwrap_or(PlayerStampProgress {
                 earned_stamps: 0,
                 claimed: false,
-            },
-        );
-        let remaining_stamps = campaign.required_stamps.saturating_sub(progress.earned_stamps);
+            });
+        let remaining_stamps = campaign
+            .required_stamps
+            .saturating_sub(progress.earned_stamps);
         StampProgressSummary {
             player,
             campaign_id,
@@ -189,12 +187,11 @@ impl PlayerStamps {
             };
         };
 
-        let progress = storage::get_progress(&env, &player, campaign_id).unwrap_or(
-            PlayerStampProgress {
+        let progress =
+            storage::get_progress(&env, &player, campaign_id).unwrap_or(PlayerStampProgress {
                 earned_stamps: 0,
                 claimed: false,
-            },
-        );
+            });
         let completed = progress.earned_stamps >= campaign.required_stamps;
         let state = if progress.claimed {
             StampClaimState::Claimed
