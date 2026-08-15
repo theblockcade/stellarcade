@@ -537,11 +537,6 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
   useEffect(() => {
     setSessionHistory(WalletSessionService.getRecentSessionHistory());
   }, [status, address, network, provider?.name, lastUpdatedAt, droppedSession]);
-  // ── Loading state ────────────────────────────────────────────────────────────
-  if (isLoading) {
-    return <WalletStatusCardSkeleton className={className} testId={testId} />;
-  }
-
   // ── Derived values ───────────────────────────────────────────────────────────
   const capabilities: WalletCapabilities =
     capabilitiesProp ?? deriveCapabilities(status);
@@ -567,6 +562,11 @@ export const WalletStatusCard: React.FC<WalletStatusCardProps> = ({
     () => sessionHistory.slice(0, 4),
     [sessionHistory],
   );
+
+  // ── Loading state ────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return <WalletStatusCardSkeleton className={className} testId={testId} />;
+  }
 
   // ── Render ───────────────────────────────────────────────────────────────────
   const containerClass = ["wallet-status-card", className]

@@ -4,6 +4,7 @@ import * as React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2, LogOut, Wallet } from "lucide-react";
 import { useWalletStatus } from "../hooks/useWalletStatus";
+import { useXlmBalance } from "../hooks/useXlmBalance";
 import defaultFreighterAdapter from "../services/freighter-adapter";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -15,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import "./HeaderWalletControl.css";
 
 /**
  * Persistent wallet control for the dashboard header.
@@ -28,6 +28,10 @@ import "./HeaderWalletControl.css";
  *
  * Modelled on the reference dapp's shell header: address as a click-to-copy
  * chip, live network label, and an explicit disconnect.
+ *
+ * Built on shadcn primitives + Tailwind utilities; the former
+ * HeaderWalletControl.css is gone (most of its rules described a hand-rolled
+ * chip layout this component stopped rendering when it moved to a dropdown).
  */
 
 function shortenAddress(address: string): string {
@@ -68,47 +72,13 @@ export const HeaderWalletControl: React.FC = () => {
     }
   }, [wallet.address]);
 
-  const [xlmBalance, setXlmBalance] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!wallet.capabilities.isConnected || !wallet.address) {
-      setXlmBalance(null);
-      return;
-    }
-
-    let isMounted = true;
-    const fetchBalance = async () => {
-      try {
-        const network = (wallet.network || "").toUpperCase();
-        const isTestnet = network.includes("TEST");
-        const horizonUrl = isTestnet
-          ? "https://horizon-testnet.stellar.org"
-          : "https://horizon.stellar.org";
-
-        const res = await fetch(`${horizonUrl}/accounts/${wallet.address}`);
-        if (!res.ok) return;
-        const data = (await res.json()) as { balances?: Array<{ asset_type: string; balance: string }> };
-        const native = data.balances?.find((b) => b.asset_type === "native");
-        if (native && isMounted) {
-          const num = parseFloat(native.balance);
-          setXlmBalance(num.toLocaleString(undefined, { maximumFractionDigits: 2 }));
-        }
-      } catch {
-        // Non-fatal degradation if horizon fails or account uncreated
-      }
-    };
-
-    void fetchBalance();
-    const interval = setInterval(() => void fetchBalance(), 10000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [wallet.capabilities.isConnected, wallet.address, wallet.network]);
+  // Live native balance comes from the shared useXlmBalance hook rather than
+  // a fetch inlined here, so the dashboard can show the same real number.
+  const balance = useXlmBalance();
 
   if (mounted && wallet.capabilities.isConnected && wallet.address) {
     return (
-      <div className="hwc" data-testid="header-wallet-connected">
+      <div className="flex items-center gap-2.5" data-testid="header-wallet-connected">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -133,7 +103,11 @@ export const HeaderWalletControl: React.FC = () => {
                 <p className="font-mono text-xs text-muted-foreground" data-testid="header-wallet-address">
                   {shortenAddress(wallet.address)}
                 </p>
-                {xlmBalance !== null && <p className="text-xs font-semibold text-emerald-400" data-testid="header-wallet-balance">{xlmBalance} XLM</p>}
+                {balance.formatted !== null && (
+                  <p className="text-xs font-semibold text-emerald-400" data-testid="header-wallet-balance">
+                    {balance.formatted} XLM
+                  </p>
+                )}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -164,7 +138,7 @@ export const HeaderWalletControl: React.FC = () => {
   const isBusy = wallet.capabilities.isConnecting || wallet.capabilities.isReconnecting;
 
   return (
-    <div className="flex items-center gap-2 hwc" data-testid="header-wallet-disconnected">
+    <div className="flex items-center gap-2" data-testid="header-wallet-disconnected">
       {wallet.status === "PROVIDER_MISSING" ? (
         <Button asChild size="sm" variant="brand-outline" data-testid="header-wallet-install">
           <a href="https://www.freighter.app/" target="_blank" rel="noreferrer noopener">
@@ -187,7 +161,7 @@ export const HeaderWalletControl: React.FC = () => {
       )}
 
       {wallet.error && wallet.error.recoverable && (
-        <span className="text-xs text-red-400 hwc__error" role="status" data-testid="header-wallet-error">
+        <span className="max-w-[22ch] text-xs leading-tight text-amber-400 max-[720px]:hidden" role="status" data-testid="header-wallet-error">
           {wallet.error.message}
         </span>
       )}

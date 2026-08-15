@@ -2,9 +2,13 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import GlobalStateStore from "../services/global-state-store";
-import "./CommandPalette.css";
+import { cn } from "../lib/utils";
 
-/** Ported from frontend/src/components/v1/CommandPalette.tsx — only the import paths changed. */
+/**
+ * Ported from frontend/src/components/v1/CommandPalette.tsx. Styling has
+ * since moved from CommandPalette.css to Tailwind utilities; the semantic
+ * class names are retained as query/test hooks only.
+ */
 
 export interface Command {
   id: string;
@@ -114,40 +118,75 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands, placeholder =
   if (!isOpen) return null;
 
   return (
-    <div className="command-palette-backdrop" role="dialog" aria-modal="true" aria-label="Command palette">
-      <div className="command-palette" data-testid="command-palette">
+    <div
+      className="command-palette-backdrop fixed inset-0 z-9999 flex items-start justify-center bg-black/70 pt-[10vh] backdrop-blur-md"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+    >
+      <div
+        className="command-palette w-[min(90vw,560px)] overflow-hidden rounded-2xl border border-border bg-[rgba(10,10,10,0.95)] shadow-[0_20px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(0,255,204,0.05)] backdrop-blur-xl"
+        data-testid="command-palette"
+      >
         <input
           ref={inputRef}
-          className="command-palette-input"
+          className="command-palette-input w-full border-b border-border bg-transparent px-5 py-4 text-[1.05rem] text-foreground outline-none placeholder:text-muted-foreground"
           value={query}
           placeholder={placeholder}
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Search commands"
           data-testid="command-palette-input"
         />
-        <ul className="command-palette-list" role="listbox">
+        <ul className="command-palette-list max-h-80 list-none overflow-y-auto py-2" role="listbox">
           {filteredCommands.length === 0 && (
-            <li className="command-palette-item no-results" data-testid="command-palette-empty">
+            <li
+              className="command-palette-item no-results p-8 text-center text-sm text-muted-foreground"
+              data-testid="command-palette-empty"
+            >
               No matching command.
             </li>
           )}
-          {filteredCommands.map((cmd, index) => (
-            <li
-              key={cmd.id}
-              className={`command-palette-item ${index === activeIndex ? "active" : ""}`}
-              role="option"
-              aria-selected={index === activeIndex}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => {
-                cmd.action();
-                closePalette();
-              }}
-              data-testid={`command-palette-item-${cmd.id}`}
-            >
-              <span className="command-palette-item-label">{cmd.label}</span>
-              {cmd.description && <span className="command-palette-item-desc">{cmd.description}</span>}
-            </li>
-          ))}
+          {filteredCommands.map((cmd, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <li
+                key={cmd.id}
+                className={cn(
+                  "command-palette-item flex cursor-pointer flex-col gap-0.5 border-l-3 px-5 py-3.5 transition-colors",
+                  isActive
+                    ? "active border-l-primary bg-primary/8"
+                    : "border-l-transparent hover:border-l-primary hover:bg-primary/8",
+                )}
+                role="option"
+                aria-selected={isActive}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => {
+                  cmd.action();
+                  closePalette();
+                }}
+                data-testid={`command-palette-item-${cmd.id}`}
+              >
+                <span
+                  className={cn(
+                    "command-palette-item-label text-[0.95rem] font-bold",
+                    isActive ? "text-primary" : "text-foreground",
+                  )}
+                >
+                  {cmd.label}
+                </span>
+                {cmd.description && (
+                  <span
+                    className={cn(
+                      "command-palette-item-desc text-xs",
+                      isActive ? "text-foreground/80" : "text-muted-foreground",
+                    )}
+                  >
+                    {cmd.description}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
