@@ -8,7 +8,7 @@ use soroban_sdk::{
 
 fn setup(env: &Env) -> (LootRotationClient<'_>, Address) {
     let admin = Address::generate(env);
-    let contract_id = env.register_contract(None, LootRotation);
+    let contract_id = env.register(LootRotation, ());
     let client = LootRotationClient::new(env, &contract_id);
     env.mock_all_auths();
     client.init(&admin);
@@ -55,7 +55,7 @@ fn empty_pool_returns_predictable_zero_state() {
 #[test]
 fn uninitialized_pool_reads_are_predictable() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, LootRotation);
+    let contract_id = env.register(LootRotation, ());
     let client = LootRotationClient::new(&env, &contract_id);
 
     let snapshot = client.active_pool_snapshot();
@@ -148,7 +148,7 @@ fn transition_gap_due_after_end_time() {
 #[test]
 fn transition_gap_empty_state() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, LootRotation);
+    let contract_id = env.register(LootRotation, ());
     let client = LootRotationClient::new(&env, &contract_id);
 
     let gap = client.transition_gap();
