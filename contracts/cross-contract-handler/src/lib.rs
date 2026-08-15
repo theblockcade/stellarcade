@@ -182,7 +182,9 @@ impl CrossContractHandler {
             target_contract: target_contract.clone(),
             selector: selector.clone(),
         };
-        env.storage().instance().set(&DataKey::Route(route_id), &route);
+        env.storage()
+            .instance()
+            .set(&DataKey::Route(route_id), &route);
         RouteRegistered {
             route_id,
             source_contract,
@@ -215,7 +217,11 @@ impl CrossContractHandler {
         if caller != admin && caller != route.source_contract {
             return Err(Error::NotAuthorized);
         }
-        if env.storage().instance().has(&DataKey::Request(request_id.clone())) {
+        if env
+            .storage()
+            .instance()
+            .has(&DataKey::Request(request_id.clone()))
+        {
             return Err(Error::DuplicateRequestId);
         }
         let status = RequestStatus::Pending(route_id, payload.clone());
@@ -267,11 +273,7 @@ impl CrossContractHandler {
         env.storage()
             .instance()
             .set(&DataKey::Request(request_id.clone()), &new_status);
-        Acknowledged {
-            request_id,
-            result,
-        }
-        .publish(&env);
+        Acknowledged { request_id, result }.publish(&env);
         Ok(())
     }
 
@@ -293,13 +295,13 @@ impl CrossContractHandler {
             .instance()
             .get(&DataKey::Request(request_id.clone()))
             .ok_or(Error::RequestNotFound)?;
-        
+
         let route_id = match &status {
             RequestStatus::Pending(rid, _) => *rid,
             RequestStatus::Acknowledged(rid, _) => *rid,
             RequestStatus::Failed(rid, _) => *rid,
         };
-        
+
         Ok(CallSnapshot {
             request_id,
             route_id,
@@ -362,14 +364,14 @@ impl CrossContractHandler {
             .instance()
             .get(&DataKey::Request(request_id.clone()))
             .ok_or(Error::RequestNotFound)?;
-        
+
         let route_id = match &status {
             RequestStatus::Pending(rid, _) => *rid,
             RequestStatus::Acknowledged(_, _) | RequestStatus::Failed(_, _) => {
                 return Err(Error::RequestAlreadyCompleted)
             }
         };
-        
+
         let route: Route = env
             .storage()
             .instance()
@@ -380,16 +382,16 @@ impl CrossContractHandler {
             .instance()
             .get(&DataKey::Admin)
             .ok_or(Error::NotInitialized)?;
-        
+
         if caller != admin && caller != route.target_contract {
             return Err(Error::NotAuthorized);
         }
-        
+
         let new_status = RequestStatus::Failed(route_id, error_info);
         env.storage()
             .instance()
             .set(&DataKey::Request(request_id), &new_status);
-        
+
         Ok(())
     }
 }
