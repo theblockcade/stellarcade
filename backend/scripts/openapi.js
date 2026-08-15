@@ -456,6 +456,7 @@ function buildSpec() {
       { name: 'Wallet' },
       { name: 'Leaderboard' },
       { name: 'Quests' },
+      { name: 'Tournaments' },
     ],
     paths,
     components,
