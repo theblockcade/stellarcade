@@ -3,7 +3,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --ignore-scripts --omit=dev
 
 COPY src ./src
 COPY migrations ./migrations
