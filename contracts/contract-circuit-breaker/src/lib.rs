@@ -1,8 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address,
-    Env,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env,
 };
 
 // ---------------------------------------------------------------------------
@@ -103,7 +102,9 @@ impl ContractCircuitBreaker {
         admin.require_auth();
 
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::Threshold, &threshold);
+        env.storage()
+            .instance()
+            .set(&DataKey::Threshold, &threshold);
 
         ContractInitialized { admin, threshold }.publish(&env);
 
@@ -120,16 +121,12 @@ impl ContractCircuitBreaker {
 
         let threshold: u32 = env.storage().instance().get(&DataKey::Threshold).unwrap();
         let key = DataKey::Breaker(contract_id.clone());
-        
-        let mut data: BreakerData = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(BreakerData {
-                failure_count: 0,
-                status: BreakerStatus::Closed,
-                last_failure_ledger: 0,
-            });
+
+        let mut data: BreakerData = env.storage().persistent().get(&key).unwrap_or(BreakerData {
+            failure_count: 0,
+            status: BreakerStatus::Closed,
+            last_failure_ledger: 0,
+        });
 
         // Only increment if already closed
         if data.status == BreakerStatus::Closed {
@@ -138,7 +135,10 @@ impl ContractCircuitBreaker {
 
             if data.failure_count >= threshold {
                 data.status = BreakerStatus::Open;
-                BreakerTripped { contract_id: contract_id.clone() }.publish(&env);
+                BreakerTripped {
+                    contract_id: contract_id.clone(),
+                }
+                .publish(&env);
             }
         }
 
@@ -165,19 +165,15 @@ impl ContractCircuitBreaker {
         admin.require_auth();
 
         let key = DataKey::Breaker(contract_id.clone());
-        let mut data: BreakerData = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(BreakerData {
-                failure_count: 0,
-                status: BreakerStatus::Closed,
-                last_failure_ledger: 0,
-            });
+        let mut data: BreakerData = env.storage().persistent().get(&key).unwrap_or(BreakerData {
+            failure_count: 0,
+            status: BreakerStatus::Closed,
+            last_failure_ledger: 0,
+        });
 
         data.status = BreakerStatus::Open;
         env.storage().persistent().set(&key, &data);
-        
+
         BreakerTripped { contract_id }.publish(&env);
 
         Ok(())
@@ -196,7 +192,7 @@ impl ContractCircuitBreaker {
         };
 
         env.storage().persistent().set(&key, &data);
-        
+
         BreakerReset { contract_id }.publish(&env);
 
         Ok(())
@@ -204,7 +200,9 @@ impl ContractCircuitBreaker {
 
     /// Query the current state of a circuit breaker.
     pub fn breaker_state(env: Env, contract_id: Address) -> Option<BreakerData> {
-        env.storage().persistent().get(&DataKey::Breaker(contract_id))
+        env.storage()
+            .persistent()
+            .get(&DataKey::Breaker(contract_id))
     }
 
     // -----------------------------------------------------------------------
