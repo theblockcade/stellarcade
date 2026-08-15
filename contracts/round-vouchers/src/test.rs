@@ -37,12 +37,12 @@ fn issuance_summary_tracks_round_supply_and_redemptions() {
 fn redemption_gap_accessor_reports_missing_and_countdown() {
     let (env, admin, client) = setup();
     let missing = client.redemption_gap_accessor(&404u64);
-    assert_eq!(missing.exists, false);
+    assert!(!missing.exists);
 
     client.upsert_round(&admin, &5u32, &0u64, &5_000u64, &false);
     client.issue_voucher(&admin, &77u64, &5u32);
     let before = client.redemption_gap_accessor(&77u64);
-    assert_eq!(before.exists, true);
+    assert!(before.exists);
     assert_eq!(before.seconds_until_redeemable, 4_000);
 
     env.ledger().set_timestamp(5_500);

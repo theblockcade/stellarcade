@@ -7,8 +7,7 @@ mod types;
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
 pub use types::{
-    RedemptionGapAccessor, RoundVoucherRecord, VoucherIssuanceSummary,
-    VoucherRoundRecord,
+    RedemptionGapAccessor, RoundVoucherRecord, VoucherIssuanceSummary, VoucherRoundRecord,
 };
 
 #[contracttype]
@@ -99,18 +98,13 @@ impl RoundVouchers {
         Ok(())
     }
 
-    pub fn redeem_voucher(
-        env: Env,
-        admin: Address,
-        voucher_id: u64,
-    ) -> Result<(), Error> {
+    pub fn redeem_voucher(env: Env, admin: Address, voucher_id: u64) -> Result<(), Error> {
         require_admin(&env, &admin)?;
         let mut voucher = storage::get_voucher(&env, voucher_id).ok_or(Error::VoucherNotFound)?;
         if voucher.redeemed {
             return Err(Error::AlreadyRedeemed);
         }
-        let mut round =
-            storage::get_round(&env, voucher.round_id).ok_or(Error::RoundNotFound)?;
+        let mut round = storage::get_round(&env, voucher.round_id).ok_or(Error::RoundNotFound)?;
         if round.paused {
             return Err(Error::RoundPaused);
         }
