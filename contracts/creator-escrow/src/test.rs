@@ -9,7 +9,7 @@ fn setup(env: &Env) -> (CreatorEscrowClient<'_>, Address, Address, Address, Addr
     let creator = Address::generate(env);
     let payout_token = Address::generate(env);
     let beneficiary = Address::generate(env);
-    let contract_id = env.register_contract(None, CreatorEscrow);
+    let contract_id = env.register(CreatorEscrow, ());
     let client = CreatorEscrowClient::new(env, &contract_id);
     client.init(&admin);
     (client, admin, creator, payout_token, beneficiary)
