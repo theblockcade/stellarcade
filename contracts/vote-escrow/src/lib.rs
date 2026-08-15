@@ -34,16 +34,13 @@ impl VoteEscrow {
         env.storage().instance().set(&DataKey::Admin, &admin);
     }
 
-    pub fn lock(
-        env: Env,
-        locker: Address,
-        lock_id: u64,
-        amount: i128,
-        unlock_time: u64,
-    ) {
+    pub fn lock(env: Env, locker: Address, lock_id: u64, amount: i128, unlock_time: u64) {
         locker.require_auth();
         assert!(amount > 0, "Amount must be positive");
-        assert!(unlock_time > env.ledger().timestamp(), "Unlock time must be in future");
+        assert!(
+            unlock_time > env.ledger().timestamp(),
+            "Unlock time must be in future"
+        );
 
         let locked_at = env.ledger().timestamp();
         let duration = unlock_time - locked_at;
@@ -75,7 +72,10 @@ impl VoteEscrow {
 
         let mut record = storage::get_lock(&env, lock_id).expect("Lock not found");
         assert!(!record.unlocked, "Already unlocked");
-        assert!(env.ledger().timestamp() >= record.unlock_time, "Lock period not expired");
+        assert!(
+            env.ledger().timestamp() >= record.unlock_time,
+            "Lock period not expired"
+        );
 
         record.unlocked = true;
         storage::set_lock(&env, &record);
@@ -198,7 +198,7 @@ mod test {
         let (_admin, client) = setup(&env);
 
         let pressure = client.unlock_pressure(&999);
-        assert_eq!(pressure.exists, false);
-        assert_eq!(pressure.configured, true);
+        assert!(!pressure.exists);
+        assert!(pressure.configured);
     }
 }
