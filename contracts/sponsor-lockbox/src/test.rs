@@ -23,7 +23,14 @@ fn liability_snapshot_tracks_release_and_cancel() {
     let beneficiary_two = Address::generate(&env);
 
     client.register_lock(&admin, &1u64, &sponsor, &beneficiary, &100i128, &2_000u64);
-    client.register_lock(&admin, &2u64, &sponsor, &beneficiary_two, &50i128, &4_000u64);
+    client.register_lock(
+        &admin,
+        &2u64,
+        &sponsor,
+        &beneficiary_two,
+        &50i128,
+        &4_000u64,
+    );
 
     let before = client.liability_snapshot();
     assert_eq!(before.active_count, 2);
@@ -51,7 +58,7 @@ fn unlock_queue_accessor_reports_empty_defaults_when_unconfigured() {
     let client = SponsorLockboxClient::new(&env, &contract_id);
 
     let queue = client.unlock_queue_accessor();
-    assert_eq!(queue.configured, false);
+    assert!(!queue.configured);
     assert_eq!(queue.indexed_locks, 0);
     assert_eq!(queue.pending_count, 0);
 }
