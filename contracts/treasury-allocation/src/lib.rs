@@ -2,8 +2,8 @@
 #![allow(unexpected_cfgs)]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, vec,
-    Address, Env, IntoVal, Symbol,
+    contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, vec, Address,
+    Env, IntoVal, Symbol,
 };
 
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
@@ -146,15 +146,18 @@ impl TreasuryAllocation {
         info.period = period;
 
         env.storage().persistent().set(&key, &info);
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         BudgetCreated {
             bucket_id,
             limit,
             period,
-        }.publish(&env);
+        }
+        .publish(&env);
 
         Ok(())
     }
@@ -176,7 +179,11 @@ impl TreasuryAllocation {
             return Err(Error::InvalidAmount);
         }
 
-        let request_id: u32 = env.storage().instance().get(&DataKey::NextRequestId).unwrap();
+        let request_id: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::NextRequestId)
+            .unwrap();
 
         let req = RequestInfo {
             bucket_id: bucket_id.clone(),
@@ -188,9 +195,11 @@ impl TreasuryAllocation {
 
         let key = DataKey::AllocationRequest(request_id);
         env.storage().persistent().set(&key, &req);
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         env.storage()
             .instance()
@@ -201,7 +210,8 @@ impl TreasuryAllocation {
             bucket_id,
             requester,
             amount,
-        }.publish(&env);
+        }
+        .publish(&env);
 
         Ok(request_id)
     }
@@ -210,39 +220,61 @@ impl TreasuryAllocation {
         require_admin_as_invoker(&env)?;
 
         let key = DataKey::AllocationRequest(request_id);
-        let mut req: RequestInfo = env.storage().persistent().get(&key).ok_or(Error::RequestNotFound)?;
+        let mut req: RequestInfo = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::RequestNotFound)?;
 
         if req.status != RequestStatus::Pending {
             return Err(Error::RequestAlreadyProcessed);
         }
 
         let budget_key = DataKey::Budget(req.bucket_id.clone());
-        let mut budget: BudgetInfo = env.storage().persistent().get(&budget_key).unwrap_or(BudgetInfo {
-            limit: 0,
-            allocated: 0,
-            period: 0,
-        });
+        let mut budget: BudgetInfo =
+            env.storage()
+                .persistent()
+                .get(&budget_key)
+                .unwrap_or(BudgetInfo {
+                    limit: 0,
+                    allocated: 0,
+                    period: 0,
+                });
 
-        if budget.limit > 0 && budget.allocated.checked_add(req.amount).unwrap_or(i128::MAX) > budget.limit {
+        if budget.limit > 0
+            && budget
+                .allocated
+                .checked_add(req.amount)
+                .unwrap_or(i128::MAX)
+                > budget.limit
+        {
             return Err(Error::BudgetExceeded);
         }
 
         // Update budget
         budget.allocated += req.amount;
         env.storage().persistent().set(&budget_key, &budget);
-        env.storage()
-            .persistent()
-            .extend_ttl(&budget_key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &budget_key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         // Update request status
         req.status = RequestStatus::Approved;
         env.storage().persistent().set(&key, &req);
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         // Call treasury contract natively
-        let treasury: Address = env.storage().instance().get(&DataKey::TreasuryContract).unwrap();
+        let treasury: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::TreasuryContract)
+            .unwrap();
 
         env.invoke_contract::<()>(
             &treasury,
@@ -259,7 +291,8 @@ impl TreasuryAllocation {
             request_id,
             bucket_id: req.bucket_id,
             amount: req.amount,
-        }.publish(&env);
+        }
+        .publish(&env);
 
         Ok(())
     }
@@ -268,7 +301,11 @@ impl TreasuryAllocation {
         require_admin_as_invoker(&env)?;
 
         let key = DataKey::AllocationRequest(request_id);
-        let mut req: RequestInfo = env.storage().persistent().get(&key).ok_or(Error::RequestNotFound)?;
+        let mut req: RequestInfo = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::RequestNotFound)?;
 
         if req.status != RequestStatus::Pending {
             return Err(Error::RequestAlreadyProcessed);
@@ -276,14 +313,17 @@ impl TreasuryAllocation {
 
         req.status = RequestStatus::Rejected;
         env.storage().persistent().set(&key, &req);
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, PERSISTENT_BUMP_LEDGERS, PERSISTENT_BUMP_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_BUMP_LEDGERS,
+            PERSISTENT_BUMP_LEDGERS,
+        );
 
         AllocationRejected {
             request_id,
             bucket_id: req.bucket_id,
-        }.publish(&env);
+        }
+        .publish(&env);
 
         Ok(())
     }
@@ -305,7 +345,10 @@ impl TreasuryAllocation {
 
     pub fn request_state(env: Env, request_id: u32) -> Result<RequestInfo, Error> {
         let key = DataKey::AllocationRequest(request_id);
-        env.storage().persistent().get(&key).ok_or(Error::RequestNotFound)
+        env.storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::RequestNotFound)
     }
 
     /// Preview allocation outcome without modifying state
@@ -324,11 +367,15 @@ impl TreasuryAllocation {
         }
 
         let budget_key = DataKey::Budget(bucket_id.clone());
-        let budget: BudgetInfo = env.storage().persistent().get(&budget_key).unwrap_or(BudgetInfo {
-            limit: 0,
-            allocated: 0,
-            period: 0,
-        });
+        let budget: BudgetInfo =
+            env.storage()
+                .persistent()
+                .get(&budget_key)
+                .unwrap_or(BudgetInfo {
+                    limit: 0,
+                    allocated: 0,
+                    period: 0,
+                });
 
         let remaining_budget = budget.limit.saturating_sub(budget.allocated);
         let would_exceed_budget = budget.limit > 0 && remaining_budget < amount;
@@ -337,7 +384,7 @@ impl TreasuryAllocation {
         } else {
             0
         };
-        
+
         // Approval likelihood based on budget constraints and amount reasonableness
         let approval_likely = !would_exceed_budget && amount <= budget.limit;
 
@@ -366,10 +413,7 @@ fn require_admin_as_invoker(env: &Env) -> Result<(), Error> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{
-        testutils::Address as _,
-        symbol_short, Address, Env,
-    };
+    use soroban_sdk::{symbol_short, testutils::Address as _, Address, Env};
 
     #[contract]
     pub struct MockTreasury;
@@ -384,7 +428,7 @@ mod test {
     fn setup(env: &Env) -> (TreasuryAllocationClient<'_>, Address, Address) {
         let admin = Address::generate(env);
         let treasury = env.register(MockTreasury, ());
-        
+
         // Wait, Soroban tests register contracts natively and return a contract_id address.
         let contract_id = env.register(TreasuryAllocation, ());
         let client = TreasuryAllocationClient::new(env, &contract_id);
@@ -400,7 +444,7 @@ mod test {
         let env = Env::default();
         let (client, admin, _) = setup(&env);
         env.mock_all_auths();
-        
+
         let result = client.try_init(&admin, &Address::generate(&env));
         assert!(result.is_err());
     }
@@ -429,9 +473,9 @@ mod test {
             &requester,
             &symbol_short!("ops"),
             &500,
-            &symbol_short!("server")
+            &symbol_short!("server"),
         );
-        
+
         assert_eq!(req_id, 1);
         let req = client.request_state(&req_id);
         assert_eq!(req.amount, 500);
@@ -447,7 +491,12 @@ mod test {
         client.create_budget(&symbol_short!("ops"), &1000, &30);
 
         let requester = Address::generate(&env);
-        let req_id = client.request_allocation(&requester, &symbol_short!("ops"), &500, &symbol_short!("server"));
+        let req_id = client.request_allocation(
+            &requester,
+            &symbol_short!("ops"),
+            &500,
+            &symbol_short!("server"),
+        );
 
         client.approve_allocation(&req_id);
 
@@ -467,7 +516,12 @@ mod test {
         client.create_budget(&symbol_short!("ops"), &1000, &30);
 
         let requester = Address::generate(&env);
-        let req_id = client.request_allocation(&requester, &symbol_short!("ops"), &1500, &symbol_short!("server"));
+        let req_id = client.request_allocation(
+            &requester,
+            &symbol_short!("ops"),
+            &1500,
+            &symbol_short!("server"),
+        );
 
         let res = client.try_approve_allocation(&req_id);
         assert!(res.is_err());
@@ -480,7 +534,12 @@ mod test {
         env.mock_all_auths();
 
         let requester = Address::generate(&env);
-        let req_id = client.request_allocation(&requester, &symbol_short!("ops"), &500, &symbol_short!("server"));
+        let req_id = client.request_allocation(
+            &requester,
+            &symbol_short!("ops"),
+            &500,
+            &symbol_short!("server"),
+        );
 
         client.reject_allocation(&req_id);
 
@@ -496,7 +555,12 @@ mod test {
 
         client.create_budget(&symbol_short!("ops"), &1000, &30);
         let requester = Address::generate(&env);
-        let req_id = client.request_allocation(&requester, &symbol_short!("ops"), &500, &symbol_short!("server"));
+        let req_id = client.request_allocation(
+            &requester,
+            &symbol_short!("ops"),
+            &500,
+            &symbol_short!("server"),
+        );
 
         client.approve_allocation(&req_id);
 
@@ -514,9 +578,9 @@ mod test {
         env.mock_all_auths();
 
         client.create_budget(&symbol_short!("ops"), &1000, &30);
-        
+
         let preview = client.preview_allocation(&symbol_short!("ops"), &500);
-        
+
         assert_eq!(preview.bucket_id, symbol_short!("ops"));
         assert_eq!(preview.current_limit, 1000);
         assert_eq!(preview.current_allocated, 0);
@@ -534,9 +598,9 @@ mod test {
         env.mock_all_auths();
 
         client.create_budget(&symbol_short!("ops"), &1000, &30);
-        
+
         let preview = client.preview_allocation(&symbol_short!("ops"), &1500);
-        
+
         assert_eq!(preview.bucket_id, symbol_short!("ops"));
         assert_eq!(preview.current_limit, 1000);
         assert_eq!(preview.current_allocated, 0);
@@ -554,15 +618,20 @@ mod test {
         env.mock_all_auths();
 
         client.create_budget(&symbol_short!("ops"), &1000, &30);
-        
+
         // Approve one allocation first
         let requester = Address::generate(&env);
-        let req_id = client.request_allocation(&requester, &symbol_short!("ops"), &300, &symbol_short!("server"));
+        let req_id = client.request_allocation(
+            &requester,
+            &symbol_short!("ops"),
+            &300,
+            &symbol_short!("server"),
+        );
         client.approve_allocation(&req_id);
-        
+
         // Preview another allocation
         let preview = client.preview_allocation(&symbol_short!("ops"), &400);
-        
+
         assert_eq!(preview.current_limit, 1000);
         assert_eq!(preview.current_allocated, 300);
         assert_eq!(preview.remaining_budget, 700);
@@ -579,7 +648,7 @@ mod test {
         env.mock_all_auths();
 
         let preview = client.preview_allocation(&symbol_short!("none"), &500);
-        
+
         assert_eq!(preview.bucket_id, symbol_short!("none"));
         assert_eq!(preview.current_limit, 0);
         assert_eq!(preview.current_allocated, 0);
@@ -608,7 +677,7 @@ mod test {
         let env = Env::default();
         let contract_id = env.register(TreasuryAllocation, ());
         let client = TreasuryAllocationClient::new(&env, &contract_id);
-        
+
         let result = client.try_preview_allocation(&symbol_short!("ops"), &500);
         assert!(result.is_err());
     }
@@ -620,9 +689,9 @@ mod test {
         env.mock_all_auths();
 
         client.create_budget(&symbol_short!("ops"), &1000, &30);
-        
+
         let preview = client.preview_allocation(&symbol_short!("ops"), &1000);
-        
+
         assert_eq!(preview.remaining_budget, 1000);
         assert_eq!(preview.requested_amount, 1000);
         assert!(!preview.would_exceed_budget);
