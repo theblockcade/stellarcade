@@ -58,7 +58,7 @@ fn test_pause_and_unpause() {
 
     client.unpause(&admin);
     assert!(!client.is_paused());
-    
+
     // Metadata should persist after unpausing (as "latest")
     let persistent_metadata = client.get_pause_metadata().unwrap();
     assert_eq!(persistent_metadata.reason_code, reason_code);
@@ -166,7 +166,7 @@ fn test_full_pause_cycle() {
     // Can pause again after unpausing
     client.pause(&admin, &2);
     assert!(client.is_paused());
-    
+
     let metadata = client.get_pause_metadata().unwrap();
     assert_eq!(metadata.reason_code, 2);
 }
@@ -179,7 +179,7 @@ fn test_full_pause_cycle() {
 fn test_get_metadata_returns_none_initially() {
     let env = Env::default();
     let (client, _, _) = setup(&env);
-    
+
     assert!(client.get_pause_metadata().is_none());
 }
 
