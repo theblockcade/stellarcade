@@ -11,7 +11,8 @@ const routesIndexFile = path.join(routesDir, 'index.js');
 const specFile = path.join(backendRoot, 'openapi.yaml');
 
 const routeDocsRegex = /const routeDocs = (\[[\s\S]*?\n\]);/;
-const routeLineRegex = /router\.(get|post|put|patch|delete)\(\s*['"`]([^'"`]+)['"`]\s*,\s*(.+)\);/g;
+const routeLineRegex =
+  /router\.(get|post|put|patch|delete)\(\s*['"`]([^'"`]+)['"`]\s*,\s*([\s\S]+?)\);/g;
 const requireRegex = /const\s+(\w+)\s*=\s*require\(['"](.+)['"]\);/g;
 const mountRegex = /router\.use\(\s*['"]([^'"]+)['"]\s*,\s*(\w+)\s*\);/g;
 const healthRouteRegex = /app\.get\(\s*['"]([^'"]+)['"]\s*,/;
@@ -281,7 +282,10 @@ function parseMounts() {
 
 function parseRouteDefinitions(filePath) {
   const source = readFile(filePath);
-  const routeDocs = evaluateLiteral(extractLiteral(source, routeDocsRegex, 'routeDocs', filePath), filePath);
+  const routeDocs = evaluateLiteral(
+    extractLiteral(source, routeDocsRegex, 'routeDocs', filePath),
+    filePath
+  );
   const routes = [];
   let lineMatch;
   routeLineRegex.lastIndex = 0;
@@ -306,13 +310,17 @@ function ensureDocCoverage(filePath, routeDocs, routes) {
 
   for (const routeKey of routeKeys) {
     if (!docKeys.has(routeKey)) {
-      throw new Error(`Missing OpenAPI documentation for ${routeKey} in ${path.relative(backendRoot, filePath)}`);
+      throw new Error(
+        `Missing OpenAPI documentation for ${routeKey} in ${path.relative(backendRoot, filePath)}`
+      );
     }
   }
 
   for (const docKey of docKeys) {
     if (!routeKeys.has(docKey)) {
-      throw new Error(`Stale OpenAPI documentation for ${docKey} in ${path.relative(backendRoot, filePath)}`);
+      throw new Error(
+        `Stale OpenAPI documentation for ${docKey} in ${path.relative(backendRoot, filePath)}`
+      );
     }
   }
 }
@@ -373,7 +381,9 @@ function buildHealthPath() {
     const routesIndexSource = readFile(routesIndexFile);
     const routerHealthMatch = routesIndexSource.match(routerHealthRouteRegex);
     if (!routerHealthMatch) {
-      throw new Error('Could not find /api/health route in backend/src/server.js or backend/src/routes/index.js');
+      throw new Error(
+        'Could not find /api/health route in backend/src/server.js or backend/src/routes/index.js'
+      );
     }
 
     return {
@@ -439,12 +449,7 @@ function buildSpec() {
         description: 'Local development server',
       },
     ],
-    tags: [
-      { name: 'Health' },
-      { name: 'Games' },
-      { name: 'Users' },
-      { name: 'Wallet' },
-    ],
+    tags: [{ name: 'Health' }, { name: 'Games' }, { name: 'Users' }, { name: 'Wallet' }],
     paths,
     components,
   };
@@ -494,7 +499,7 @@ function validateSpec() {
     throw new Error('backend/openapi.yaml is missing. Run npm run openapi:generate.');
   }
 
-  const checkedInSpec = JSON.parse(readFile(specFile));
+  const checkedInSpec = evaluateLiteral(readFile(specFile), specFile);
   const checkedInContent = formatSpec(checkedInSpec);
   const generatedContent = formatSpec(generatedSpec);
 
