@@ -16,8 +16,13 @@ exports.up = async function (knex) {
 
   await knex.schema.createTable('games', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable()
-      .references('id').inTable('users').onDelete('CASCADE');
+    table
+      .integer('user_id')
+      .unsigned()
+      .notNullable()
+      .references('id')
+      .inTable('users')
+      .onDelete('CASCADE');
     table.string('game_type', 30).notNullable();
     table.decimal('bet_amount', 20, 7).notNullable();
     table.string('result', 20).notNullable(); // win, loss, pending
@@ -30,8 +35,13 @@ exports.up = async function (knex) {
 
   await knex.schema.createTable('transactions', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable()
-      .references('id').inTable('users').onDelete('CASCADE');
+    table
+      .integer('user_id')
+      .unsigned()
+      .notNullable()
+      .references('id')
+      .inTable('users')
+      .onDelete('CASCADE');
     table.string('type', 20).notNullable(); // deposit, withdrawal
     table.decimal('amount', 20, 7).notNullable();
     table.string('status', 20).defaultTo('pending'); // pending, success, failed

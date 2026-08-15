@@ -29,9 +29,7 @@ const resolvePassphrase = () => {
   };
   const resolved = passphraseMap[network.toLowerCase()];
   if (!resolved) {
-    logger.warn(
-      `Unknown STELLAR_NETWORK "${network}", defaulting to TESTNET passphrase`
-    );
+    logger.warn(`Unknown STELLAR_NETWORK "${network}", defaulting to TESTNET passphrase`);
     return StellarSdk.Networks.TESTNET;
   }
   return resolved;

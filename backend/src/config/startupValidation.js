@@ -1,20 +1,16 @@
-const REQUIRED_ENV_VARS = [
-  'JWT_SECRET',
-];
+const REQUIRED_ENV_VARS = ['JWT_SECRET'];
 
-const REQUIRED_IF_NO_DATABASE_URL = [
-  'DB_HOST',
-  'DB_PORT',
-  'DB_USER',
-  'DB_PASSWORD',
-  'DB_NAME',
-];
+const REQUIRED_IF_NO_DATABASE_URL = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
 
 const isPositiveInteger = (value) => /^\d+$/.test(value) && Number(value) > 0;
 
 const isValidStellarNetwork = (value) => {
-  const normalized = String(value || '').trim().toLowerCase();
-  return ['test', 'testnet', 'public', 'mainnet', 'futurenet', 'sandbox', 'standalone'].includes(normalized);
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  return ['test', 'testnet', 'public', 'mainnet', 'futurenet', 'sandbox', 'standalone'].includes(
+    normalized
+  );
 };
 
 const collectValidationErrors = (env) => {
@@ -43,7 +39,9 @@ const collectValidationErrors = (env) => {
   }
 
   if (env.STELLAR_NETWORK && !isValidStellarNetwork(env.STELLAR_NETWORK)) {
-    errors.push('STELLAR_NETWORK must be one of: testnet, public, mainnet, futurenet, sandbox, standalone');
+    errors.push(
+      'STELLAR_NETWORK must be one of: testnet, public, mainnet, futurenet, sandbox, standalone'
+    );
   }
 
   return errors;

@@ -11,18 +11,24 @@ services:
     runtime: docker
     plan: free
     autoDeploy: false
+    # This service lives in the StellarCade monorepo at backend/, not repo
+    # root — without rootDir, Render clones the whole repo and looks for
+    # ./Dockerfile at the top level, which doesn't exist (it's at
+    # backend/Dockerfile). rootDir makes backend/ the build context so the
+    # Dockerfile resolves correctly.
+    rootDir: backend
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
-        value: "production"
+        value: 'production'
       - key: PORT
-        value: "3000"
+        value: '3000'
       - key: STELLAR_NETWORK
-        value: "testnet"
+        value: 'testnet'
       - key: HORIZON_URL
-        value: "https://horizon-testnet.stellar.org"
+        value: 'https://horizon-testnet.stellar.org'
       - key: NETWORK_PASSPHRASE
-        value: "Test SDF Network ; September 2015"
+        value: 'Test SDF Network ; September 2015'
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
