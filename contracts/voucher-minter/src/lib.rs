@@ -110,8 +110,8 @@ impl VoucherMinter {
         expires_at_ledger: u32,
     ) -> Result<(), Error> {
         require_admin(&env, &admin)?;
-        let mut vtype = storage::get_voucher_type(&env, type_id)
-            .ok_or(Error::VoucherTypeNotFound)?;
+        let mut vtype =
+            storage::get_voucher_type(&env, type_id).ok_or(Error::VoucherTypeNotFound)?;
         if vtype.paused {
             return Err(Error::VoucherTypePaused);
         }
@@ -135,8 +135,8 @@ impl VoucherMinter {
     /// Mark a voucher as claimed. Admin only.
     pub fn claim_voucher(env: Env, admin: Address, voucher_id: u64) -> Result<(), Error> {
         require_admin(&env, &admin)?;
-        let mut record = storage::get_voucher(&env, voucher_id)
-            .ok_or(Error::VoucherTypeNotFound)?;
+        let mut record =
+            storage::get_voucher(&env, voucher_id).ok_or(Error::VoucherTypeNotFound)?;
         record.claimed = true;
         storage::set_voucher(&env, voucher_id, &record);
         Ok(())
