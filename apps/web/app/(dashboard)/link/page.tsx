@@ -46,27 +46,40 @@ function LinkPageContent() {
       setSignature(sig);
 
       /*
-       * Sync the Telegram link onto the existing profile.
+       * Sync the Telegram link onto the profile.
        *
-       * updateProfile requires a username, and this used to pass
-       * `Player_<last4>` when the store had none loaded — which silently
-       * *renamed* the player as a side effect of linking their bot account.
-       * Linking must never change the display name, so if we don't have the
-       * current one we skip the sync rather than guess it.
+       * This used to only fire when a username was already cached in the
+       * store — which meant landing on this page in a fresh browser (or
+       * any session that hadn't already visited /profile) silently skipped
+       * the sync entirely: signing succeeded, but telegram_user_id/
+       * telegram_handle never reached the backend, so the profile page
+       * kept showing "Link Telegram" forever. updateProfile's username is
+       * optional now (the backend only touches fields actually supplied),
+       * so the sync always runs; a cached username is included only to
+       * preserve it, never invented — linking must never rename the player.
        */
       try {
         const currentUsername = profileStore.getState().profile?.username?.trim();
-        if (currentUsername) {
-          const client = createProfileApiClient();
-          const res = await client.updateProfile({
-            address: wallet.address,
-            username: currentUsername,
-            telegramUserId: userId || "tg_linked",
-            telegramHandle: userId ? `@user_${userId}` : undefined,
-          });
-          if (res.success && res.data) {
-            profileStore.dispatch({ type: "PROFILE_SET", payload: { profile: res.data } });
-          }
+        const client = createProfileApiClient();
+
+        // updateProfile only touches an existing row — a wallet that was
+        // never auto-provisioned (login declined, or this is its first
+        // visit ever) would 404 here otherwise. createProfile is a
+        // idempotent find-or-create: a no-op if the row already exists,
+        // never overwriting a username that's already set.
+        await client.createProfile({
+          address: wallet.address,
+          ...(currentUsername ? { username: currentUsername } : {}),
+        });
+
+        const res = await client.updateProfile({
+          address: wallet.address,
+          ...(currentUsername ? { username: currentUsername } : {}),
+          telegramUserId: userId || "tg_linked",
+          telegramHandle: userId ? `@user_${userId}` : undefined,
+        });
+        if (res.success && res.data) {
+          profileStore.dispatch({ type: "PROFILE_SET", payload: { profile: res.data } });
         }
       } catch {
         // Non-fatal

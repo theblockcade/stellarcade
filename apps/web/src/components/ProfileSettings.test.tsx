@@ -22,6 +22,10 @@ vi.mock('@/hooks/useWalletStatus', () => ({
 
 const mockGetProfile = vi.fn();
 const mockUpdateProfile = vi.fn();
+const mockGetWalletBalance = vi.fn().mockResolvedValue({
+  success: true,
+  data: { address: 'GTEST1234567890', balances: { XLM: '0.0000000' } },
+});
 
 vi.mock('@/services/typed-api-sdk', () => ({
   ApiClient: class {
@@ -30,6 +34,9 @@ vi.mock('@/services/typed-api-sdk', () => ({
     }
     async updateProfile(input: unknown) {
       return mockUpdateProfile(input);
+    }
+    async getWalletBalance() {
+      return mockGetWalletBalance();
     }
   },
 }))

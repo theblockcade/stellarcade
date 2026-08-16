@@ -337,10 +337,14 @@ export class ApiClient {
   }
 
   async updateProfile(input: UpdateProfileRequest, opts?: ApiRequestOptions): Promise<ApiResult<UpdateProfileResponse>> {
-    if (!input.address.trim() || !input.username.trim()) {
-      return { success: false, error: makeValidationError('Address and username are required.') };
+    if (!input.address.trim()) {
+      return { success: false, error: makeValidationError('Address is required.') };
     }
-    return this._request('POST', '/users/update', input, true, opts);
+    // The backend route never enforces auth on this endpoint — requiring a
+    // client-side token here just adds a failure mode the server doesn't
+    // actually have (a Telegram-link sync silently dropped because login
+    // hadn't completed yet, even though the update itself would've succeeded).
+    return this._request('POST', '/users/update', input, false, opts);
   }
 
   async deposit(input: WalletAmountRequest, opts?: ApiRequestOptions): Promise<ApiResult<DepositResponse>> {

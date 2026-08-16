@@ -141,7 +141,12 @@ export type CreateProfileResponse = UserProfile;
 
 export interface UpdateProfileRequest {
   address: string;
-  username: string;
+  /**
+   * Optional — the backend only touches fields actually supplied. Omit
+   * this to sync Telegram-link fields alone without renaming the player;
+   * required only when the caller actually intends to rename.
+   */
+  username?: string;
   /** Telegram bot linking — accepted by POST /api/users/update, which sets
    *  telegramLinked itself when a telegramUserId is supplied. */
   telegramHandle?: string;
