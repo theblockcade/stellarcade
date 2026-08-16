@@ -1,7 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-import { needsOnboarding, validateUsername } from "./profile-service";
+import { authenticateWallet, needsOnboarding, profileStore, validateUsername } from "./profile-service";
 import type { UserProfile } from "../types/api-client";
+
+function mockFetchSequence(responses: Array<{ status: number; body: unknown }>): void {
+  const mock = vi.fn();
+  for (const r of responses) {
+    mock.mockResolvedValueOnce({
+      ok: r.status >= 200 && r.status < 300,
+      status: r.status,
+      json: async () => r.body,
+    } as Response);
+  }
+  global.fetch = mock;
+}
 
 const complete: UserProfile = {
   address: "GABC123",
@@ -55,5 +67,65 @@ describe("needsOnboarding", () => {
    */
   it("is true when the age confirmation is missing", () => {
     expect(needsOnboarding({ ...complete, ageConfirmedAt: undefined })).toBe(true);
+  });
+});
+
+describe("authenticateWallet", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    profileStore.dispatch({ type: "RESET_ALL" });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("completes challenge -> sign -> login and publishes token + profile to the store", async () => {
+    mockFetchSequence([
+      { status: 200, body: { challenge: "Sign in to StellarCade\n\nNonce: abc" } },
+      { status: 200, body: { token: "jwt-xyz", profile: { address: "GABC123", createdAt: "2026-01-01" } } },
+    ]);
+    const signMessage = vi.fn().mockResolvedValue("c2ln");
+
+    const result = await authenticateWallet("GABC123", signMessage);
+
+    expect(result).toEqual({ ok: true });
+    expect(signMessage).toHaveBeenCalledWith("Sign in to StellarCade\n\nNonce: abc");
+    expect(profileStore.getState().auth).toEqual(
+      expect.objectContaining({ isAuthenticated: true, userId: "GABC123", token: "jwt-xyz" })
+    );
+    expect(profileStore.getState().profile?.address).toBe("GABC123");
+  });
+
+  it("reports failure without throwing when the wallet rejects the signature", async () => {
+    mockFetchSequence([{ status: 200, body: { challenge: "Sign in to StellarCade\n\nNonce: abc" } }]);
+    const signMessage = vi.fn().mockRejectedValue(new Error("User declined access"));
+
+    const result = await authenticateWallet("GABC123", signMessage);
+
+    expect(result).toEqual({ ok: false, message: "User declined access" });
+    expect(profileStore.getState().auth.isAuthenticated).toBe(false);
+  });
+
+  it("reports failure when the challenge request itself fails, without calling signMessage", async () => {
+    mockFetchSequence([{ status: 500, body: { message: "boom" } }]);
+    const signMessage = vi.fn();
+
+    const result = await authenticateWallet("GABC123", signMessage);
+
+    expect(result.ok).toBe(false);
+    expect(signMessage).not.toHaveBeenCalled();
+  });
+
+  it("reports failure when the backend rejects the signature, without touching the store", async () => {
+    mockFetchSequence([
+      { status: 200, body: { challenge: "Sign in to StellarCade\n\nNonce: abc" } },
+      { status: 401, body: { error: { message: "Signature does not verify", code: "INVALID_SIGNATURE" } } },
+    ]);
+    const signMessage = vi.fn().mockResolvedValue("bad-sig");
+
+    const result = await authenticateWallet("GABC123", signMessage);
+
+    expect(result.ok).toBe(false);
+    expect(profileStore.getState().auth.isAuthenticated).toBe(false);
   });
 });
