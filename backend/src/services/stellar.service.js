@@ -346,6 +346,45 @@ const submitTransactionAsync = async (transactionXDR) => {
   }
 };
 
+/**
+ * Fetch an address's real on-chain balances from Horizon — not an internal
+ * ledger figure. A syntactically valid address that has never received XLM
+ * doesn't exist as an account on-chain yet (Horizon 404s for it); that's a
+ * normal, expected state, not an error, so it resolves to a zero balance
+ * with `exists: false` rather than throwing.
+ *
+ * @param {string} address - Stellar public key (G...)
+ * @returns {Promise<{ address: string, balances: Record<string, string>, exists: boolean }>}
+ */
+const getAccountBalances = async (address) => {
+  if (!StellarSdk.StrKey.isValidEd25519PublicKey(address)) {
+    const error = new Error(`"${address}" is not a valid Stellar public key.`);
+    error.statusCode = 400;
+    error.code = 'INVALID_ADDRESS';
+    throw error;
+  }
+
+  try {
+    const account = await server.loadAccount(address);
+    const balances = {};
+    for (const balance of account.balances) {
+      const key = balance.asset_type === 'native' ? 'XLM' : balance.asset_code || balance.asset_type;
+      balances[key] = balance.balance;
+    }
+    return { address, balances, exists: true };
+  } catch (err) {
+    if (err instanceof StellarSdk.NotFoundError) {
+      return { address, balances: { XLM: '0.0000000' }, exists: false };
+    }
+
+    const parsed = parseHorizonError(err);
+    const error = new Error(parsed.message);
+    error.statusCode = parsed.httpStatus && parsed.httpStatus < 500 ? parsed.httpStatus : 502;
+    error.code = parsed.code;
+    throw error;
+  }
+};
+
 const normalizeNetworkName = (networkName) => {
   return String(networkName || '')
     .trim()
@@ -368,6 +407,7 @@ module.exports = {
   submitTransaction,
   submitTransactionAsync,
   assertWalletNetwork,
+  getAccountBalances,
   STELLAR_ERRORS,
   NetworkMismatchError,
   // exported for testing only

@@ -20,7 +20,7 @@ const routeDocs = [
     method: 'get',
     path: '/:address/balance',
     operationId: 'getWalletBalance',
-    summary: 'Fetch a wallet\'s balance by Stellar address',
+    summary: 'Fetch a wallet\'s real on-chain balances from Horizon',
     tags: ['Wallet'],
     parameters: [
       {
@@ -33,7 +33,9 @@ const routeDocs = [
     ],
     responses: {
       200: {
-        description: 'Balance returned successfully',
+        description:
+          'Balances returned successfully. An address that is well-formed but has never ' +
+          'been funded on-chain returns a zero XLM balance rather than an error.',
         content: {
           'application/json': {
             schema: {
@@ -47,8 +49,8 @@ const routeDocs = [
           },
         },
       },
-      404: {
-        description: 'No account found for that wallet address',
+      400: {
+        description: 'The given address is not a valid Stellar public key',
         content: {
           'application/json': {
             schema: { $ref: '#/components/schemas/ErrorEnvelope' },
