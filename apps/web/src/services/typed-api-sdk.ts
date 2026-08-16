@@ -10,6 +10,11 @@ import {
   type GetGameByIdResponse,
   type GetGamesResponse,
   type GetProfileResponse,
+  type GetWalletBalanceResponse,
+  type LoginChallengeRequest,
+  type LoginChallengeResponse,
+  type LoginRequest,
+  type LoginResponse,
   type PlayGameRequest,
   type PlayGameResponse,
   type UpdateProfileRequest,
@@ -350,6 +355,34 @@ export class ApiClient {
       return { success: false, error: makeValidationError('Amount must be greater than zero.') };
     }
     return this._request('POST', '/wallet/withdraw', input, true, opts);
+  }
+
+  /** Real on-chain balances from Horizon — no linked account required. */
+  async getWalletBalance(
+    address: string,
+    opts?: ApiRequestOptions,
+  ): Promise<ApiResult<GetWalletBalanceResponse>> {
+    if (!address.trim()) {
+      return { success: false, error: makeValidationError('A wallet address is required.') };
+    }
+    return this._request('GET', `/wallet/${encodeURIComponent(address)}/balance`, undefined, false, opts);
+  }
+
+  async createLoginChallenge(
+    input: LoginChallengeRequest,
+    opts?: ApiRequestOptions,
+  ): Promise<ApiResult<LoginChallengeResponse>> {
+    if (!input.address.trim()) {
+      return { success: false, error: makeValidationError('Address is required.') };
+    }
+    return this._request('POST', '/auth/challenge', input, false, opts);
+  }
+
+  async login(input: LoginRequest, opts?: ApiRequestOptions): Promise<ApiResult<LoginResponse>> {
+    if (!input.address.trim() || !input.signature.trim()) {
+      return { success: false, error: makeValidationError('Address and signature are required.') };
+    }
+    return this._request('POST', '/auth/login', input, false, opts);
   }
 
   private async _request<T>(
