@@ -91,10 +91,15 @@ const components = {
     },
     UserProfileResponse: {
       type: 'object',
-      required: ['id', 'username'],
+      required: ['address', 'createdAt'],
       properties: {
-        id: { type: 'integer' },
+        address: { type: 'string' },
         username: { type: 'string' },
+        telegramHandle: { type: 'string' },
+        telegramUserId: { type: 'string' },
+        telegramLinked: { type: 'boolean' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
       },
     },
     CreateProfileRequest: {
@@ -102,13 +107,17 @@ const components = {
       required: ['walletAddress'],
       properties: {
         walletAddress: { type: 'string' },
+        username: { type: 'string' },
       },
     },
-    CreateProfileResponse: {
+    UpdateProfileRequest: {
       type: 'object',
-      required: ['success'],
+      required: ['walletAddress'],
       properties: {
-        success: { type: 'boolean' },
+        walletAddress: { type: 'string' },
+        username: { type: 'string' },
+        telegramUserId: { type: 'string' },
+        telegramHandle: { type: 'string' },
       },
     },
     GameSummary: {
@@ -474,7 +483,7 @@ function validateSpecShape(spec) {
 
   const protectedRoutes = [
     '/api/games/play',
-    '/api/users/profile',
+    '/api/users/audit-logs',
     '/api/wallet/deposit',
     '/api/wallet/withdraw',
   ];

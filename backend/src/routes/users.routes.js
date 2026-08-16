@@ -1,5 +1,5 @@
 const express = require('express');
-const { getProfile, createProfile, getAuditLogs } = require('../controllers/users.controller');
+const { getProfile, createProfile, updateProfile, getAuditLogs } = require('../controllers/users.controller');
 const auth = require('../middleware/auth.middleware');
 const { rateLimit } = require('../middleware/rate-limit.middleware');
 
@@ -10,22 +10,39 @@ const routeDocs = [
     method: 'get',
     path: '/profile',
     operationId: 'getUserProfile',
-    summary: 'Fetch the authenticated user profile',
+    summary: 'Fetch a profile by wallet address',
     tags: ['Users'],
+    parameters: [
+      {
+        name: 'address',
+        in: 'query',
+        required: true,
+        schema: { type: 'string' },
+        description: 'Stellar wallet address (G...) to look up.',
+      },
+    ],
     responses: {
       200: {
-        description: 'User profile fetched successfully',
+        description: 'Profile fetched successfully',
         content: {
           'application/json': {
             schema: { $ref: '#/components/schemas/UserProfileResponse' },
           },
         },
       },
-      401: {
-        description: 'Authentication failed',
+      400: {
+        description: 'Missing or invalid "address" query parameter',
         content: {
           'application/json': {
-            schema: { $ref: '#/components/schemas/AuthErrorResponse' },
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
+          },
+        },
+      },
+      404: {
+        description: 'No profile exists for that wallet address yet — the wallet needs onboarding',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
           },
         },
       },
@@ -126,7 +143,7 @@ const routeDocs = [
     method: 'post',
     path: '/create',
     operationId: 'createUserProfile',
-    summary: 'Create a new user profile',
+    summary: 'Create a new profile (idempotent — returns the existing one if the wallet already has a profile)',
     tags: ['Users'],
     requestBody: {
       required: true,
@@ -138,10 +155,67 @@ const routeDocs = [
     },
     responses: {
       201: {
-        description: 'User profile created successfully',
+        description: 'Profile created (or already existed) successfully',
         content: {
           'application/json': {
-            schema: { $ref: '#/components/schemas/CreateProfileResponse' },
+            schema: { $ref: '#/components/schemas/UserProfileResponse' },
+          },
+        },
+      },
+      400: {
+        description: 'Missing walletAddress',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
+          },
+        },
+      },
+      500: {
+        description: 'Unexpected server error',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
+          },
+        },
+      },
+    },
+  },
+  {
+    method: 'post',
+    path: '/update',
+    operationId: 'updateUserProfile',
+    summary: 'Update an existing profile — username and/or Telegram link fields',
+    tags: ['Users'],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/UpdateProfileRequest' },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Profile updated successfully',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/UserProfileResponse' },
+          },
+        },
+      },
+      400: {
+        description: 'Missing walletAddress',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
+          },
+        },
+      },
+      404: {
+        description: 'No existing profile for that wallet address — use /create first',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorEnvelope' },
           },
         },
       },
@@ -157,9 +231,10 @@ const routeDocs = [
   },
 ];
 
-router.get('/profile', auth, rateLimit('auth'), getProfile);
+router.get('/profile', getProfile);
 router.get('/audit-logs', auth, rateLimit('auth'), getAuditLogs);
 router.post('/create', rateLimit('auth'), createProfile);
+router.post('/update', rateLimit('auth'), updateProfile);
 
 module.exports = router;
 module.exports.routeDocs = routeDocs;
