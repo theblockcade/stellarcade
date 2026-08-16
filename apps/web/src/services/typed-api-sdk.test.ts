@@ -118,6 +118,43 @@ describe('ApiClient — happy path', () => {
     }
   });
 
+  it('getWalletBalance returns real on-chain balances', async () => {
+    mockFetch(200, { address: 'GABC123', balances: { XLM: '10000.0000000' } });
+
+    const client = new ApiClient();
+    const result = await client.getWalletBalance('GABC123');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.balances.XLM).toBe('10000.0000000');
+    }
+  });
+
+  it('createLoginChallenge returns a challenge string', async () => {
+    mockFetch(200, { challenge: 'Sign in to StellarCade\n\nNonce: abc123' });
+
+    const client = new ApiClient();
+    const result = await client.createLoginChallenge({ address: 'GABC123' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.challenge).toContain('Sign in to StellarCade');
+    }
+  });
+
+  it('login returns a token and profile', async () => {
+    mockFetch(200, { token: 'jwt-abc', profile: { address: 'GABC123', createdAt: '2024-01-01' } });
+
+    const client = new ApiClient();
+    const result = await client.login({ address: 'GABC123', signature: 'c2ln' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.token).toBe('jwt-abc');
+      expect(result.data.profile.address).toBe('GABC123');
+    }
+  });
+
   it('deposit returns updated balance', async () => {
     mockFetch(200, { balance: 105.0 });
 

@@ -3,6 +3,7 @@ import WalletSessionService, {
   WalletProviderAdapter,
 } from "../services/wallet-session-service";
 import { defaultFreighterAdapter } from "../services/freighter-adapter";
+import { authenticateWallet } from "../services/profile-service";
 import {
   ProviderNotFoundError,
   RejectedSignatureError,
@@ -198,7 +199,20 @@ export function useWalletStatus(
       const activeAdapter = adapter ?? defaultFreighterAdapter;
       svc.setProviderAdapter(activeAdapter);
       try {
-        await svc.connect(opts);
+        const meta = await svc.connect(opts);
+
+        // Best-effort backend login (separate JWT session, not the wallet
+        // connection itself) — deliberately not awaited: connect() must
+        // resolve on its existing timing regardless of whether the backend
+        // is reachable or the user rejects the extra signature prompt.
+        if (activeAdapter.signMessage) {
+          void authenticateWallet(meta.address, activeAdapter.signMessage.bind(activeAdapter)).catch(
+            () => {
+              // Swallowed — authenticateWallet already reports failures via
+              // its own return value for callers that await it directly.
+            },
+          );
+        }
       } catch (err) {
         // Error state is broadcasted to subscribers by WalletSessionService
         throw err;

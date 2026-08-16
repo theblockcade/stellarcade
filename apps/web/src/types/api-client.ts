@@ -174,3 +174,37 @@ export type DepositResponse = WalletOpResponse;
 
 /** Response shape for `POST /api/wallet/withdraw`. */
 export type WithdrawResponse = WalletOpResponse;
+
+// ── GET /api/wallet/:address/balance ────────────────────────────────────────
+
+/** Response shape for `GET /api/wallet/:address/balance` — real on-chain
+ * balances read from Horizon, keyed by asset code (XLM for native). */
+export interface GetWalletBalanceResponse {
+  address: string;
+  balances: Record<string, string>;
+}
+
+// ── POST /api/auth/challenge & /api/auth/login ──────────────────────────────
+
+/** Request body for `POST /api/auth/challenge`. */
+export interface LoginChallengeRequest {
+  address: string;
+}
+
+/** Response shape for `POST /api/auth/challenge`. */
+export interface LoginChallengeResponse {
+  challenge: string;
+}
+
+/** Request body for `POST /api/auth/login`. */
+export interface LoginRequest {
+  address: string;
+  /** Base64-encoded Ed25519 signature over the challenge. */
+  signature: string;
+}
+
+/** Response shape for `POST /api/auth/login`. */
+export interface LoginResponse {
+  token: string;
+  profile: UserProfile;
+}

@@ -16,6 +16,9 @@
       "name": "Health"
     },
     {
+      "name": "Auth"
+    },
+    {
       "name": "Games"
     },
     {
@@ -54,6 +57,179 @@
             }
           }
         }
+      }
+    },
+    "/api/auth/challenge": {
+      "post": {
+        "operationId": "createLoginChallenge",
+        "summary": "Issue a one-time login challenge for a wallet address to sign",
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenge issued successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "challenge"
+                  ],
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Verify a signed challenge and issue a session JWT",
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "token",
+                    "profile"
+                  ],
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "profile": {
+                      "$ref": "#/components/schemas/UserProfileResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fields, no pending challenge, or the challenge expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Signature does not verify against the given address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Login is not configured on this deployment (JWT_SECRET unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address",
+                  "signature"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": "string",
+                    "description": "Base64-encoded Ed25519 signature."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/games": {
@@ -256,13 +432,13 @@
     "/api/users/profile": {
       "get": {
         "operationId": "getUserProfile",
-        "summary": "Fetch the authenticated user profile",
+        "summary": "Fetch a profile by wallet address",
         "tags": [
           "Users"
         ],
         "responses": {
           "200": {
-            "description": "User profile fetched successfully",
+            "description": "Profile fetched successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -271,12 +447,22 @@
               }
             }
           },
-          "401": {
-            "description": "Authentication failed",
+          "400": {
+            "description": "Missing or invalid \"address\" query parameter",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No profile exists for that wallet address yet — the wallet needs onboarding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -292,9 +478,15 @@
             }
           }
         },
-        "security": [
+        "parameters": [
           {
-            "bearerAuth": []
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Stellar wallet address (G...) to look up."
           }
         ]
       }
@@ -406,17 +598,27 @@
     "/api/users/create": {
       "post": {
         "operationId": "createUserProfile",
-        "summary": "Create a new user profile",
+        "summary": "Create a new profile (idempotent — returns the existing one if the wallet already has a profile)",
         "tags": [
           "Users"
         ],
         "responses": {
           "201": {
-            "description": "User profile created successfully",
+            "description": "Profile created (or already existed) successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateProfileResponse"
+                  "$ref": "#/components/schemas/UserProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing walletAddress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -438,6 +640,72 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateProfileRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/update": {
+      "post": {
+        "operationId": "updateUserProfile",
+        "summary": "Update an existing profile — username and/or Telegram link fields",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing walletAddress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existing profile for that wallet address — use /create first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
               }
             }
           }
@@ -1053,15 +1321,32 @@
       "UserProfileResponse": {
         "type": "object",
         "required": [
-          "id",
-          "username"
+          "address",
+          "createdAt"
         ],
         "properties": {
-          "id": {
-            "type": "integer"
+          "address": {
+            "type": "string"
           },
           "username": {
             "type": "string"
+          },
+          "telegramHandle": {
+            "type": "string"
+          },
+          "telegramUserId": {
+            "type": "string"
+          },
+          "telegramLinked": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -1073,17 +1358,29 @@
         "properties": {
           "walletAddress": {
             "type": "string"
+          },
+          "username": {
+            "type": "string"
           }
         }
       },
-      "CreateProfileResponse": {
+      "UpdateProfileRequest": {
         "type": "object",
         "required": [
-          "success"
+          "walletAddress"
         ],
         "properties": {
-          "success": {
-            "type": "boolean"
+          "walletAddress": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "telegramUserId": {
+            "type": "string"
+          },
+          "telegramHandle": {
+            "type": "string"
           }
         }
       },

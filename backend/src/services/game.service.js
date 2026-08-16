@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
 const GameModel = require('../models/Game.model');
+const QuestModel = require('../models/Quest.model');
 
 /**
  * Service for managing game-related business logic.
@@ -157,6 +158,17 @@ const gameService = {
       balance: newBalance,
       updated_at: db.fn.now(),
     });
+
+    // Quest progress is a best-effort side effect — must never block or
+    // fail an actual wagered game outcome that's already been paid out.
+    QuestModel.recordProgress(user.id, 'play-5-games', 1).catch((err) => {
+      logger.error('Failed to record play-5-games quest progress:', err);
+    });
+    if (won) {
+      QuestModel.recordProgress(user.id, 'win-3-games', 1).catch((err) => {
+        logger.error('Failed to record win-3-games quest progress:', err);
+      });
+    }
 
     return {
       result: outcome,

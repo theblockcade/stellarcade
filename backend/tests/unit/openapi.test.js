@@ -7,7 +7,8 @@ describe('OpenAPI generation', () => {
     expect(spec.openapi).toBe('3.0.3');
     expect(spec.paths['/api/health'].get.operationId).toBe('getHealthStatus');
     expect(spec.paths['/api/games/play'].post.security).toEqual([{ bearerAuth: [] }]);
-    expect(spec.paths['/api/users/profile'].get.security).toEqual([{ bearerAuth: [] }]);
+    expect(spec.paths['/api/users/profile'].get.security).toBeUndefined();
+    expect(spec.paths['/api/users/audit-logs'].get.security).toEqual([{ bearerAuth: [] }]);
     expect(spec.paths['/api/wallet/deposit'].post.parameters).toContainEqual({
       $ref: '#/components/parameters/IdempotencyKeyHeader',
     });

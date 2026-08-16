@@ -164,3 +164,48 @@ export function needsOnboarding(profile: UserProfile | null | undefined): boolea
   if (!profile) return true;
   return !profile.username?.trim() || !profile.ageConfirmedAt;
 }
+
+/**
+ * Completes wallet-signature login: fetch a one-time challenge, have the
+ * wallet sign it, exchange the signature for a session JWT, then publish
+ * both the token and the resulting profile to the store. This is the only
+ * place `auth.token` ever gets set — every auth-required API call was
+ * unreachable in production before this existed, since nothing ever issued
+ * that token.
+ *
+ * Deliberately swallow-and-report rather than throw: callers use this as a
+ * best-effort enhancement after a wallet connects, not a precondition for
+ * the connection itself succeeding.
+ */
+export async function authenticateWallet(
+  address: string,
+  signMessage: (message: string) => Promise<string>,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const client = createProfileApiClient();
+
+  const challengeRes = await client.createLoginChallenge({ address });
+  if (!challengeRes.success) {
+    return { ok: false, message: challengeRes.error.message };
+  }
+
+  let signature: string;
+  try {
+    signature = await signMessage(challengeRes.data.challenge);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to sign login challenge";
+    return { ok: false, message };
+  }
+
+  const loginRes = await client.login({ address, signature });
+  if (!loginRes.success) {
+    return { ok: false, message: loginRes.error.message };
+  }
+
+  profileStore.dispatch({
+    type: "AUTH_SET",
+    payload: { userId: loginRes.data.profile.address, token: loginRes.data.token },
+  });
+  profileStore.dispatch({ type: "PROFILE_SET", payload: { profile: loginRes.data.profile } });
+
+  return { ok: true };
+}
