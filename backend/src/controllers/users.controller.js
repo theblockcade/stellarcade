@@ -155,4 +155,5 @@ module.exports = {
   createProfile,
   updateProfile,
   getAuditLogs,
+  serializeUser,
 };

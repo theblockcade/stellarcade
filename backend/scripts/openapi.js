@@ -460,6 +460,7 @@ function buildSpec() {
     ],
     tags: [
       { name: 'Health' },
+      { name: 'Auth' },
       { name: 'Games' },
       { name: 'Users' },
       { name: 'Wallet' },
