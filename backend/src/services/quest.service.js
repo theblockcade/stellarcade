@@ -1,5 +1,6 @@
 const UserModel = require('../models/User.model');
 const QuestModel = require('../models/Quest.model');
+const logger = require('../utils/logger');
 
 /**
  * Service for managing quest-related business logic.
@@ -25,6 +26,15 @@ const questService = {
         claimed: false,
         streak: 0,
       }));
+    }
+
+    // Checking your quests is itself the "showed up today" signal for
+    // platforms (Telegram) that have no other profile-visit hook —
+    // best-effort, must never fail the actual quest read.
+    try {
+      await QuestModel.recordDailyLogin(user.id);
+    } catch (err) {
+      logger.error('Failed to record daily-login quest progress:', err);
     }
 
     const rows = await QuestModel.getProgressForUser(user.id);

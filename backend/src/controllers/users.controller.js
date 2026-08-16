@@ -3,6 +3,7 @@
  */
 const logger = require('../utils/logger');
 const User = require('../models/User.model');
+const Quest = require('../models/Quest.model');
 const audit = require('../services/audit.service');
 
 const ALLOWED_AUDIT_ACTIONS = ['wallet.deposit', 'wallet.withdraw', 'game.play'];
@@ -72,6 +73,13 @@ const getProfile = async (req, res, next) => {
       error.code = 'PROFILE_NOT_FOUND';
       throw error;
     }
+
+    // Fetching your own profile is the one signal every surface (web app,
+    // Telegram bot) reliably sends once per visit — best-effort, must never
+    // fail the actual profile fetch.
+    Quest.recordDailyLogin(user.id).catch((err) => {
+      logger.error('Failed to record daily-login quest progress:', err);
+    });
 
     res.status(200).json(serializeUser(user));
   } catch (error) {
