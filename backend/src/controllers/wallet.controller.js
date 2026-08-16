@@ -3,7 +3,7 @@
  */
 const logger = require('../utils/logger');
 const audit = require('../services/audit.service');
-const { assertWalletNetwork } = require('../services/stellar.service');
+const { assertWalletNetwork, getAccountBalances } = require('../services/stellar.service');
 const TransactionModel = require('../models/Transaction.model');
 const User = require('../models/User.model');
 const db = require('../config/database');
@@ -17,18 +17,11 @@ const validateWalletNetwork = (req) => {
 const getBalance = async (req, res, next) => {
   try {
     const { address } = req.params;
-    const user = await User.findByWallet(address);
-
-    if (!user) {
-      const error = new Error(`No account found for wallet address ${address}.`);
-      error.statusCode = 404;
-      error.code = 'WALLET_NOT_FOUND';
-      throw error;
-    }
+    const result = await getAccountBalances(address);
 
     res.status(200).json({
-      address: user.wallet_address,
-      balances: { XLM: String(user.balance) },
+      address: result.address,
+      balances: result.balances,
     });
   } catch (error) {
     next(error);

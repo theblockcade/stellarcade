@@ -21,8 +21,10 @@ jest.mock('../../src/config/redis', () => {
   return { client: mockClient, connectPromise: Promise.resolve() };
 });
 
-jest.mock('../../src/services/stellar.service', () => ({
-  assertWalletNetwork: jest.fn(),
+jest.mock('../../src/config/stellar', () => ({
+  server: { loadAccount: jest.fn() },
+  network: 'testnet',
+  passphrase: 'Test SDF Network ; September 2015',
 }));
 
 jest.mock('../../src/middleware/auth.middleware', () => (req, res, next) => {
@@ -31,9 +33,9 @@ jest.mock('../../src/middleware/auth.middleware', () => (req, res, next) => {
 });
 
 const router = require('../../src/routes/wallet.routes');
-const User = require('../../src/models/User.model');
+const { server } = require('../../src/config/stellar');
 
-jest.mock('../../src/models/User.model');
+const VALID_ADDRESS = 'GCL3XXKSD2NTRWXS4SCWRZVXXBESRTQJW4E6XRQL2BLOWKEVGTAMEILN';
 
 const app = express();
 app.use(express.json());
@@ -47,29 +49,54 @@ describe('GET /wallet/:address/balance', () => {
     jest.clearAllMocks();
   });
 
-  test('returns the real DB-backed balance, not a fabricated number', async () => {
-    User.findByWallet.mockResolvedValue({
-      id: 1,
-      wallet_address: 'GALICE1234567890',
-      balance: '42.5000000',
+  test('returns the address\'s real on-chain balances from Horizon, not an internal ledger figure', async () => {
+    server.loadAccount.mockResolvedValue({
+      balances: [
+        { asset_type: 'native', balance: '123.4567890' },
+        { asset_type: 'credit_alphanum4', asset_code: 'USDC', balance: '50.0000000' },
+      ],
     });
 
-    const res = await request(app).get('/wallet/GALICE1234567890/balance');
+    const res = await request(app).get(`/wallet/${VALID_ADDRESS}/balance`);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      address: 'GALICE1234567890',
-      balances: { XLM: '42.5000000' },
+      address: VALID_ADDRESS,
+      balances: { XLM: '123.4567890', USDC: '50.0000000' },
     });
-    expect(User.findByWallet).toHaveBeenCalledWith('GALICE1234567890');
+    expect(server.loadAccount).toHaveBeenCalledWith(VALID_ADDRESS);
   });
 
-  test('404s for a wallet address with no account, instead of inventing a zero balance', async () => {
-    User.findByWallet.mockResolvedValue(null);
+  test('returns a zero balance, not an error, for a valid address that has never been funded on-chain', async () => {
+    const StellarSdk = jest.requireActual('@stellar/stellar-sdk');
+    server.loadAccount.mockRejectedValue(
+      new StellarSdk.NotFoundError('Not Found', { status: 404, statusText: 'Not Found', data: {} })
+    );
 
-    const res = await request(app).get('/wallet/GUNKNOWN/balance');
+    const res = await request(app).get(`/wallet/${VALID_ADDRESS}/balance`);
 
-    expect(res.status).toBe(404);
-    expect(res.body.error.code).toBe('WALLET_NOT_FOUND');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      address: VALID_ADDRESS,
+      balances: { XLM: '0.0000000' },
+    });
+  });
+
+  test('400s for a malformed address instead of asking Horizon', async () => {
+    const res = await request(app).get('/wallet/not-a-real-address/balance');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_ADDRESS');
+    expect(server.loadAccount).not.toHaveBeenCalled();
+  });
+
+  test('surfaces a Horizon server error instead of masking it as a 200', async () => {
+    const err = new Error('Horizon unavailable');
+    err.response = { status: 503, data: {} };
+    server.loadAccount.mockRejectedValue(err);
+
+    const res = await request(app).get(`/wallet/${VALID_ADDRESS}/balance`);
+
+    expect(res.status).toBe(502);
   });
 });
