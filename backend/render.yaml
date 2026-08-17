@@ -10,7 +10,7 @@ services:
     name: stellarcade-backend
     runtime: docker
     plan: free
-    autoDeploy: false
+    autoDeploy: true
     # This service lives in the StellarCade monorepo at backend/, not repo
     # root — without rootDir, Render clones the whole repo and looks for
     # ./Dockerfile at the top level, which doesn't exist (it's at
