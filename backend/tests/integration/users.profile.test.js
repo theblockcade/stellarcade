@@ -98,7 +98,9 @@ describe('POST /users/create', () => {
     User.findByWallet.mockResolvedValue(null);
     User.create.mockResolvedValue(DB_USER);
 
-    const res = await request(app).post('/users/create').send({ walletAddress: 'GALICE', username: 'alice' });
+    const res = await request(app)
+      .post('/users/create')
+      .send({ walletAddress: 'GALICE', username: 'alice' });
 
     expect(res.status).toBe(201);
     expect(res.body.address).toBe('GALICE');
@@ -106,7 +108,26 @@ describe('POST /users/create', () => {
       wallet_address: 'GALICE',
       username: 'alice',
       balance: 0,
+      age_confirmed_at: null,
     });
+  });
+
+  test('records the age confirmation on a brand-new profile', async () => {
+    User.findByWallet.mockResolvedValue(null);
+    User.create.mockResolvedValue({
+      ...DB_USER,
+      age_confirmed_at: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    const res = await request(app)
+      .post('/users/create')
+      .send({ walletAddress: 'GALICE', username: 'alice', ageConfirmed: true });
+
+    expect(res.status).toBe(201);
+    expect(res.body.ageConfirmedAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(User.create).toHaveBeenCalledWith(
+      expect.objectContaining({ age_confirmed_at: expect.any(Date) })
+    );
   });
 
   test('is idempotent — returns the existing profile instead of erroring when one already exists', async () => {
@@ -117,6 +138,39 @@ describe('POST /users/create', () => {
     expect(res.status).toBe(201);
     expect(res.body.address).toBe('GALICE');
     expect(User.create).not.toHaveBeenCalled();
+  });
+
+  test('records the age confirmation on a wallet that already has a profile, instead of dropping it', async () => {
+    User.findByWallet.mockResolvedValue(DB_USER);
+    User.updateByWallet.mockResolvedValue({
+      ...DB_USER,
+      age_confirmed_at: new Date('2026-01-02T00:00:00.000Z'),
+    });
+
+    const res = await request(app)
+      .post('/users/create')
+      .send({ walletAddress: 'GALICE', ageConfirmed: true });
+
+    expect(res.status).toBe(201);
+    expect(res.body.ageConfirmedAt).toBe('2026-01-02T00:00:00.000Z');
+    expect(User.create).not.toHaveBeenCalled();
+    expect(User.updateByWallet).toHaveBeenCalledWith('GALICE', {
+      age_confirmed_at: expect.any(Date),
+    });
+  });
+
+  test('does not re-confirm (or re-touch updateByWallet) a wallet whose age is already confirmed', async () => {
+    User.findByWallet.mockResolvedValue({
+      ...DB_USER,
+      age_confirmed_at: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    const res = await request(app)
+      .post('/users/create')
+      .send({ walletAddress: 'GALICE', ageConfirmed: true });
+
+    expect(res.status).toBe(201);
+    expect(User.updateByWallet).not.toHaveBeenCalled();
   });
 });
 
@@ -135,7 +189,9 @@ describe('POST /users/update', () => {
   test('404s when the wallet has no existing profile to update', async () => {
     User.findByWallet.mockResolvedValue(null);
 
-    const res = await request(app).post('/users/update').send({ walletAddress: 'GUNKNOWN', username: 'x' });
+    const res = await request(app)
+      .post('/users/update')
+      .send({ walletAddress: 'GUNKNOWN', username: 'x' });
 
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe('PROFILE_NOT_FOUND');
@@ -152,7 +208,11 @@ describe('POST /users/update', () => {
 
     const res = await request(app)
       .post('/users/update')
-      .send({ walletAddress: 'GALICE', telegramUserId: '944872850', telegramHandle: '@user_944872850' });
+      .send({
+        walletAddress: 'GALICE',
+        telegramUserId: '944872850',
+        telegramHandle: '@user_944872850',
+      });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(
@@ -173,10 +233,49 @@ describe('POST /users/update', () => {
     User.findByWallet.mockResolvedValue(DB_USER);
     User.updateByWallet.mockResolvedValue({ ...DB_USER, username: 'alice2' });
 
-    const res = await request(app).post('/users/update').send({ walletAddress: 'GALICE', username: 'alice2' });
+    const res = await request(app)
+      .post('/users/update')
+      .send({ walletAddress: 'GALICE', username: 'alice2' });
 
     expect(res.status).toBe(200);
     expect(res.body.username).toBe('alice2');
+    expect(User.updateByWallet).toHaveBeenCalledWith('GALICE', { username: 'alice2' });
+  });
+
+  test('records the age confirmation on a profile that predates the age gate', async () => {
+    User.findByWallet.mockResolvedValue(DB_USER);
+    User.updateByWallet.mockResolvedValue({
+      ...DB_USER,
+      age_confirmed_at: new Date('2026-01-03T00:00:00.000Z'),
+    });
+
+    const res = await request(app)
+      .post('/users/update')
+      .send({ walletAddress: 'GALICE', ageConfirmed: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ageConfirmedAt).toBe('2026-01-03T00:00:00.000Z');
+    expect(User.updateByWallet).toHaveBeenCalledWith('GALICE', {
+      age_confirmed_at: expect.any(Date),
+    });
+  });
+
+  test('never clears an existing age confirmation when ageConfirmed is omitted or false', async () => {
+    User.findByWallet.mockResolvedValue({
+      ...DB_USER,
+      age_confirmed_at: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    User.updateByWallet.mockResolvedValue({
+      ...DB_USER,
+      username: 'alice2',
+      age_confirmed_at: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    const res = await request(app)
+      .post('/users/update')
+      .send({ walletAddress: 'GALICE', username: 'alice2', ageConfirmed: false });
+
+    expect(res.status).toBe(200);
     expect(User.updateByWallet).toHaveBeenCalledWith('GALICE', { username: 'alice2' });
   });
 });

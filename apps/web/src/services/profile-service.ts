@@ -49,10 +49,22 @@ function getStoreToken(): string | null {
  * session store, so its profile sync was unauthenticated and always failed —
  * which is why the sidebar only ever picked up a username after the user
  * visited /profile (the one place that did pass a token).
+ *
+ * `baseUrl` must be omitted here, not set to `window.location.origin` — the
+ * backend lives on its own origin (`NEXT_PUBLIC_API_BASE_URL`), and
+ * `ApiClient`'s constructor only falls back to that env var when no
+ * `baseUrl` is passed at all (an explicit `baseUrl`, even the wrong one,
+ * always wins). Passing the frontend's own origin here silently pointed
+ * every profile/balance/auth request at this Next.js app instead of the
+ * API, so they all 404'd against Next's own catch-all — every caller of
+ * this client (fetchProfile, createProfile, useXlmBalance, ...) was already
+ * built to distinguish a real 404 (no profile yet) from other failures, so
+ * that 404 was silently read as "wallet has no profile," re-triggering
+ * onboarding and clearing profile state on every load. Match the working
+ * pattern other clients use (see `GameLobby.tsx`'s `new ApiClient()`).
  */
 export function createProfileApiClient(): ApiClient {
   return new ApiClient({
-    baseUrl: typeof window !== "undefined" ? window.location.origin : "",
     sessionStore: { getToken: () => getStoreToken() },
   });
 }
