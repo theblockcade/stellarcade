@@ -206,13 +206,11 @@ describe('POST /users/update', () => {
       telegram_handle: '@user_944872850',
     });
 
-    const res = await request(app)
-      .post('/users/update')
-      .send({
-        walletAddress: 'GALICE',
-        telegramUserId: '944872850',
-        telegramHandle: '@user_944872850',
-      });
+    const res = await request(app).post('/users/update').send({
+      walletAddress: 'GALICE',
+      telegramUserId: '944872850',
+      telegramHandle: '@user_944872850',
+    });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(

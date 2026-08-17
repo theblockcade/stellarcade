@@ -15,7 +15,9 @@ const {
 
 /** Mirrors how Freighter (and SEP-53-style wallets) actually sign messages. */
 function signChallenge(keypair, challenge) {
-  const hash = createHash('sha256').update(`Stellar Signed Message:\n${challenge}`, 'utf8').digest();
+  const hash = createHash('sha256')
+    .update(`Stellar Signed Message:\n${challenge}`, 'utf8')
+    .digest();
   return keypair.sign(hash).toString('base64');
 }
 
@@ -37,7 +39,9 @@ describe('authService.createChallenge / verifySignature', () => {
     const challenge = authService.createChallenge(claimedAddress);
     const signature = signChallenge(signer, challenge);
 
-    expect(() => authService.verifySignature(claimedAddress, signature)).toThrow(InvalidSignatureError);
+    expect(() => authService.verifySignature(claimedAddress, signature)).toThrow(
+      InvalidSignatureError
+    );
   });
 
   test('rejects a raw-bytes signature (not the SEP-53 wrapped hash real wallets produce)', () => {
@@ -52,7 +56,9 @@ describe('authService.createChallenge / verifySignature', () => {
 
   test('throws ChallengeNotFoundError when no challenge is pending', () => {
     const keypair = Keypair.random();
-    expect(() => authService.verifySignature(keypair.publicKey(), 'sig')).toThrow(ChallengeNotFoundError);
+    expect(() => authService.verifySignature(keypair.publicKey(), 'sig')).toThrow(
+      ChallengeNotFoundError
+    );
   });
 
   test('throws ChallengeExpiredError after the TTL elapses', () => {
@@ -79,7 +85,9 @@ describe('authService.createChallenge / verifySignature', () => {
   });
 
   test('rejects a malformed address instead of throwing an unhandled error', () => {
-    expect(() => authService.verifySignature('not-a-real-address', 'sig')).toThrow(ChallengeNotFoundError);
+    expect(() => authService.verifySignature('not-a-real-address', 'sig')).toThrow(
+      ChallengeNotFoundError
+    );
   });
 });
 
@@ -91,7 +99,9 @@ describe('authService.issueToken', () => {
 
   test('throws AuthNotConfiguredError when JWT_SECRET is unset', () => {
     delete process.env.JWT_SECRET;
-    expect(() => authService.issueToken({ id: 1, wallet_address: 'GALICE' })).toThrow(AuthNotConfiguredError);
+    expect(() => authService.issueToken({ id: 1, wallet_address: 'GALICE' })).toThrow(
+      AuthNotConfiguredError
+    );
   });
 
   test('issues a verifiable HS256 token carrying id and walletAddress', () => {

@@ -69,7 +69,9 @@ const QuestModel = {
       const quest = await db('quests').where({ quest_id: questSlug }).first();
       if (!quest) return null;
 
-      const existing = await db('user_quests').where({ user_id: userId, quest_id: quest.id }).first();
+      const existing = await db('user_quests')
+        .where({ user_id: userId, quest_id: quest.id })
+        .first();
 
       if (!existing) {
         const progress = Math.min(delta, quest.target);
@@ -117,7 +119,9 @@ const QuestModel = {
       const quest = await db('quests').where({ quest_id: 'daily-login' }).first();
       if (!quest) return null;
 
-      const existing = await db('user_quests').where({ user_id: userId, quest_id: quest.id }).first();
+      const existing = await db('user_quests')
+        .where({ user_id: userId, quest_id: quest.id })
+        .first();
       const today = new Date().toISOString().slice(0, 10);
 
       if (!existing) {

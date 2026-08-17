@@ -1,1575 +1,1284 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Stellarcade Backend API",
-    "version": "1.0.0",
-    "description": "Generated OpenAPI specification for the current Express route surface."
-  },
-  "servers": [
+  'openapi': '3.0.3',
+  'info':
     {
-      "url": "http://localhost:3000",
-      "description": "Local development server"
-    }
-  ],
-  "tags": [
+      'title': 'Stellarcade Backend API',
+      'version': '1.0.0',
+      'description': 'Generated OpenAPI specification for the current Express route surface.',
+    },
+  'servers': [{ 'url': 'http://localhost:3000', 'description': 'Local development server' }],
+  'tags':
+    [
+      { 'name': 'Health' },
+      { 'name': 'Auth' },
+      { 'name': 'Games' },
+      { 'name': 'Users' },
+      { 'name': 'Wallet' },
+      { 'name': 'Leaderboard' },
+      { 'name': 'Quests' },
+      { 'name': 'Tournaments' },
+    ],
+  'paths':
     {
-      "name": "Health"
-    },
-    {
-      "name": "Auth"
-    },
-    {
-      "name": "Games"
-    },
-    {
-      "name": "Users"
-    },
-    {
-      "name": "Wallet"
-    },
-    {
-      "name": "Leaderboard"
-    },
-    {
-      "name": "Quests"
-    },
-    {
-      "name": "Tournaments"
-    }
-  ],
-  "paths": {
-    "/api/health": {
-      "get": {
-        "operationId": "getHealthStatus",
-        "summary": "Check API health",
-        "tags": [
-          "Health"
-        ],
-        "responses": {
-          "200": {
-            "description": "API health payload returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/auth/challenge": {
-      "post": {
-        "operationId": "createLoginChallenge",
-        "summary": "Issue a one-time login challenge for a wallet address to sign",
-        "tags": [
-          "Auth"
-        ],
-        "responses": {
-          "200": {
-            "description": "Challenge issued successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "challenge"
-                  ],
-                  "properties": {
-                    "challenge": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing address",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "address"
-                ],
-                "properties": {
-                  "address": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/auth/login": {
-      "post": {
-        "operationId": "login",
-        "summary": "Verify a signed challenge and issue a session JWT",
-        "tags": [
-          "Auth"
-        ],
-        "responses": {
-          "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "token",
-                    "profile"
-                  ],
-                  "properties": {
-                    "token": {
-                      "type": "string"
+      '/api/health':
+        {
+          'get':
+            {
+              'operationId': 'getHealthStatus',
+              'summary': 'Check API health',
+              'tags': ['Health'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'API health payload returned successfully',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/HealthResponse' } },
+                        },
                     },
-                    "profile": {
-                      "$ref": "#/components/schemas/UserProfileResponse"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing fields, no pending challenge, or the challenge expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Signature does not verify against the given address",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Login is not configured on this deployment (JWT_SECRET unset)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
+                },
+            },
         },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "address",
-                  "signature"
-                ],
-                "properties": {
-                  "address": {
-                    "type": "string"
+      '/api/auth/challenge':
+        {
+          'post':
+            {
+              'operationId': 'createLoginChallenge',
+              'summary': 'Issue a one-time login challenge for a wallet address to sign',
+              'tags': ['Auth'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Challenge issued successfully',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'object',
+                                  'required': ['challenge'],
+                                  'properties': { 'challenge': { 'type': 'string' } },
+                                },
+                            },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Missing address',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        {
+                          'schema':
+                            {
+                              'type': 'object',
+                              'required': ['address'],
+                              'properties': { 'address': { 'type': 'string' } },
+                            },
+                        },
+                    },
+                },
+              'security': [{ 'bearerAuth': [] }],
+            },
+        },
+      '/api/auth/login':
+        {
+          'post':
+            {
+              'operationId': 'login',
+              'summary': 'Verify a signed challenge and issue a session JWT',
+              'tags': ['Auth'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Login successful',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'object',
+                                  'required': ['token', 'profile'],
+                                  'properties':
+                                    {
+                                      'token': { 'type': 'string' },
+                                      'profile':
+                                        { '$ref': '#/components/schemas/UserProfileResponse' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Missing fields, no pending challenge, or the challenge expired',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '401':
+                    {
+                      'description': 'Signature does not verify against the given address',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '503':
+                    {
+                      'description': 'Login is not configured on this deployment (JWT_SECRET unset)',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        {
+                          'schema':
+                            {
+                              'type': 'object',
+                              'required': ['address', 'signature'],
+                              'properties':
+                                {
+                                  'address': { 'type': 'string' },
+                                  'signature':
+                                    {
+                                      'type': 'string',
+                                      'description': 'Base64-encoded Ed25519 signature.',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+              'security': [{ 'bearerAuth': [] }],
+            },
+        },
+      '/api/games':
+        {
+          'get':
+            {
+              'operationId': 'listGames',
+              'summary': 'List available games',
+              'tags': ['Games'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Available games returned successfully',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/GamesCatalogResponse' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+            },
+        },
+      '/api/games/recent':
+        {
+          'get':
+            {
+              'operationId': 'listRecentGames',
+              'summary': 'List recent games with pagination and filters',
+              'tags': ['Games'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Recent games returned successfully',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/RecentGamesResponse' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'page',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'integer', 'minimum': 1, 'default': 1 },
+                    'description': 'Page number to retrieve',
                   },
-                  "signature": {
-                    "type": "string",
-                    "description": "Base64-encoded Ed25519 signature."
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/games": {
-      "get": {
-        "operationId": "listGames",
-        "summary": "List available games",
-        "tags": [
-          "Games"
-        ],
-        "responses": {
-          "200": {
-            "description": "Available games returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GamesCatalogResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/games/recent": {
-      "get": {
-        "operationId": "listRecentGames",
-        "summary": "List recent games with pagination and filters",
-        "tags": [
-          "Games"
-        ],
-        "responses": {
-          "200": {
-            "description": "Recent games returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecentGamesResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "default": 1
+                  {
+                    'name': 'limit',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'integer', 'minimum': 1, 'default': 10 },
+                    'description': 'Number of games to return per page',
+                  },
+                  {
+                    'name': 'gameType',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'string' },
+                    'description': 'Filter recent games by game type',
+                  },
+                  {
+                    'name': 'status',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'string' },
+                    'description': 'Filter recent games by result status',
+                  },
+                  {
+                    'name': 'sortBy',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'string' },
+                    'description': 'Field used for sorting',
+                  },
+                  {
+                    'name': 'sortDir',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'string', 'enum': ['asc', 'desc'] },
+                    'description': 'Sort direction',
+                  },
+                ],
             },
-            "description": "Page number to retrieve"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "default": 10
-            },
-            "description": "Number of games to return per page"
-          },
-          {
-            "name": "gameType",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter recent games by game type"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter recent games by result status"
-          },
-          {
-            "name": "sortBy",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Field used for sorting"
-          },
-          {
-            "name": "sortDir",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            },
-            "description": "Sort direction"
-          }
-        ]
-      }
-    },
-    "/api/games/play": {
-      "post": {
-        "operationId": "playSimpleGame",
-        "summary": "Play a game for the authenticated user",
-        "tags": [
-          "Games"
-        ],
-        "responses": {
-          "200": {
-            "description": "Game was processed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PlayGameResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Idempotency key conflict detected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdempotencyConflictResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKeyHeader"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PlayGameRequest"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/profile": {
-      "get": {
-        "operationId": "getUserProfile",
-        "summary": "Fetch a profile by wallet address",
-        "tags": [
-          "Users"
-        ],
-        "responses": {
-          "200": {
-            "description": "Profile fetched successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfileResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing or invalid \"address\" query parameter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No profile exists for that wallet address yet — the wallet needs onboarding",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "address",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Stellar wallet address (G...) to look up."
-          }
-        ]
-      }
-    },
-    "/api/users/audit-logs": {
-      "get": {
-        "operationId": "listUserAuditLogs",
-        "summary": "List audit log entries",
-        "tags": [
-          "Users"
-        ],
-        "responses": {
-          "200": {
-            "description": "Audit log entries fetched successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid query parameter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "actor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Optional actor wallet address filter."
-          },
-          {
-            "name": "action",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "wallet.deposit",
-                "wallet.withdraw",
-                "game.play"
-              ]
-            },
-            "description": "Optional action filter."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "default": 50
-            },
-            "description": "Maximum number of records returned."
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/create": {
-      "post": {
-        "operationId": "createUserProfile",
-        "summary": "Create a new profile (idempotent — returns the existing one if the wallet already has a profile)",
-        "tags": [
-          "Users"
-        ],
-        "responses": {
-          "201": {
-            "description": "Profile created (or already existed) successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfileResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing walletAddress",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProfileRequest"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/update": {
-      "post": {
-        "operationId": "updateUserProfile",
-        "summary": "Update an existing profile — username and/or Telegram link fields",
-        "tags": [
-          "Users"
-        ],
-        "responses": {
-          "200": {
-            "description": "Profile updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfileResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing walletAddress",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No existing profile for that wallet address — use /create first",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProfileRequest"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/wallet/:address/balance": {
-      "get": {
-        "operationId": "getWalletBalance",
-        "summary": "Fetch a wallet's real on-chain balances from Horizon",
-        "tags": [
-          "Wallet"
-        ],
-        "responses": {
-          "200": {
-            "description": "Balances returned successfully. An address that is well-formed but has never been funded on-chain returns a zero XLM balance rather than an error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "address",
-                    "balances"
-                  ],
-                  "properties": {
-                    "address": {
-                      "type": "string"
+      '/api/games/play':
+        {
+          'post':
+            {
+              'operationId': 'playSimpleGame',
+              'summary': 'Play a game for the authenticated user',
+              'tags': ['Games'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Game was processed successfully',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/PlayGameResponse' } },
+                        },
                     },
-                    "balances": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The given address is not a valid Stellar public key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "address",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Stellar wallet address (G...)."
-          }
-        ]
-      }
-    },
-    "/api/wallet/deposit": {
-      "post": {
-        "operationId": "createDeposit",
-        "summary": "Create a deposit request for the authenticated user",
-        "tags": [
-          "Wallet"
-        ],
-        "responses": {
-          "200": {
-            "description": "Deposit request accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DepositResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Request payload validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Idempotency key conflict detected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdempotencyConflictResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKeyHeader"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DepositRequest"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/wallet/withdraw": {
-      "post": {
-        "operationId": "createWithdrawal",
-        "summary": "Create a withdrawal request for the authenticated user",
-        "tags": [
-          "Wallet"
-        ],
-        "responses": {
-          "200": {
-            "description": "Withdrawal request accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WithdrawResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Request payload validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Idempotency key conflict detected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdempotencyConflictResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKeyHeader"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WithdrawRequest"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/leaderboard": {
-      "get": {
-        "operationId": "getLeaderboard",
-        "summary": "Rank players by total payout, optionally scoped to one game type",
-        "tags": [
-          "Leaderboard"
-        ],
-        "responses": {
-          "200": {
-            "description": "Leaderboard entries returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "rank",
-                      "playerAddress",
-                      "score"
-                    ],
-                    "properties": {
-                      "rank": {
-                        "type": "integer"
-                      },
-                      "playerAddress": {
-                        "type": "string"
-                      },
-                      "score": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "game",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Optional game_type filter (e.g. coin-flip)."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "default": 10
-            },
-            "description": "Maximum number of entries returned."
-          }
-        ]
-      }
-    },
-    "/api/quests": {
-      "get": {
-        "operationId": "getQuests",
-        "summary": "List a player's quest progress",
-        "tags": [
-          "Quests"
-        ],
-        "responses": {
-          "200": {
-            "description": "Quest progress returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "questId",
-                      "progress",
-                      "target",
-                      "claimed",
-                      "streak"
-                    ],
-                    "properties": {
-                      "questId": {
-                        "type": "string"
-                      },
-                      "progress": {
-                        "type": "integer"
-                      },
-                      "target": {
-                        "type": "integer"
-                      },
-                      "claimed": {
-                        "type": "boolean"
-                      },
-                      "streak": {
-                        "type": "integer"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing or invalid \"player\" query parameter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "player",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Stellar wallet address (G...) to fetch quest progress for."
-          }
-        ]
-      }
-    },
-    "/api/tournaments": {
-      "get": {
-        "operationId": "getTournaments",
-        "summary": "List all tournaments",
-        "tags": [
-          "Tournaments"
-        ],
-        "responses": {
-          "200": {
-            "description": "Tournaments returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "tournamentId",
-                      "gameId",
-                      "status",
-                      "prizePool"
-                    ],
-                    "properties": {
-                      "tournamentId": {
-                        "type": "string"
-                      },
-                      "gameId": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "upcoming",
-                          "active",
-                          "finished"
-                        ]
-                      },
-                      "prizePool": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/webhook": {
-      "post": {
-        "operationId": "receiveWebhookEvent",
-        "summary": "Receive and acknowledge webhook events",
-        "tags": [
-          "Wallet"
-        ],
-        "responses": {
-          "200": {
-            "description": "Webhook payload accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "received",
-                    "timestamp"
-                  ],
-                  "properties": {
-                    "received": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                  '401':
+                    {
+                      'description': 'Authentication failed',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/AuthErrorResponse' } },
+                        },
                     },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid webhook signature",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "JWT access token passed in the Authorization header as Bearer <token>."
-      }
-    },
-    "schemas": {
-      "ErrorEnvelope": {
-        "type": "object",
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "object",
-            "required": [
-              "message",
-              "code",
-              "status"
-            ],
-            "properties": {
-              "message": {
-                "type": "string"
-              },
-              "code": {
-                "type": "string"
-              },
-              "status": {
-                "type": "integer"
-              }
-            }
-          }
-        }
-      },
-      "AuthErrorResponse": {
-        "type": "object",
-        "required": [
-          "message"
-        ],
-        "properties": {
-          "message": {
-            "type": "string",
-            "enum": [
-              "No token provided",
-              "Invalid token"
-            ]
-          }
-        }
-      },
-      "ValidationErrorItem": {
-        "type": "object",
-        "required": [
-          "field",
-          "message"
-        ],
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          }
-        }
-      },
-      "ValidationErrorResponse": {
-        "type": "object",
-        "required": [
-          "success",
-          "errors"
-        ],
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [
-              false
-            ]
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValidationErrorItem"
-            }
-          }
-        }
-      },
-      "IdempotencyConflictResponse": {
-        "type": "object",
-        "required": [
-          "error",
-          "message"
-        ],
-        "properties": {
-          "error": {
-            "type": "string",
-            "example": "Idempotency Conflict"
-          },
-          "message": {
-            "type": "string"
-          }
-        }
-      },
-      "UserProfileResponse": {
-        "type": "object",
-        "required": [
-          "address",
-          "createdAt"
-        ],
-        "properties": {
-          "address": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          },
-          "telegramHandle": {
-            "type": "string"
-          },
-          "telegramUserId": {
-            "type": "string"
-          },
-          "telegramLinked": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "CreateProfileRequest": {
-        "type": "object",
-        "required": [
-          "walletAddress"
-        ],
-        "properties": {
-          "walletAddress": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          }
-        }
-      },
-      "UpdateProfileRequest": {
-        "type": "object",
-        "required": [
-          "walletAddress"
-        ],
-        "properties": {
-          "walletAddress": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          },
-          "telegramUserId": {
-            "type": "string"
-          },
-          "telegramHandle": {
-            "type": "string"
-          }
-        }
-      },
-      "GameSummary": {
-        "type": "object",
-        "additionalProperties": true,
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "game_type": {
-            "type": "string"
-          },
-          "bet_amount": {
-            "type": "number"
-          },
-          "result": {
-            "type": "string"
-          }
-        }
-      },
-      "GamesCatalogResponse": {
-        "type": "object",
-        "required": [
-          "games"
-        ],
-        "properties": {
-          "games": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GameSummary"
-            }
-          }
-        }
-      },
-      "RecentGamesResponse": {
-        "type": "object",
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "total",
-          "totalPages"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GameSummary"
-            }
-          },
-          "page": {
-            "type": "integer"
-          },
-          "pageSize": {
-            "type": "integer"
-          },
-          "total": {
-            "type": "integer"
-          },
-          "totalPages": {
-            "type": "integer"
-          }
-        }
-      },
-      "PlayGameRequest": {
-        "type": "object",
-        "required": [
-          "gameType"
-        ],
-        "properties": {
-          "gameType": {
-            "type": "string"
-          },
-          "_amount": {
-            "type": "number"
-          },
-          "_choice": {}
+                  '409':
+                    {
+                      'description': 'Idempotency key conflict detected',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                { '$ref': '#/components/schemas/IdempotencyConflictResponse' },
+                            },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters': [{ '$ref': '#/components/parameters/IdempotencyKeyHeader' }],
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        { 'schema': { '$ref': '#/components/schemas/PlayGameRequest' } },
+                    },
+                },
+              'security': [{ 'bearerAuth': [] }],
+            },
         },
-        "additionalProperties": true
-      },
-      "PlayGameResponse": {
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "properties": {
-          "success": {
-            "type": "boolean"
-          }
-        }
-      },
-      "MonetaryAmountRequest": {
-        "type": "object",
-        "required": [
-          "amount"
-        ],
-        "properties": {
-          "amount": {
-            "type": "number",
-            "exclusiveMinimum": 0
-          }
-        }
-      },
-      "DepositRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/MonetaryAmountRequest"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "asset": {
-                "type": "string"
-              }
-            }
-          }
-        ]
-      },
-      "DepositResponse": {
-        "type": "object",
-        "required": [
-          "depositAddress"
-        ],
-        "properties": {
-          "depositAddress": {
-            "type": "string"
-          }
-        }
-      },
-      "WithdrawRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/MonetaryAmountRequest"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "destination": {
-                "type": "string"
-              }
-            }
-          }
-        ]
-      },
-      "WithdrawResponse": {
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "properties": {
-          "status": {
-            "type": "string"
-          }
-        }
-      },
-      "HealthResponse": {
-        "type": "object",
-        "required": [
-          "status",
-          "timestamp",
-          "service"
-        ],
-        "properties": {
-          "status": {
-            "type": "string",
-            "example": "Operational"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "service": {
-            "type": "string",
-            "example": "stellarcade-api"
-          }
-        }
-      }
-    },
-    "parameters": {
-      "IdempotencyKeyHeader": {
-        "name": "Idempotency-Key",
-        "in": "header",
-        "required": false,
-        "schema": {
-          "type": "string"
+      '/api/users/profile':
+        {
+          'get':
+            {
+              'operationId': 'getUserProfile',
+              'summary': 'Fetch a profile by wallet address',
+              'tags': ['Users'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Profile fetched successfully',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/UserProfileResponse' } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Missing or invalid "address" query parameter',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '404':
+                    {
+                      'description': 'No profile exists for that wallet address yet — the wallet needs onboarding',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'address',
+                    'in': 'query',
+                    'required': true,
+                    'schema': { 'type': 'string' },
+                    'description': 'Stellar wallet address (G...) to look up.',
+                  },
+                ],
+            },
         },
-        "description": "Client supplied key used to safely retry mutation requests."
-      }
-    }
-  }
+      '/api/users/audit-logs':
+        {
+          'get':
+            {
+              'operationId': 'listUserAuditLogs',
+              'summary': 'List audit log entries',
+              'tags': ['Users'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Audit log entries fetched successfully',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'object',
+                                  'required': ['items'],
+                                  'properties':
+                                    {
+                                      'items':
+                                        {
+                                          'type': 'array',
+                                          'items':
+                                            { 'type': 'object', 'additionalProperties': true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Invalid query parameter',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '401':
+                    {
+                      'description': 'Authentication failed',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/AuthErrorResponse' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'actor',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'string' },
+                    'description': 'Optional actor wallet address filter.',
+                  },
+                  {
+                    'name': 'action',
+                    'in': 'query',
+                    'required': false,
+                    'schema':
+                      {
+                        'type': 'string',
+                        'enum': ['wallet.deposit', 'wallet.withdraw', 'game.play'],
+                      },
+                    'description': 'Optional action filter.',
+                  },
+                  {
+                    'name': 'limit',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'integer', 'minimum': 1, 'default': 50 },
+                    'description': 'Maximum number of records returned.',
+                  },
+                ],
+              'security': [{ 'bearerAuth': [] }],
+            },
+        },
+      '/api/users/create':
+        {
+          'post':
+            {
+              'operationId': 'createUserProfile',
+              'summary': 'Create a new profile (idempotent — returns the existing one if the wallet already has a profile)',
+              'tags': ['Users'],
+              'responses':
+                {
+                  '201':
+                    {
+                      'description': 'Profile created (or already existed) successfully',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/UserProfileResponse' } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Missing walletAddress',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        { 'schema': { '$ref': '#/components/schemas/CreateProfileRequest' } },
+                    },
+                },
+              'security': [{ 'bearerAuth': [] }],
+            },
+        },
+      '/api/users/update':
+        {
+          'post':
+            {
+              'operationId': 'updateUserProfile',
+              'summary': 'Update an existing profile — username and/or Telegram link fields',
+              'tags': ['Users'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Profile updated successfully',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/UserProfileResponse' } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Missing walletAddress',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '404':
+                    {
+                      'description': 'No existing profile for that wallet address — use /create first',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        { 'schema': { '$ref': '#/components/schemas/UpdateProfileRequest' } },
+                    },
+                },
+              'security': [{ 'bearerAuth': [] }],
+            },
+        },
+      '/api/wallet/:address/balance':
+        {
+          'get':
+            {
+              'operationId': 'getWalletBalance',
+              'summary': "Fetch a wallet's real on-chain balances from Horizon",
+              'tags': ['Wallet'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Balances returned successfully. An address that is well-formed but has never been funded on-chain returns a zero XLM balance rather than an error.',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'object',
+                                  'required': ['address', 'balances'],
+                                  'properties':
+                                    {
+                                      'address': { 'type': 'string' },
+                                      'balances':
+                                        {
+                                          'type': 'object',
+                                          'additionalProperties': { 'type': 'string' },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'The given address is not a valid Stellar public key',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'address',
+                    'in': 'path',
+                    'required': true,
+                    'schema': { 'type': 'string' },
+                    'description': 'Stellar wallet address (G...).',
+                  },
+                ],
+            },
+        },
+      '/api/wallet/deposit':
+        {
+          'post':
+            {
+              'operationId': 'createDeposit',
+              'summary': 'Create a deposit request for the authenticated user',
+              'tags': ['Wallet'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Deposit request accepted',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/DepositResponse' } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Request payload validation failed',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema': { '$ref': '#/components/schemas/ValidationErrorResponse' },
+                            },
+                        },
+                    },
+                  '401':
+                    {
+                      'description': 'Authentication failed',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/AuthErrorResponse' } },
+                        },
+                    },
+                  '409':
+                    {
+                      'description': 'Idempotency key conflict detected',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                { '$ref': '#/components/schemas/IdempotencyConflictResponse' },
+                            },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters': [{ '$ref': '#/components/parameters/IdempotencyKeyHeader' }],
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        { 'schema': { '$ref': '#/components/schemas/DepositRequest' } },
+                    },
+                },
+              'security': [{ 'bearerAuth': [] }],
+            },
+        },
+      '/api/wallet/withdraw':
+        {
+          'post':
+            {
+              'operationId': 'createWithdrawal',
+              'summary': 'Create a withdrawal request for the authenticated user',
+              'tags': ['Wallet'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Withdrawal request accepted',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/WithdrawResponse' } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Request payload validation failed',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema': { '$ref': '#/components/schemas/ValidationErrorResponse' },
+                            },
+                        },
+                    },
+                  '401':
+                    {
+                      'description': 'Authentication failed',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/AuthErrorResponse' } },
+                        },
+                    },
+                  '409':
+                    {
+                      'description': 'Idempotency key conflict detected',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                { '$ref': '#/components/schemas/IdempotencyConflictResponse' },
+                            },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters': [{ '$ref': '#/components/parameters/IdempotencyKeyHeader' }],
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        { 'schema': { '$ref': '#/components/schemas/WithdrawRequest' } },
+                    },
+                },
+              'security': [{ 'bearerAuth': [] }],
+            },
+        },
+      '/api/leaderboard':
+        {
+          'get':
+            {
+              'operationId': 'getLeaderboard',
+              'summary': 'Rank players by total payout, optionally scoped to one game type',
+              'tags': ['Leaderboard'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Leaderboard entries returned successfully',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'array',
+                                  'items':
+                                    {
+                                      'type': 'object',
+                                      'required': ['rank', 'playerAddress', 'score'],
+                                      'properties':
+                                        {
+                                          'rank': { 'type': 'integer' },
+                                          'playerAddress': { 'type': 'string' },
+                                          'score': { 'type': 'string' },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'game',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'string' },
+                    'description': 'Optional game_type filter (e.g. coin-flip).',
+                  },
+                  {
+                    'name': 'limit',
+                    'in': 'query',
+                    'required': false,
+                    'schema': { 'type': 'integer', 'minimum': 1, 'default': 10 },
+                    'description': 'Maximum number of entries returned.',
+                  },
+                ],
+            },
+        },
+      '/api/quests':
+        {
+          'get':
+            {
+              'operationId': 'getQuests',
+              'summary': "List a player's quest progress",
+              'tags': ['Quests'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Quest progress returned successfully',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'array',
+                                  'items':
+                                    {
+                                      'type': 'object',
+                                      'required':
+                                        ['questId', 'progress', 'target', 'claimed', 'streak'],
+                                      'properties':
+                                        {
+                                          'questId': { 'type': 'string' },
+                                          'progress': { 'type': 'integer' },
+                                          'target': { 'type': 'integer' },
+                                          'claimed': { 'type': 'boolean' },
+                                          'streak': { 'type': 'integer' },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Missing or invalid "player" query parameter',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'player',
+                    'in': 'query',
+                    'required': true,
+                    'schema': { 'type': 'string' },
+                    'description': 'Stellar wallet address (G...) to fetch quest progress for.',
+                  },
+                ],
+            },
+        },
+      '/api/tournaments':
+        {
+          'get':
+            {
+              'operationId': 'getTournaments',
+              'summary': 'List all tournaments',
+              'tags': ['Tournaments'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Tournaments returned successfully',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'array',
+                                  'items':
+                                    {
+                                      'type': 'object',
+                                      'required': ['tournamentId', 'gameId', 'status', 'prizePool'],
+                                      'properties':
+                                        {
+                                          'tournamentId': { 'type': 'string' },
+                                          'gameId': { 'type': 'string' },
+                                          'status':
+                                            {
+                                              'type': 'string',
+                                              'enum': ['upcoming', 'active', 'finished'],
+                                            },
+                                          'prizePool': { 'type': 'string' },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+            },
+        },
+      '/api/webhook':
+        {
+          'post':
+            {
+              'operationId': 'receiveWebhookEvent',
+              'summary': 'Receive and acknowledge webhook events',
+              'tags': ['Wallet'],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Webhook payload accepted',
+                      'content':
+                        {
+                          'application/json':
+                            {
+                              'schema':
+                                {
+                                  'type': 'object',
+                                  'required': ['received', 'timestamp'],
+                                  'properties':
+                                    {
+                                      'received': { 'type': 'boolean', 'enum': [true] },
+                                      'timestamp': { 'type': 'string', 'format': 'date-time' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                  '401':
+                    {
+                      'description': 'Invalid webhook signature',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/AuthErrorResponse' } },
+                        },
+                    },
+                  '500':
+                    {
+                      'description': 'Unexpected server error',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { '$ref': '#/components/schemas/ErrorEnvelope' } },
+                        },
+                    },
+                },
+            },
+        },
+    },
+  'components':
+    {
+      'securitySchemes':
+        {
+          'bearerAuth':
+            {
+              'type': 'http',
+              'scheme': 'bearer',
+              'bearerFormat': 'JWT',
+              'description': 'JWT access token passed in the Authorization header as Bearer <token>.',
+            },
+        },
+      'schemas':
+        {
+          'ErrorEnvelope':
+            {
+              'type': 'object',
+              'required': ['error'],
+              'properties':
+                {
+                  'error':
+                    {
+                      'type': 'object',
+                      'required': ['message', 'code', 'status'],
+                      'properties':
+                        {
+                          'message': { 'type': 'string' },
+                          'code': { 'type': 'string' },
+                          'status': { 'type': 'integer' },
+                        },
+                    },
+                },
+            },
+          'AuthErrorResponse':
+            {
+              'type': 'object',
+              'required': ['message'],
+              'properties':
+                { 'message': { 'type': 'string', 'enum': ['No token provided', 'Invalid token'] } },
+            },
+          'ValidationErrorItem':
+            {
+              'type': 'object',
+              'required': ['field', 'message'],
+              'properties': { 'field': { 'type': 'string' }, 'message': { 'type': 'string' } },
+            },
+          'ValidationErrorResponse':
+            {
+              'type': 'object',
+              'required': ['success', 'errors'],
+              'properties':
+                {
+                  'success': { 'type': 'boolean', 'enum': [false] },
+                  'errors':
+                    {
+                      'type': 'array',
+                      'items': { '$ref': '#/components/schemas/ValidationErrorItem' },
+                    },
+                },
+            },
+          'IdempotencyConflictResponse':
+            {
+              'type': 'object',
+              'required': ['error', 'message'],
+              'properties':
+                {
+                  'error': { 'type': 'string', 'example': 'Idempotency Conflict' },
+                  'message': { 'type': 'string' },
+                },
+            },
+          'UserProfileResponse':
+            {
+              'type': 'object',
+              'required': ['address', 'createdAt'],
+              'properties':
+                {
+                  'address': { 'type': 'string' },
+                  'username': { 'type': 'string' },
+                  'telegramHandle': { 'type': 'string' },
+                  'telegramUserId': { 'type': 'string' },
+                  'telegramLinked': { 'type': 'boolean' },
+                  'createdAt': { 'type': 'string', 'format': 'date-time' },
+                  'updatedAt': { 'type': 'string', 'format': 'date-time' },
+                },
+            },
+          'CreateProfileRequest':
+            {
+              'type': 'object',
+              'required': ['walletAddress'],
+              'properties':
+                { 'walletAddress': { 'type': 'string' }, 'username': { 'type': 'string' } },
+            },
+          'UpdateProfileRequest':
+            {
+              'type': 'object',
+              'required': ['walletAddress'],
+              'properties':
+                {
+                  'walletAddress': { 'type': 'string' },
+                  'username': { 'type': 'string' },
+                  'telegramUserId': { 'type': 'string' },
+                  'telegramHandle': { 'type': 'string' },
+                },
+            },
+          'GameSummary':
+            {
+              'type': 'object',
+              'additionalProperties': true,
+              'properties':
+                {
+                  'id': { 'type': 'integer' },
+                  'game_type': { 'type': 'string' },
+                  'bet_amount': { 'type': 'number' },
+                  'result': { 'type': 'string' },
+                },
+            },
+          'GamesCatalogResponse':
+            {
+              'type': 'object',
+              'required': ['games'],
+              'properties':
+                {
+                  'games':
+                    { 'type': 'array', 'items': { '$ref': '#/components/schemas/GameSummary' } },
+                },
+            },
+          'RecentGamesResponse':
+            {
+              'type': 'object',
+              'required': ['items', 'page', 'pageSize', 'total', 'totalPages'],
+              'properties':
+                {
+                  'items':
+                    { 'type': 'array', 'items': { '$ref': '#/components/schemas/GameSummary' } },
+                  'page': { 'type': 'integer' },
+                  'pageSize': { 'type': 'integer' },
+                  'total': { 'type': 'integer' },
+                  'totalPages': { 'type': 'integer' },
+                },
+            },
+          'PlayGameRequest':
+            {
+              'type': 'object',
+              'required': ['gameType'],
+              'properties':
+                {
+                  'gameType': { 'type': 'string' },
+                  '_amount': { 'type': 'number' },
+                  '_choice': {},
+                },
+              'additionalProperties': true,
+            },
+          'PlayGameResponse':
+            {
+              'type': 'object',
+              'required': ['success'],
+              'properties': { 'success': { 'type': 'boolean' } },
+            },
+          'MonetaryAmountRequest':
+            {
+              'type': 'object',
+              'required': ['amount'],
+              'properties': { 'amount': { 'type': 'number', 'exclusiveMinimum': 0 } },
+            },
+          'DepositRequest':
+            {
+              'allOf':
+                [
+                  { '$ref': '#/components/schemas/MonetaryAmountRequest' },
+                  { 'type': 'object', 'properties': { 'asset': { 'type': 'string' } } },
+                ],
+            },
+          'DepositResponse':
+            {
+              'type': 'object',
+              'required': ['depositAddress'],
+              'properties': { 'depositAddress': { 'type': 'string' } },
+            },
+          'WithdrawRequest':
+            {
+              'allOf':
+                [
+                  { '$ref': '#/components/schemas/MonetaryAmountRequest' },
+                  { 'type': 'object', 'properties': { 'destination': { 'type': 'string' } } },
+                ],
+            },
+          'WithdrawResponse':
+            {
+              'type': 'object',
+              'required': ['status'],
+              'properties': { 'status': { 'type': 'string' } },
+            },
+          'HealthResponse':
+            {
+              'type': 'object',
+              'required': ['status', 'timestamp', 'service'],
+              'properties':
+                {
+                  'status': { 'type': 'string', 'example': 'Operational' },
+                  'timestamp': { 'type': 'string', 'format': 'date-time' },
+                  'service': { 'type': 'string', 'example': 'stellarcade-api' },
+                },
+            },
+        },
+      'parameters':
+        {
+          'IdempotencyKeyHeader':
+            {
+              'name': 'Idempotency-Key',
+              'in': 'header',
+              'required': false,
+              'schema': { 'type': 'string' },
+              'description': 'Client supplied key used to safely retry mutation requests.',
+            },
+        },
+    },
 }

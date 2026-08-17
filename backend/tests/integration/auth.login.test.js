@@ -30,7 +30,9 @@ jest.mock('../../src/models/User.model');
 
 /** Mirrors how Freighter (and SEP-53-style wallets) actually sign messages. */
 function signChallenge(keypair, challenge) {
-  const hash = createHash('sha256').update(`Stellar Signed Message:\n${challenge}`, 'utf8').digest();
+  const hash = createHash('sha256')
+    .update(`Stellar Signed Message:\n${challenge}`, 'utf8')
+    .digest();
   return keypair.sign(hash).toString('base64');
 }
 
