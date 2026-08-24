@@ -1,0 +1,36 @@
+{
+  "name": "@stellarcade/mock-event-generator",
+  "version": "0.0.1",
+  "description": "CLI utility for emitting synthetic Soroban contract events for testing",
+  "main": "dist/index.js",
+  "bin": {
+    "mock-event-generator": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "vitest"
+  },
+  "keywords": [
+    "soroban",
+    "stellar",
+    "mock",
+    "events",
+    "testing",
+    "cli"
+  ],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "soroban-sdk": "^21.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  }
+}

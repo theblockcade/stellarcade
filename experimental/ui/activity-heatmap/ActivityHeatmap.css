@@ -1,0 +1,176 @@
+.activity-heatmap {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  color: #24292f;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.activity-heatmap__container {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.activity-heatmap__header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.activity-heatmap__legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.activity-heatmap__legend-label {
+  font-size: 11px;
+  color: #57606a;
+}
+
+.activity-heatmap__legend-item {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.activity-heatmap__grid-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+.activity-heatmap__days-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 20px;
+}
+
+.activity-heatmap__day-label {
+  height: 10px;
+  font-size: 10px;
+  color: #57606a;
+  line-height: 10px;
+}
+
+.activity-heatmap__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activity-heatmap__months {
+  display: flex;
+  gap: 3px;
+  height: 20px;
+}
+
+.activity-heatmap__month-label {
+  font-size: 10px;
+  color: #57606a;
+  min-width: 13px;
+}
+
+.activity-heatmap__weeks {
+  display: flex;
+  gap: 3px;
+}
+
+.activity-heatmap__week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.activity-heatmap__day {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.1s ease, outline 0.1s ease;
+}
+
+.activity-heatmap__day:hover {
+  transform: scale(1.2);
+  outline: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.activity-heatmap__day:focus {
+  outline: 2px solid #0969da;
+  outline-offset: 1px;
+}
+
+.activity-heatmap__day--empty {
+  background: transparent;
+  cursor: default;
+}
+
+.activity-heatmap__day--empty:hover {
+  transform: none;
+  outline: none;
+}
+
+.activity-heatmap__tooltip {
+  position: fixed;
+  background: #1f2328;
+  color: #c9d1d9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.activity-heatmap__tooltip-date {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #ffffff;
+}
+
+.activity-heatmap__tooltip-count {
+  margin-bottom: 4px;
+}
+
+.activity-heatmap__tooltip-metadata {
+  font-size: 11px;
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .activity-heatmap {
+    padding: 12px;
+  }
+
+  .activity-heatmap__container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .activity-heatmap__day {
+    width: 8px;
+    height: 8px;
+  }
+
+  .activity-heatmap__day-label {
+    font-size: 9px;
+  }
+
+  .activity-heatmap__month-label {
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-heatmap__day {
+    transition: none;
+  }
+
+  .activity-heatmap__day:hover {
+    transform: none;
+  }
+}
