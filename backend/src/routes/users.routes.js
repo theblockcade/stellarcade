@@ -1,5 +1,10 @@
 const express = require('express');
-const { getProfile, createProfile, updateProfile, getAuditLogs } = require('../controllers/users.controller');
+const {
+  getProfile,
+  createProfile,
+  updateProfile,
+  getAuditLogs,
+} = require('../controllers/users.controller');
 const auth = require('../middleware/auth.middleware');
 const { rateLimit } = require('../middleware/rate-limit.middleware');
 
@@ -143,7 +148,8 @@ const routeDocs = [
     method: 'post',
     path: '/create',
     operationId: 'createUserProfile',
-    summary: 'Create a new profile (idempotent — returns the existing one if the wallet already has a profile)',
+    summary:
+      'Create a new profile (idempotent — returns the existing one if the wallet already has a profile)',
     tags: ['Users'],
     requestBody: {
       required: true,

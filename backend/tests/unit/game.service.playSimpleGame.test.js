@@ -46,7 +46,12 @@ describe('game.service.playSimpleGame — quest progress side effects', () => {
     // outcome byte % 2 === 0 -> "heads"; choice "tails" -> loss
     crypto.randomBytes.mockReturnValue(Buffer.from([0]));
 
-    await gameService.playSimpleGame({ userId: 42, gameType: 'coin-flip', wager: 5, choice: 'tails' });
+    await gameService.playSimpleGame({
+      userId: 42,
+      gameType: 'coin-flip',
+      wager: 5,
+      choice: 'tails',
+    });
 
     expect(QuestModel.recordProgress).toHaveBeenCalledWith(42, 'play-5-games', 1);
     expect(QuestModel.recordProgress).not.toHaveBeenCalledWith(42, 'win-3-games', 1);
@@ -56,7 +61,12 @@ describe('game.service.playSimpleGame — quest progress side effects', () => {
     // outcome byte % 2 === 0 -> "heads"; choice "heads" -> win
     crypto.randomBytes.mockReturnValue(Buffer.from([0]));
 
-    await gameService.playSimpleGame({ userId: 42, gameType: 'coin-flip', wager: 5, choice: 'heads' });
+    await gameService.playSimpleGame({
+      userId: 42,
+      gameType: 'coin-flip',
+      wager: 5,
+      choice: 'heads',
+    });
 
     expect(QuestModel.recordProgress).toHaveBeenCalledWith(42, 'play-5-games', 1);
     expect(QuestModel.recordProgress).toHaveBeenCalledWith(42, 'win-3-games', 1);

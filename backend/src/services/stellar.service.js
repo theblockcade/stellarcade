@@ -368,7 +368,8 @@ const getAccountBalances = async (address) => {
     const account = await server.loadAccount(address);
     const balances = {};
     for (const balance of account.balances) {
-      const key = balance.asset_type === 'native' ? 'XLM' : balance.asset_code || balance.asset_type;
+      const key =
+        balance.asset_type === 'native' ? 'XLM' : balance.asset_code || balance.asset_type;
       balances[key] = balance.balance;
     }
     return { address, balances, exists: true };

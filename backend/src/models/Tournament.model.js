@@ -13,12 +13,7 @@ const TournamentModel = {
   async listAll() {
     try {
       return await db('tournaments')
-        .select(
-          'id',
-          'game_type as gameType',
-          'status',
-          'prize_pool as prizePool'
-        )
+        .select('id', 'game_type as gameType', 'status', 'prize_pool as prizePool')
         .orderBy('created_at', 'desc');
     } catch (error) {
       logger.error('Error in TournamentModel.listAll:', error);

@@ -22,6 +22,10 @@ const serializeUser = (user) => ({
   telegramLinked: Boolean(user.telegram_handle || user.telegram_user_id),
   createdAt: user.created_at instanceof Date ? user.created_at.toISOString() : user.created_at,
   updatedAt: user.updated_at instanceof Date ? user.updated_at.toISOString() : user.updated_at,
+  ageConfirmedAt:
+    user.age_confirmed_at instanceof Date
+      ? user.age_confirmed_at.toISOString()
+      : user.age_confirmed_at || undefined,
 });
 
 const getAuditLogs = async (req, res, next) => {
@@ -104,7 +108,13 @@ const createProfile = async (req, res, next) => {
         wallet_address: walletAddress,
         username: req.body.username || 'player',
         balance: 0,
+        age_confirmed_at: req.body.ageConfirmed ? new Date() : null,
       });
+    } else if (req.body.ageConfirmed && !user.age_confirmed_at) {
+      // Idempotent create hit a wallet that already has a profile (e.g. one
+      // that predates the age gate) — record the confirmation on it instead
+      // of silently dropping it, or this profile can never clear onboarding.
+      user = await User.updateByWallet(walletAddress, { age_confirmed_at: new Date() });
     }
 
     res.status(201).json(serializeUser(user));
@@ -141,8 +151,12 @@ const updateProfile = async (req, res, next) => {
     if (req.body.username !== undefined) patch.username = req.body.username;
     if (req.body.telegramUserId !== undefined) patch.telegram_user_id = req.body.telegramUserId;
     if (req.body.telegramHandle !== undefined) patch.telegram_handle = req.body.telegramHandle;
+    // Only ever set, never clear — an absent or false `ageConfirmed` here
+    // must not erase a confirmation the player already gave.
+    if (req.body.ageConfirmed && !user.age_confirmed_at) patch.age_confirmed_at = new Date();
 
-    const updated = Object.keys(patch).length > 0 ? await User.updateByWallet(walletAddress, patch) : user;
+    const updated =
+      Object.keys(patch).length > 0 ? await User.updateByWallet(walletAddress, patch) : user;
 
     res.status(200).json(serializeUser(updated));
   } catch (error) {
