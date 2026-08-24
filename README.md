@@ -184,3 +184,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 _Created with ❤️ for the Stellar Ecosystem (2026)_
+
+
+## Developer Reference #1041
+Resolves issue #1041: Contract bounty-board: add task posting, hunter claiming, and review timeout accessor.
