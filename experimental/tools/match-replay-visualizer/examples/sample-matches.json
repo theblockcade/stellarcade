@@ -1,0 +1,47 @@
+[
+  {
+    "matchId": "match-1",
+    "gameType": "rock-paper-scissors",
+    "players": ["GALICE7Q3ZHFXJ6QK3P4XZWM2N5R8T1V9Y0B2C4D6E8F0G2H4J6K8L0", "GBOBJ8W2X4Y6Z8A0C2E4G6I8K0M2O4Q6S8U0W2Y4A6C8E0G2I4K6"],
+    "wagerXlm": 50,
+    "moves": [
+      {
+        "player": "GALICE7Q3ZHFXJ6QK3P4XZWM2N5R8T1V9Y0B2C4D6E8F0G2H4J6K8L0",
+        "timestamp": "2026-08-24T21:00:00.000Z",
+        "data": { "choice": "rock" }
+      },
+      {
+        "player": "GBOBJ8W2X4Y6Z8A0C2E4G6I8K0M2O4Q6S8U0W2Y4A6C8E0G2I4K6",
+        "timestamp": "2026-08-24T21:00:04.000Z",
+        "data": { "choice": "scissors" }
+      }
+    ],
+    "outcome": {
+      "winner": "GALICE7Q3ZHFXJ6QK3P4XZWM2N5R8T1V9Y0B2C4D6E8F0G2H4J6K8L0",
+      "settledAt": "2026-08-24T21:00:05.000Z"
+    }
+  },
+  {
+    "matchId": "match-2",
+    "gameType": "matrix",
+    "players": ["GALICE7Q3ZHFXJ6QK3P4XZWM2N5R8T1V9Y0B2C4D6E8F0G2H4J6K8L0"],
+    "wagerXlm": 10,
+    "moves": [
+      {
+        "player": "GALICE7Q3ZHFXJ6QK3P4XZWM2N5R8T1V9Y0B2C4D6E8F0G2H4J6K8L0",
+        "timestamp": "2026-08-24T21:05:00.000Z",
+        "data": { "gridSize": 4, "cell": 0 }
+      },
+      {
+        "player": "GALICE7Q3ZHFXJ6QK3P4XZWM2N5R8T1V9Y0B2C4D6E8F0G2H4J6K8L0",
+        "timestamp": "2026-08-24T21:05:02.000Z",
+        "data": { "cell": 5 }
+      },
+      {
+        "player": "GALICE7Q3ZHFXJ6QK3P4XZWM2N5R8T1V9Y0B2C4D6E8F0G2H4J6K8L0",
+        "timestamp": "2026-08-24T21:05:04.000Z",
+        "data": { "cell": 10 }
+      }
+    ]
+  }
+]
