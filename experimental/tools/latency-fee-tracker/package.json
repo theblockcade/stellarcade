@@ -1,0 +1,32 @@
+{
+  "name": "@stellarcade/latency-fee-tracker",
+  "version": "0.0.1",
+  "description": "Stellar network ledger transaction latency and fee tracker CLI tool",
+  "main": "src/index.ts",
+  "bin": {
+    "latency-fee-tracker": "src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc"
+  },
+  "keywords": [
+    "stellar",
+    "soroban",
+    "horizon",
+    "latency",
+    "fee",
+    "tracker",
+    "cli"
+  ],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.0"
+  }
+}
