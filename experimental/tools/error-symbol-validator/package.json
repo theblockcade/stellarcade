@@ -1,0 +1,34 @@
+{
+  "name": "@stellarcade/error-symbol-validator",
+  "version": "0.0.1",
+  "description": "Soroban error symbol validator that extracts contract error symbols and validates against SDK mappings",
+  "main": "dist/index.js",
+  "bin": {
+    "error-symbol-validator": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "vitest"
+  },
+  "keywords": [
+    "soroban",
+    "stellar",
+    "error",
+    "validator",
+    "symbols"
+  ],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  }
+}
