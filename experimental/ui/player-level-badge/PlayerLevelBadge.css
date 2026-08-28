@@ -1,0 +1,61 @@
+.plb-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plb-arc {
+  transition: stroke-dashoffset 0.4s ease-out;
+}
+
+.plb-center {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: #14151a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #f5f5f7;
+}
+
+.plb-level {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.plb-tier-icon {
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.plb-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  background: #1f2028;
+  color: #f5f5f7;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.plb-celebrate {
+  animation: plb-pulse 0.3s ease-in-out 3;
+}
+
+@keyframes plb-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.plb-sm .plb-level { font-size: 0.75rem; }
+.plb-lg .plb-level { font-size: 1.375rem; }
