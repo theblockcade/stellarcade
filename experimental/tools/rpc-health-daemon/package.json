@@ -1,0 +1,13 @@
+{
+  "name": "@stellarcade/rpc-health-daemon",
+  "version": "0.0.1",
+  "description": "Soroban RPC node health monitoring daemon with Prometheus metrics",
+  "main": "src/index.ts",
+  "bin": { "rpc-health-daemon": "src/index.ts" },
+  "scripts": { "test": "vitest run", "build": "tsc" },
+  "keywords": ["stellar", "soroban", "rpc", "health", "monitoring", "prometheus", "cli"],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": { "commander": "^12.0.0" },
+  "devDependencies": { "@types/node": "^20.11.0", "typescript": "^5.3.3", "vitest": "^1.3.0" }
+}
