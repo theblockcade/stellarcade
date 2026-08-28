@@ -1,0 +1,31 @@
+{
+  "name": "@stellarcade/telegram-jackpot-notifier",
+  "version": "0.0.1",
+  "description": "Telegram bot worker that broadcasts arcade jackpot wins and big wagers",
+  "main": "src/index.ts",
+  "bin": {
+    "telegram-jackpot-notifier": "src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc"
+  },
+  "keywords": [
+    "stellar",
+    "telegram",
+    "jackpot",
+    "notifier",
+    "alerts",
+    "cli"
+  ],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.0"
+  }
+}
