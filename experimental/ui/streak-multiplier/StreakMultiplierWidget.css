@@ -1,0 +1,212 @@
+.streak-multiplier-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #f9fafb;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 360px;
+}
+
+.streak-multiplier-widget__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.streak-multiplier-widget__streak-count {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.streak-multiplier-widget__streak-icon {
+  font-size: 20px;
+}
+
+.streak-multiplier-widget__streak-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.streak-multiplier-widget__multiplier {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+.streak-multiplier-widget__progress-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.streak-multiplier-widget__progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.streak-multiplier-widget__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #fbbf24);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.streak-multiplier-widget__progress-label {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.streak-multiplier-widget__countdown {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+}
+
+.streak-multiplier-widget__countdown-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.streak-multiplier-widget__countdown--warning {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.streak-multiplier-widget__countdown--warning .streak-multiplier-widget__countdown-value {
+  color: #ef4444;
+}
+
+.streak-multiplier-widget__checkin-btn {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #22c55e;
+  color: #052e16;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.streak-multiplier-widget__checkin-btn:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.streak-multiplier-widget__checkin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.streak-multiplier-widget--loading .streak-multiplier-widget__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.streak-multiplier-widget__skeleton-line {
+  height: 14px;
+  width: 40%;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  animation: streak-pulse 1.4s ease-in-out infinite;
+}
+
+.streak-multiplier-widget__skeleton-line--wide {
+  width: 70%;
+  height: 22px;
+}
+
+.streak-multiplier-widget__skeleton-bar {
+  height: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  animation: streak-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes streak-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.streak-multiplier-widget__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.streak-multiplier-widget__error-message {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 0;
+}
+
+.streak-multiplier-widget__retry-btn {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.streak-multiplier-widget__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.streak-multiplier-widget__empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.streak-multiplier-widget__empty-subtitle {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0 0 6px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-multiplier-widget__progress-fill,
+  .streak-multiplier-widget__checkin-btn {
+    transition: none;
+  }
+
+  .streak-multiplier-widget__skeleton-line,
+  .streak-multiplier-widget__skeleton-bar {
+    animation: none;
+  }
+}

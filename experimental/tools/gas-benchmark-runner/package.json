@@ -1,0 +1,32 @@
+{
+  "name": "@stellarcade/gas-benchmark-runner",
+  "version": "0.0.1",
+  "description": "Soroban contract gas benchmark and load simulator CLI tool",
+  "main": "src/index.ts",
+  "bin": {
+    "gas-benchmark-runner": "src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc"
+  },
+  "keywords": [
+    "stellar",
+    "soroban",
+    "gas",
+    "benchmark",
+    "load",
+    "simulator",
+    "cli"
+  ],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.0"
+  }
+}

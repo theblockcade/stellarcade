@@ -1,0 +1,177 @@
+.match-wager-calculator {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #f9fafb;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 420px;
+}
+
+.match-wager-calculator__token-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.match-wager-calculator__token-btn {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.match-wager-calculator__token-btn--active {
+  background: #22c55e;
+  color: #052e16;
+}
+
+.match-wager-calculator__balance-row,
+.match-wager-calculator__summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.match-wager-calculator__balance-label {
+  color: #9ca3af;
+}
+
+.match-wager-calculator__balance-value {
+  font-weight: 600;
+}
+
+.match-wager-calculator__input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.match-wager-calculator__input-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.match-wager-calculator__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f9fafb;
+  font-size: 16px;
+  font-weight: 600;
+  outline: none;
+  min-width: 0;
+}
+
+.match-wager-calculator__input[aria-invalid='true'] {
+  color: #ef4444;
+}
+
+.match-wager-calculator__input-suffix {
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.match-wager-calculator__slider {
+  width: 100%;
+  accent-color: #22c55e;
+  cursor: pointer;
+}
+
+.match-wager-calculator__slider:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.match-wager-calculator__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.match-wager-calculator__chip {
+  flex: 1;
+  min-width: 56px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f9fafb;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.match-wager-calculator__chip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.match-wager-calculator__chip--active {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.match-wager-calculator__chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.match-wager-calculator__error {
+  font-size: 12px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.match-wager-calculator__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.match-wager-calculator__summary-row--total {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.match-wager-calculator__profit-positive {
+  color: #22c55e;
+}
+
+.match-wager-calculator__profit-negative {
+  color: #ef4444;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-wager-calculator__token-btn,
+  .match-wager-calculator__chip {
+    transition: none;
+  }
+}
