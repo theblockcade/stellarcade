@@ -1,0 +1,35 @@
+{
+  "name": "@stellarcade/storage-diff-inspector",
+  "version": "0.0.1",
+  "description": "Soroban contract instance storage diff inspector CLI",
+  "main": "dist/index.js",
+  "bin": {
+    "storage-diff-inspector": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "soroban",
+    "stellar",
+    "storage",
+    "diff",
+    "inspector",
+    "cli"
+  ],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  }
+}
