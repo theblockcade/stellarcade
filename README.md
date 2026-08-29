@@ -8,7 +8,7 @@
 
 **Stellarcade** is a decentralized arcade platform built on the Stellar network using Soroban smart contracts. We provide provably fair games, community prize pools, and a seamless gaming experience using Stellar's fast and low-cost infrastructure.
 
-## ✨ Key Features
+## ✨ Key Features.
 
 - **Provably Fair Gaming**: Our Random Number Generator (RNG) contract ensures every game result is verifiable and fair.
 - **Decentralized Prize Pools**: Play and win from pools managed entirely by smart contracts.
