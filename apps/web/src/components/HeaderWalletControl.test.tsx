@@ -110,8 +110,12 @@ describe("HeaderWalletControl", () => {
     });
 
     it("announces a successful connection with the shortened address", async () => {
+      // CONNECTING -> CONNECTED crosses HeaderWalletControl's two early-return
+      // branches (disconnected view -> connected view), which unmounts and
+      // replaces the announcer DOM node rather than updating it in place —
+      // re-query by test id inside waitFor instead of holding a stale
+      // reference to the pre-rerender node.
       const { rerender } = render(<HeaderWalletControl />);
-      const announcerEl = screen.getByTestId("header-wallet-status-announcer");
       mockWallet = walletState({
         status: "CONNECTED",
         address: "GABCDEF1234567890XYZWVUTSRQPONMLKJIHGFEDCBA98765432",
@@ -119,20 +123,28 @@ describe("HeaderWalletControl", () => {
         capabilities: { isConnected: true, isConnecting: false, isReconnecting: false, canConnect: false },
       });
       rerender(<HeaderWalletControl />);
-      await waitFor(() => expect(announcerEl).toHaveTextContent("Wallet connected: GABC…5432"));
+      await waitFor(() =>
+        expect(screen.getByTestId("header-wallet-status-announcer")).toHaveTextContent(
+          "Wallet connected: GABC…5432",
+        ),
+      );
     });
 
     it("announces a disconnect after having been connected", async () => {
+      // Same branch-crossing note as above, in the opposite direction.
       mockWallet = walletState({
         status: "CONNECTED",
         address: "GABCDEF1234567890XYZ",
         capabilities: { isConnected: true, isConnecting: false, isReconnecting: false, canConnect: false },
       });
       const { rerender } = render(<HeaderWalletControl />);
-      const announcerEl = screen.getByTestId("header-wallet-status-announcer");
       mockWallet = walletState({ status: "DISCONNECTED" });
       rerender(<HeaderWalletControl />);
-      await waitFor(() => expect(announcerEl).toHaveTextContent("Wallet disconnected"));
+      await waitFor(() =>
+        expect(screen.getByTestId("header-wallet-status-announcer")).toHaveTextContent(
+          "Wallet disconnected",
+        ),
+      );
     });
 
     it("does not announce the initial DISCONNECTED state as a disconnect event", () => {
