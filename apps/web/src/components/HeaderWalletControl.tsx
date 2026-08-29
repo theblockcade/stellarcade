@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Copy, Loader2, LogOut, Wallet } from "lucide-react";
-import { useWalletStatus } from "../hooks/useWalletStatus";
+import { useWalletStatus, type WalletStatus } from "../hooks/useWalletStatus";
 import { useXlmBalance } from "../hooks/useXlmBalance";
 import defaultFreighterAdapter from "../services/freighter-adapter";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { StatusAnnouncer, useStatusAnnouncer } from "./StatusAnnouncer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +77,68 @@ export const HeaderWalletControl: React.FC = () => {
   // a fetch inlined here, so the dashboard can show the same real number.
   const balance = useXlmBalance();
 
+  // Screen-reader-only announcements for connection state changes (#999) —
+  // the visible UI already communicates status via the button/menu, but a
+  // screen reader user gets no signal that "Connecting…" resolved to
+  // connected/failed unless it's pushed through a live region.
+  const { message: announceMessage, politeness: announcePoliteness, announce } =
+    useStatusAnnouncer();
+  const prevStatusRef = useRef<WalletStatus | null>(null);
+
+  useEffect(() => {
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = wallet.status;
+    // Skip the transition out of the initial (pre-mount) state — nothing
+    // changed from the user's perspective, there's just nothing to announce
+    // on first paint.
+    if (prevStatus === null || prevStatus === wallet.status) return;
+
+    switch (wallet.status as WalletStatus) {
+      case "CONNECTING":
+        announce("Connecting to wallet…");
+        break;
+      case "RECONNECTING":
+        announce("Reconnecting to wallet…");
+        break;
+      case "CONNECTED":
+        announce(
+          wallet.address
+            ? `Wallet connected: ${shortenAddress(wallet.address)}`
+            : "Wallet connected",
+        );
+        break;
+      case "DISCONNECTED":
+        // Only announce a real disconnect, not the transient DISCONNECTED
+        // state a fresh session starts in.
+        if (prevStatus === "CONNECTED" || prevStatus === "RECONNECTING") {
+          announce("Wallet disconnected");
+        }
+        break;
+      case "PROVIDER_MISSING":
+        announce("Freighter wallet extension not found. Install it to connect.", "assertive");
+        break;
+      case "ERROR":
+      case "PERMISSION_DENIED":
+      case "STALE_SESSION":
+        // Recoverable errors are already surfaced as visible text in a
+        // role="status" region below — announcing here too would speak the
+        // same message twice.
+        if (!wallet.error?.recoverable) {
+          announce(wallet.error?.message ?? "Wallet connection error.", "assertive");
+        }
+        break;
+    }
+  }, [wallet.status, wallet.address, wallet.error, announce]);
+
+  const announcer = (
+    <StatusAnnouncer
+      message={announceMessage}
+      politeness={announcePoliteness}
+      className="sr-only"
+      testId="header-wallet-status-announcer"
+    />
+  );
+
   if (mounted && wallet.capabilities.isConnected && wallet.address) {
     return (
       <div className="flex items-center gap-2.5" data-testid="header-wallet-connected">
@@ -131,6 +194,7 @@ export const HeaderWalletControl: React.FC = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        {announcer}
       </div>
     );
   }
@@ -165,6 +229,7 @@ export const HeaderWalletControl: React.FC = () => {
           {wallet.error.message}
         </span>
       )}
+      {announcer}
     </div>
   );
 };
