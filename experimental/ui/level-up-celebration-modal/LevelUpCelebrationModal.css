@@ -1,0 +1,244 @@
+.level-up-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+
+.level-up-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.level-up-ray {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 140px;
+  background: linear-gradient(180deg, rgba(250, 204, 21, 0.9), transparent);
+  transform-origin: top center;
+  animation: level-up-ray-spin 6s linear infinite;
+}
+
+.level-up-ray-0 {
+  transform: rotate(0deg);
+}
+.level-up-ray-1 {
+  transform: rotate(90deg);
+  animation-delay: -1.5s;
+}
+.level-up-ray-2 {
+  transform: rotate(180deg);
+  animation-delay: -3s;
+}
+.level-up-ray-3 {
+  transform: rotate(270deg);
+  animation-delay: -4.5s;
+}
+
+@keyframes level-up-ray-spin {
+  from {
+    transform: rotate(0deg);
+    opacity: 0.8;
+  }
+  to {
+    transform: rotate(360deg);
+    opacity: 0.4;
+  }
+}
+
+.level-up-card {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 20px;
+  max-width: 420px;
+  width: 100%;
+  padding: 32px 28px 24px;
+  text-align: center;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.6);
+  animation: level-up-card-in 0.4s ease-out;
+}
+
+@keyframes level-up-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.level-up-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.level-up-close-btn:hover,
+.level-up-close-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.level-up-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.level-up-star-icon {
+  font-size: 36px;
+  filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.7));
+}
+
+.level-up-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: linear-gradient(90deg, #facc15, #fde68a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.level-up-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.level-up-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.level-up-badge-old {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.level-up-badge-new {
+  background: rgba(250, 204, 21, 0.15);
+  color: #facc15;
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.5);
+}
+
+.level-up-arrow {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 20px;
+}
+
+.level-up-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.level-up-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #facc15, #fb923c);
+  transition: width 0.6s ease-out;
+}
+
+.level-up-xp-label {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.level-up-perks-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.level-up-perk-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.level-up-perk-icon {
+  font-size: 16px;
+}
+
+.level-up-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-level-up-continue,
+.btn-level-up-share {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn-level-up-continue {
+  background: linear-gradient(90deg, #facc15, #fb923c);
+  color: #1a1a2e;
+}
+
+.btn-level-up-share {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-level-up-continue:hover,
+.btn-level-up-share:hover {
+  opacity: 0.85;
+}
