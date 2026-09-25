@@ -1,0 +1,100 @@
+.audio-spectrum-visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.audio-spectrum-visualizer__bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2px;
+  height: 120px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #14151d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.audio-spectrum-visualizer__bar {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(180deg, #22d3ee, #d946ef);
+  height: 0%;
+  transition: height 140ms linear;
+}
+
+.audio-spectrum-visualizer__bar--flat {
+  height: 0%;
+}
+
+.audio-spectrum-visualizer__peak {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0%;
+  border-top: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 2px;
+  transition: height 140ms linear;
+}
+
+.audio-spectrum-visualizer__bars--theme-phosphor .audio-spectrum-visualizer__bar {
+  background: linear-gradient(180deg, #86efac, #22c55e);
+}
+
+.audio-spectrum-visualizer__bars--theme-phosphor .audio-spectrum-visualizer__bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.65);
+}
+
+.audio-spectrum-visualizer__bars--theme-synthwave .audio-spectrum-visualizer__bar {
+  background: linear-gradient(180deg, #fb923c, #e879f9);
+}
+
+.audio-spectrum-visualizer__bars--theme-neon .audio-spectrum-visualizer__bar {
+  background: linear-gradient(180deg, #22d3ee, #d946ef);
+}
+
+.audio-spectrum-visualizer__bars--playing {
+  box-shadow: 0 0 18px rgba(217, 70, 239, 0.18);
+}
+
+.audio-spectrum-visualizer__bars--theme-phosphor.audio-spectrum-visualizer__bars--playing {
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.25);
+}
+
+.audio-spectrum-visualizer__bars--theme-synthwave.audio-spectrum-visualizer__bars--playing {
+  box-shadow: 0 0 18px rgba(232, 121, 249, 0.25);
+}
+
+.audio-spectrum-visualizer__bars--muted {
+  opacity: 0.55;
+}
+
+.audio-spectrum-visualizer__sr-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audio-spectrum-visualizer__bar,
+  .audio-spectrum-visualizer__peak {
+    transition: none;
+  }
+}
