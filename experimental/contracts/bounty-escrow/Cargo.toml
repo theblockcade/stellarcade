@@ -1,0 +1,12 @@
+[package]
+name = "bounty-escrow"
+version = "0.1.0"
+authors = ["The Blockcade Team"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = "20.0.0"
+soroban-token-sdk = "20.0.0"
