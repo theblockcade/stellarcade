@@ -78,6 +78,28 @@ pub fn mark_proof_used(env: &Env, proof_hash: &BytesN<32>) {
     storage.extend_ttl(&key, TTL_THRESHOLD, TTL_BUMP);
 }
 
+pub fn claim_was_submitted(
+    env: &Env,
+    bounty_id: u64,
+    player: &Address,
+    proof_hash: &BytesN<32>,
+) -> bool {
+    let key = DataKey::SubmittedProof(bounty_id, player.clone(), proof_hash.clone());
+    let storage = env.storage().persistent();
+    let submitted = storage.has(&key);
+    if submitted {
+        storage.extend_ttl(&key, TTL_THRESHOLD, TTL_BUMP);
+    }
+    submitted
+}
+
+pub fn mark_claim_submitted(env: &Env, bounty_id: u64, player: &Address, proof_hash: &BytesN<32>) {
+    let key = DataKey::SubmittedProof(bounty_id, player.clone(), proof_hash.clone());
+    let storage = env.storage().persistent();
+    storage.set(&key, &true);
+    storage.extend_ttl(&key, TTL_THRESHOLD, TTL_BUMP);
+}
+
 pub fn oracle_is_configured(config: &Config, address: &Address) -> bool {
     config.oracles.iter().any(|oracle| oracle == *address)
 }

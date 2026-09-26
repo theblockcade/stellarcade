@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use soroban_sdk::{
-    testutils::{Address as _, Ledger},
-    token, vec, Address, BytesN, Env, Symbol,
+    testutils::{Address as _, AuthorizedFunction, IssuerFlags, Ledger},
+    token, vec, Address, BytesN, Env, IntoVal, Symbol,
 };
 
 use crate::{Bounty, BountyEscrow, BountyEscrowClient, BountyStatus, PayoutTier};
@@ -31,6 +31,7 @@ fn setup(env: &Env, threshold: u32) -> Setup<'_> {
     let oracle_b = Address::generate(env);
     let stranger = Address::generate(env);
     let sac = env.register_stellar_asset_contract_v2(admin.clone());
+    sac.issuer().set_flag(IssuerFlags::RevocableFlag);
     let token_admin = token::StellarAssetClient::new(env, &sac.address());
     let token = token::Client::new(env, &sac.address());
     let contract_id = env.register(BountyEscrow, ());
@@ -204,6 +205,122 @@ fn one_low_tier_claim_cannot_drain_the_higher_tier_reserve() {
 }
 
 #[test]
+fn sponsor_deposit_authorization_covers_the_token_transfer() {
+    let env = Env::default();
+    let s = setup(&env, 1);
+    post(&s, 100, 50);
+    let auths = env.auths();
+    assert_eq!(auths.len(), 1);
+    let (address, invocation) = &auths[0];
+    assert_eq!(address, &s.sponsor);
+    assert_eq!(
+        invocation.function,
+        AuthorizedFunction::Contract((
+            s.client.address.clone(),
+            Symbol::new(&env, "post_bounty"),
+            (
+                &s.sponsor,
+                Symbol::new(&env, "speedrun"),
+                50u32,
+                100i128,
+                DEADLINE
+            )
+                .into_val(&env),
+        ))
+    );
+    assert_eq!(invocation.sub_invocations.len(), 1);
+    assert_eq!(
+        invocation.sub_invocations[0].function,
+        AuthorizedFunction::Contract((
+            s.token.address.clone(),
+            Symbol::new(&env, "transfer"),
+            (&s.sponsor, &s.client.address, 100i128).into_val(&env),
+        ))
+    );
+}
+
+#[test]
+fn unsigned_mutations_are_rejected() {
+    let env = Env::default();
+    let s = setup(&env, 1);
+    let bounty_id = post(&s, 100, 50);
+    let player = Address::generate(&env);
+    let claim_id = s
+        .client
+        .submit_claim(&player, &bounty_id, &50, &proof(&env, 23));
+    env.mock_auths(&[]);
+    assert!(s
+        .client
+        .try_submit_claim(&player, &bounty_id, &50, &proof(&env, 24))
+        .is_err());
+    assert!(s
+        .client
+        .try_post_bounty(
+            &s.sponsor,
+            &Symbol::new(&env, "speedrun"),
+            &50,
+            &100,
+            &DEADLINE
+        )
+        .is_err());
+    assert!(s
+        .client
+        .try_approve_bounty(&s.oracle_a, &bounty_id, &claim_id)
+        .is_err());
+    env.ledger().set_timestamp(DEADLINE + 1);
+    assert!(s.client.try_refund_expired(&s.sponsor, &bounty_id).is_err());
+    assert_eq!(s.token.balance(&s.client.address), 100);
+    assert!(!s.client.get_claim(&bounty_id, &claim_id).paid);
+}
+
+#[test]
+fn failed_transfer_keeps_the_claim_retryable() {
+    let env = Env::default();
+    let s = setup(&env, 1);
+    let bounty_id = post(&s, 100, 50);
+    let player = Address::generate(&env);
+    let claim_id = s
+        .client
+        .submit_claim(&player, &bounty_id, &50, &proof(&env, 25));
+    s.token_admin.set_authorized(&player, &false);
+    assert!(s
+        .client
+        .try_approve_bounty(&s.oracle_a, &bounty_id, &claim_id)
+        .is_err());
+    assert_eq!(s.client.get_bounty(&bounty_id).remaining_amount, 100);
+    assert!(!s.client.get_claim(&bounty_id, &claim_id).paid);
+    assert_eq!(s.token.balance(&player), 0);
+    s.token_admin.set_authorized(&player, &true);
+    assert_eq!(
+        s.client.approve_bounty(&s.oracle_a, &bounty_id, &claim_id),
+        100
+    );
+    assert_eq!(s.token.balance(&player), 100);
+}
+
+#[test]
+fn unapproved_copy_cannot_block_the_proof_owner() {
+    let env = Env::default();
+    let s = setup(&env, 1);
+    let bounty_id = post(&s, 100, 50);
+    let owner = Address::generate(&env);
+    let hash = proof(&env, 20);
+
+    // A session hash can be public before its owner claims the reward.
+    // Approvers will not approve the copy, so submission must not consume it.
+    let copied_claim = s.client.submit_claim(&s.stranger, &bounty_id, &50, &hash);
+    let owner_claim = s.client.submit_claim(&owner, &bounty_id, &50, &hash);
+    assert_eq!(
+        s.client
+            .approve_bounty(&s.oracle_a, &bounty_id, &owner_claim),
+        100
+    );
+    assert_eq!(s.token.balance(&owner), 100);
+    assert_eq!(s.token.balance(&s.stranger), 0);
+    assert!(!s.client.get_claim(&bounty_id, &copied_claim).paid);
+}
+
+#[test]
 fn claim_rejects_low_scores_and_reused_proofs() {
     let env = Env::default();
     let s = setup(&env, 1);
@@ -217,11 +334,57 @@ fn claim_rejects_low_scores_and_reused_proofs() {
 
     let hash = proof(&env, 5);
     s.client.submit_claim(&first_player, &bounty_id, &50, &hash);
-    let second_player = Address::generate(&env);
     assert!(s
         .client
-        .try_submit_claim(&second_player, &bounty_id, &50, &hash)
+        .try_submit_claim(&first_player, &bounty_id, &50, &hash)
         .is_err());
+}
+
+#[test]
+fn only_one_pending_claim_with_the_same_proof_can_settle() {
+    let env = Env::default();
+    let s = setup(&env, 2);
+    let first_bounty = post(&s, 100, 50);
+    let second_bounty = post(&s, 100, 50);
+    let first_player = Address::generate(&env);
+    let second_player = Address::generate(&env);
+    let hash = proof(&env, 21);
+    let first_claim = s
+        .client
+        .submit_claim(&first_player, &first_bounty, &50, &hash);
+    let second_claim = s
+        .client
+        .submit_claim(&second_player, &second_bounty, &50, &hash);
+
+    assert_eq!(
+        s.client
+            .approve_bounty(&s.oracle_a, &first_bounty, &first_claim),
+        0
+    );
+    assert_eq!(
+        s.client
+            .approve_bounty(&s.oracle_a, &second_bounty, &second_claim),
+        0
+    );
+    assert_eq!(
+        s.client
+            .approve_bounty(&s.oracle_b, &first_bounty, &first_claim),
+        100
+    );
+    assert!(s
+        .client
+        .try_approve_bounty(&s.oracle_b, &second_bounty, &second_claim)
+        .is_err());
+    assert_eq!(s.token.balance(&first_player), 100);
+    assert_eq!(s.token.balance(&second_player), 0);
+    assert_eq!(s.client.get_bounty(&second_bounty).remaining_amount, 100);
+    assert!(!s.client.get_claim(&second_bounty, &second_claim).paid);
+    assert!(s
+        .client
+        .try_submit_claim(&first_player, &second_bounty, &50, &hash)
+        .is_err());
+    env.ledger().set_timestamp(DEADLINE + 1);
+    assert_eq!(s.client.refund_expired(&s.sponsor, &second_bounty), 100);
 }
 
 #[test]

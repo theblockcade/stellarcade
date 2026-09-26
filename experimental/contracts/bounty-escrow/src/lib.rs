@@ -28,6 +28,7 @@ pub enum DataKey {
     Bounty(u64),
     Claim(u64, u64),
     Proof(BytesN<32>),
+    SubmittedProof(u64, Address, BytesN<32>),
 }
 
 #[contracterror]
@@ -183,7 +184,9 @@ impl BountyEscrow {
         player.require_auth();
         let mut bounty = storage::bounty(&env, bounty_id)?;
         ensure_open_and_live(&env, &bounty)?;
-        if storage::proof_was_used(&env, &proof_hash) {
+        if storage::proof_was_used(&env, &proof_hash)
+            || storage::claim_was_submitted(&env, bounty_id, &player, &proof_hash)
+        {
             return Err(Error::DuplicateProof);
         }
 
@@ -208,7 +211,7 @@ impl BountyEscrow {
         let claim_id = bounty.next_claim_id;
         bounty.next_claim_id = claim_id.checked_add(1).ok_or(Error::MathOverflow)?;
         storage::set_bounty(&env, &bounty);
-        storage::mark_proof_used(&env, &proof_hash);
+        storage::mark_claim_submitted(&env, bounty_id, &player, &proof_hash);
         let claim = Claim {
             id: claim_id,
             bounty_id,
@@ -255,6 +258,9 @@ impl BountyEscrow {
         if bounty.paid_tiers.get(claim.tier_index).unwrap_or(false) {
             return Err(Error::TierAlreadyPaid);
         }
+        if storage::proof_was_used(&env, &claim.proof_hash) {
+            return Err(Error::DuplicateProof);
+        }
 
         let sponsor_approved = verifier == bounty.sponsor;
         if !sponsor_approved {
@@ -293,6 +299,7 @@ impl BountyEscrow {
         // transfer fails, Soroban rolls back the whole invocation atomically.
         storage::set_claim(&env, &claim);
         storage::set_bounty(&env, &bounty);
+        storage::mark_proof_used(&env, &claim.proof_hash);
         token::Client::new(&env, &config.token).transfer(
             &env.current_contract_address(),
             &claim.player,

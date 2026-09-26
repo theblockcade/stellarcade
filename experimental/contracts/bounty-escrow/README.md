@@ -28,11 +28,14 @@ but remains self-contained under `experimental/contracts/`.
    Deadlines are UTC ledger timestamps and may be at most 30 days after posting.
    Each tier can be paid only once, so low-score claims cannot consume the
    balance reserved for higher tiers.
-3. `submit_claim(player, bounty_id, score, proof_hash)` records one unique
-   proof hash and reserves the highest payout tier met by that score.
+3. `submit_claim(player, bounty_id, score, proof_hash)` records a claim for the
+   highest payout tier met by that score. A player cannot submit the same proof
+   twice to one bounty; an unapproved claim does not reserve its tier or block
+   another claimant from presenting that proof.
 4. `approve_bounty(verifier, bounty_id, claim_id)` records one approval per
    configured oracle. The token transfer occurs only at the configured
-   threshold. The sponsor may approve directly.
+   threshold. The sponsor may approve directly. A proof is consumed globally
+   only when its approved claim is paid, preventing reuse across bounties.
 5. `refund_expired(sponsor, bounty_id)` returns the remaining balance strictly
    after the deadline and closes the bounty before making the token call.
 
