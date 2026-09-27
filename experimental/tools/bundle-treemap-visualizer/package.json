@@ -1,0 +1,34 @@
+{
+  "name": "@stellarcade/bundle-treemap-visualizer",
+  "version": "0.0.1",
+  "description": "Standalone bundle-size treemap generator: scans a directory, estimates gzip/brotli weight and writes one self-contained interactive HTML report",
+  "main": "dist/treemapGenerator.js",
+  "types": "dist/treemapGenerator.d.ts",
+  "bin": {
+    "bundle-treemap-visualizer": "./dist/cli.js"
+  },
+  "scripts": {
+    "start": "node dist/cli.js",
+    "dev": "ts-node cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "bundle",
+    "bundle-size",
+    "treemap",
+    "visualizer",
+    "gzip",
+    "brotli",
+    "stellarcade"
+  ],
+  "author": "StellarCade",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  }
+}
