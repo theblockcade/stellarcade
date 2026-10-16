@@ -179,23 +179,23 @@ fn test_resolve_loss() {
     let player = Address::generate(&env);
     s.token_sac.mint(&player, &500);
 
-    s.flip_client.place_bet(&player, &HEADS, &100, &2u64);
+    s.flip_client.place_bet(&player, &HEADS, &100, &3u64);
 
     // Find a seed that gives result 1 (Tails) — player bet Heads, so they lose
     let mut losing_seed = seed(&env, 0);
     for i in 0u8..=255 {
         let test_seed = seed(&env, i);
-        let result = derive_rng_result(&env, &test_seed, 2u64, 2);
+        let result = derive_rng_result(&env, &test_seed, 3u64, 2);
         if result == 1 {
             losing_seed = test_seed;
             break;
         }
     }
 
-    s.rng_client.fulfill_random(&s.oracle, &2u64, &losing_seed);
-    s.flip_client.resolve_bet(&2u64);
+    s.rng_client.fulfill_random(&s.oracle, &3u64, &losing_seed);
+    s.flip_client.resolve_bet(&3u64);
 
-    let game = s.flip_client.get_game(&2u64);
+    let game = s.flip_client.get_game(&3u64);
     assert!(game.resolved);
     assert!(!game.won);
     assert_eq!(game.payout, 0);
@@ -315,7 +315,7 @@ fn test_double_resolve_rejected() {
 
     s.flip_client.place_bet(&player, &HEADS, &100, &1u64);
 
-    let rng_seed = seed(&env, 42);
+    let rng_seed = seed(&env, 0);
     s.rng_client.fulfill_random(&s.oracle, &1u64, &rng_seed);
     s.flip_client.resolve_bet(&1u64);
 

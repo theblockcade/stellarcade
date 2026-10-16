@@ -209,7 +209,7 @@ impl CoinFlip {
         }
 
         let token = get_token(&env);
-        TokenClient::new(&env, &token).transfer(&admin, &env.current_contract_address(), &amount);
+        TokenClient::new(&env, &token).transfer(&admin, env.current_contract_address(), &amount);
 
         HouseFunded { admin, amount }.publish(&env);
         Ok(())

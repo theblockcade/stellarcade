@@ -65,6 +65,17 @@ const rpc = new StellarSdk.rpc.Server(sorobanRpcUrl, {
   timeout: requestTimeout,
 });
 
+/**
+ * Legacy contract client helper (deprecated in favor of soroban.service.js).
+ */
+const getContractClient = (contractId) => ({
+  contractId,
+  invoke: async (method, _args) => {
+    logger.info(`Invoking ${method} on ${contractId}`);
+    return { status: 'pending' };
+  },
+});
+
 module.exports = {
   server,
   rpc,
@@ -75,4 +86,5 @@ module.exports = {
   requestTimeout,
   maxRetries,
   retryInterval,
+  getContractClient,
 };

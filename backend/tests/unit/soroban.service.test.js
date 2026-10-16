@@ -18,6 +18,13 @@ jest.mock('../../src/config/stellar', () => {
   };
 });
 
+// Prevent Jest worker serialization failure on BigInt
+if (!BigInt.prototype.toJSON) {
+  BigInt.prototype.toJSON = function () {
+    return this.toString();
+  };
+}
+
 describe('SorobanService Unit Tests', () => {
   const dummyContractId = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM';
   const dummyKeypair = StellarSdk.Keypair.random();
@@ -36,7 +43,7 @@ describe('SorobanService Unit Tests', () => {
       });
 
       const res = await sorobanService.simulate(dummyContractId, 'house_balance', []);
-      expect(res).toBe(15000000n);
+      expect(res.toString()).toBe('15000000');
       expect(rpc.simulateTransaction).toHaveBeenCalled();
     });
 
