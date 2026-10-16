@@ -55,27 +55,24 @@ logger.info(
 );
 
 /**
- * Helper to get Contract Client (Skeleton)
+ * Soroban RPC Server instance.
  */
-const getContractClient = (contractId) => {
-  // TODO: Add Soroban client initialization logic when SDK v12+ is integrated
-  return {
-    contractId,
-    invoke: async (method, _args) => {
-      logger.info(`Invoking ${method} on ${contractId}`);
-      // Mock result
-      return { status: 'pending' };
-    },
-  };
-};
+const sorobanRpcUrl =
+  process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+
+const rpc = new StellarSdk.rpc.Server(sorobanRpcUrl, {
+  allowHttp: /^http:\/\//i.test(sorobanRpcUrl),
+  timeout: requestTimeout,
+});
 
 module.exports = {
   server,
+  rpc,
   network,
   passphrase,
   horizonUrl,
+  sorobanRpcUrl,
   requestTimeout,
   maxRetries,
   retryInterval,
-  getContractClient,
 };

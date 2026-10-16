@@ -29,7 +29,6 @@ jest.mock('../../src/config/stellar', () => ({
   network: 'testnet',
   passphrase: 'Test SDF Network ; September 2015',
   horizonUrl: 'https://horizon-testnet.stellar.org',
-  getContractClient: jest.fn(),
 }));
 
 // Mock logger to suppress output during tests

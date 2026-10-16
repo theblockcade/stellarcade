@@ -291,6 +291,29 @@ kill -9 <PID>
 3. Ensure you have test XLM for the configured account:
    - Get test XLM: https://laboratory.stellar.org/#account-creator?network=test
 
+## 🔗 Soroban RPC Integration
+
+The backend interacts with on-chain Soroban smart contracts using `soroban.service.js`.
+
+### Example: Simulating a Contract Call
+
+You can read read-only contract state (such as checking house balance or commitment queue length) via `simulate`:
+
+```javascript
+const { simulate } = require('./src/services/soroban.service');
+
+async function checkHouseBalance(coinFlipContractId) {
+  try {
+    const balance = await simulate(coinFlipContractId, 'house_balance', []);
+    console.log('Current house balance (stroops):', balance);
+    return balance;
+  } catch (error) {
+    console.error('Simulation failed:', error.message);
+    throw error;
+  }
+}
+```
+
 ## 📚 Related Documentation
 
 - [Complete Setup Guide](../docs/SETUP.md) - End-to-end local development setup

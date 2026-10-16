@@ -1,0 +1,11 @@
+{
+  "network": "testnet",
+  "rpcUrl": "https://soroban-testnet.stellar.org",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "contracts": {
+    "coinFlip": "CBQCQCVFXD7227GZ47Y6XWCL7YQY3A43VZZB65VWV2FHRK2W5W5N2WGF",
+    "randomGenerator": "CA3D5KRYMCMCZKHTK2TDBLVLMI5EKK7Q32MGPTA563BFQGL76MFF72J7"
+  },
+  "nativeToken": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+  "deployedAt": "2026-10-16T18:00:00Z"
+}

@@ -1,16 +1,34 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # setup-testnet.sh
-# Configures local environment for Stellar Testnet.
+# Configures local environment and identities for Stellar Testnet.
 
-echo "Setting up Stellarcade identities..."
+NETWORK="testnet"
+IDENTITIES=("admin" "oracle" "player1")
 
-# Create identities if they don't exist
-# soroban config identity create admin
-# soroban config identity create player1
+echo "=== Stellarcade Testnet Setup ==="
 
-echo "Funding identities via Friendbot..."
-# curl -X POST "https://friendbot.stellar.org?addr=$(soroban config identity address admin)"
-# curl -X POST "https://friendbot.stellar.org?addr=$(soroban config identity address player1)"
+# 1. Verify stellar CLI installation
+if ! command -v stellar &> /dev/null; then
+  echo "Error: 'stellar' CLI is not installed."
+  echo "Install it using: cargo install --locked stellar-cli --features opt"
+  exit 1
+fi
 
-echo "Testnet setup complete (SKELETON ONLY)."
+EXISTING_KEYS=$(stellar keys ls 2>/dev/null || true)
+
+# 2. Generate and fund identities if they do not exist
+for id in "${IDENTITIES[@]}"; do
+  if echo "$EXISTING_KEYS" | grep -qw "$id"; then
+    echo "[✓] Identity '$id' already exists. Skipping generation."
+  else
+    echo "[+] Generating and funding identity '$id' on $NETWORK..."
+    stellar keys generate --fund "$id" --network "$NETWORK"
+  fi
+  ADDR=$(stellar keys address "$id" 2>/dev/null || echo "<unavailable>")
+  echo "    Address: $ADDR"
+done
+
+echo ""
+echo "=== Testnet identities are ready ==="
