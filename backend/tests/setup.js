@@ -4,6 +4,13 @@
  */
 require('dotenv').config({ path: '.env.test' });
 
+// Allows BigInt to be serialized safely by Jest worker JSON.stringify
+if (!BigInt.prototype.toJSON) {
+  BigInt.prototype.toJSON = function () {
+    return this.toString();
+  };
+}
+
 // Mock database for testing
 const knex = require('knex')({
   client: 'sqlite3',
