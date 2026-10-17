@@ -70,6 +70,8 @@ pub enum Error {
     RefundNotYetAvailable = 14,
     /// The game's wager was already refunded via `cancel_stale_bet`.
     GameRefunded = 15,
+    InvalidConfig = 16,
+    Paused = 17,
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +96,20 @@ pub enum DataKey {
     /// Ledgers after `placed_at_ledger` before a player may cancel a bet
     /// whose randomness was never fulfilled.
     RefundTimeoutLedgers,
+    Paused,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CoinFlipConfig {
+    pub admin: Address,
+    pub token: Address,
+    pub rng_contract: Address,
+    pub min_wager: i128,
+    pub max_wager: i128,
+    pub house_edge_bps: i128,
+    pub paused: bool,
+    pub refund_timeout_ledgers: u32,
 }
 
 #[contracttype]
@@ -189,6 +205,21 @@ pub struct HouseWithdrawn {
     pub amount: i128,
 }
 
+#[contractevent]
+pub struct WagerLimitsUpdated {
+    #[topic]
+    pub admin: Address,
+    pub min_wager: i128,
+    pub max_wager: i128,
+}
+
+#[contractevent]
+pub struct ContractPaused {
+    #[topic]
+    pub admin: Address,
+    pub paused: bool,
+}
+
 // ---------------------------------------------------------------------------
 // Contract
 // ---------------------------------------------------------------------------
@@ -215,6 +246,13 @@ impl CoinFlip {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(Error::AlreadyInitialized);
         }
+        if min_wager <= 0
+            || min_wager > max_wager
+            || house_edge_bps < 0
+            || house_edge_bps >= BASIS_POINTS_DIVISOR
+        {
+            return Err(Error::InvalidConfig);
+        }
         admin.require_auth();
 
         env.storage().instance().set(&DataKey::Admin, &admin);
@@ -231,6 +269,7 @@ impl CoinFlip {
             &DataKey::RefundTimeoutLedgers,
             &DEFAULT_REFUND_TIMEOUT_LEDGERS,
         );
+        env.storage().instance().set(&DataKey::Paused, &false);
         Ok(())
     }
 
@@ -246,6 +285,10 @@ impl CoinFlip {
         game_id: u64,
     ) -> Result<(), Error> {
         require_initialized(&env)?;
+        let paused: bool = env.storage().instance().get(&DataKey::Paused).unwrap_or(false);
+        if paused {
+            return Err(Error::Paused);
+        }
         player.require_auth();
 
         if side != HEADS && side != TAILS {
@@ -657,6 +700,78 @@ impl CoinFlip {
         require_initialized(&env)?;
         let token = get_token(&env);
         Ok(TokenClient::new(&env, &token).balance(&env.current_contract_address()))
+    }
+
+    /// Update minimum and maximum wager limits. Admin only.
+    pub fn set_wager_limits(
+        env: Env,
+        admin: Address,
+        min_wager: i128,
+        max_wager: i128,
+    ) -> Result<(), Error> {
+        require_initialized(&env)?;
+        require_admin(&env, &admin)?;
+
+        if min_wager <= 0 || min_wager > max_wager {
+            return Err(Error::InvalidConfig);
+        }
+
+        env.storage().instance().set(&DataKey::MinWager, &min_wager);
+        env.storage().instance().set(&DataKey::MaxWager, &max_wager);
+
+        WagerLimitsUpdated {
+            admin,
+            min_wager,
+            max_wager,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    /// Pause or unpause contract operations. Admin only.
+    pub fn set_paused(env: Env, admin: Address, paused: bool) -> Result<(), Error> {
+        require_initialized(&env)?;
+        require_admin(&env, &admin)?;
+
+        env.storage().instance().set(&DataKey::Paused, &paused);
+
+        ContractPaused { admin, paused }.publish(&env);
+        Ok(())
+    }
+
+    /// Query the complete configuration snapshot of the contract.
+    pub fn get_config(env: Env) -> Result<CoinFlipConfig, Error> {
+        require_initialized(&env)?;
+
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let token: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let rng_contract: Address = env.storage().instance().get(&DataKey::RngContract).unwrap();
+        let min_wager: i128 = env.storage().instance().get(&DataKey::MinWager).unwrap();
+        let max_wager: i128 = env.storage().instance().get(&DataKey::MaxWager).unwrap();
+        let house_edge_bps: i128 = env.storage().instance().get(&DataKey::HouseEdgeBps).unwrap();
+        let paused: bool = env.storage().instance().get(&DataKey::Paused).unwrap_or(false);
+        let refund_timeout_ledgers: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::RefundTimeoutLedgers)
+            .unwrap_or(DEFAULT_REFUND_TIMEOUT_LEDGERS);
+
+        Ok(CoinFlipConfig {
+            admin,
+            token,
+            rng_contract,
+            min_wager,
+            max_wager,
+            house_edge_bps,
+            paused,
+            refund_timeout_ledgers,
+        })
+    }
+
+    /// Query whether the contract is currently paused.
+    pub fn is_paused(env: Env) -> Result<bool, Error> {
+        require_initialized(&env)?;
+        Ok(env.storage().instance().get(&DataKey::Paused).unwrap_or(false))
     }
 }
 
