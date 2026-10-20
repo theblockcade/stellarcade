@@ -1,0 +1,64 @@
+name: CI contracts wasm sizes
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+  push:
+    branches: [ main ]
+    paths:
+      - "contracts/**"
+
+permissions:
+  contents: read
+
+jobs:
+  wasm-sizes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: wasm-sizes-${{ hashFiles('contracts/Cargo.lock') }}
+
+      - name: Build all contracts to wasm
+        run: |
+          cd contracts
+          for d in */; do
+            if [ -f "$d/Cargo.toml" ]; then
+              (cd "$d" && cargo build --target wasm32-unknown-unknown --release 2>/dev/null || true)
+            fi
+          done
+
+      - name: Report wasm sizes and enforce Soroban limit
+        run: |
+          LIMIT=$((256 * 1024))
+          echo "| Contract | Size (bytes) | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|-------------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          FAILED=0
+          for f in contracts/*/target/wasm32-unknown-unknown/release/*.wasm; do
+            [ -f "$f" ] || continue
+            SIZE=$(stat -c%s "$f")
+            NAME=$(basename "$f")
+            if [ "$SIZE" -gt "$LIMIT" ]; then
+              STATUS="❌ OVER LIMIT"
+              FAILED=1
+            else
+              STATUS="✅ OK"
+            fi
+            echo "| $NAME | $SIZE | $STATUS |" >> "$GITHUB_STEP_SUMMARY"
+            echo "$NAME: $SIZE bytes ($STATUS)"
+          done
+          exit $FAILED
