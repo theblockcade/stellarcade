@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { useWalletStatus } from "../hooks/useWalletStatus";
@@ -28,7 +28,7 @@ function choiceClass(selected: boolean) {
 }
 
 interface CoinFlipPlayPanelProps {
-  /** Suffix appended to every data-testid (e.g. "arena" → btn-confirm-bet-arena). */
+  /** Suffix appended to every data-testid (e.g. "arena" ÔåÆ btn-confirm-bet-arena). */
   testIdSuffix?: string;
   /** Called when a bet is placed successfully. */
   onBetPlaced?: (placed: { gameId: bigint; txHash: string }) => void;
@@ -52,6 +52,16 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
   const [placedBet, setPlacedBet] = useState<{ gameId: bigint; txHash: string } | null>(null);
   const [betError, setBetError] = useState<string | null>(null);
   const liveGame = useCoinFlipGame(placedBet?.gameId ?? null);
+
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  // Move focus to the result region so keyboard and screen-reader users
+  // land on the outcome after placing a bet.
+  useEffect(() => {
+    if (placedBet) {
+      resultRef.current?.focus();
+    }
+  }, [placedBet]);
 
   const handleExecutePlay = useCallback(async () => {
     if (!wallet.capabilities.isConnected) {
@@ -108,7 +118,10 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
         <div
           className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200"
           data-testid={`coinflip-live-result${testIdSuffix}`}
+          role="status"
           aria-live="polite"
+          tabIndex={-1}
+          ref={resultRef}
         >
           {liveGame.status === "resolved" && liveGame.game ? (
             liveGame.game.refunded ? (
@@ -123,7 +136,7 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
                   {(liveGame.game.won ? liveGame.game.side : 1 - liveGame.game.side) === 0
                     ? "Heads"
                     : "Tails"}{" "}
-                  · {liveGame.game.won ? "You won" : "You lost"}
+                  ┬À {liveGame.game.won ? "You won" : "You lost"}
                 </p>
                 <p className="mt-1">
                   Payout: {stroopsToXlm(liveGame.game.payout)} XLM (wager{" "}
@@ -133,7 +146,7 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
             )
           ) : liveGame.status === "timeout" ? (
             <p className="font-bold" data-testid={`coinflip-outcome${testIdSuffix}`}>
-              Still waiting for the oracle to fulfil this round…
+              Still waiting for the oracle to fulfil this roundÔÇª
             </p>
           ) : liveGame.status === "error" ? (
             <p className="font-bold text-rose-300" data-testid={`coinflip-outcome${testIdSuffix}`}>
@@ -141,7 +154,7 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
             </p>
           ) : (
             <p className="font-bold" data-testid={`coinflip-outcome${testIdSuffix}`}>
-              Bet placed · waiting for the result…
+              Bet placed ┬À waiting for the resultÔÇª
             </p>
           )}
           <p className="mt-2 break-all font-mono text-xs text-slate-400">
@@ -207,8 +220,9 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
             aria-pressed={playSide === CoinFlipSide.Heads}
             className={choiceClass(playSide === CoinFlipSide.Heads)}
             data-testid={`btn-pick-heads${testIdSuffix}`}
+            aria-label="Pick Heads"
           >
-            🪙 Heads
+            ­ƒ¬Ö Heads
           </button>
           <button
             type="button"
@@ -216,8 +230,9 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
             aria-pressed={playSide === CoinFlipSide.Tails}
             className={choiceClass(playSide === CoinFlipSide.Tails)}
             data-testid={`btn-pick-tails${testIdSuffix}`}
+            aria-label="Pick Tails"
           >
-            🪙 Tails
+            ­ƒ¬Ö Tails
           </button>
         </div>
       </fieldset>
@@ -233,6 +248,7 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
               type="button"
               onClick={() => setPlayWager(w)}
               aria-pressed={playWager === w}
+              aria-label={`${w} XLM wager`}
               className={cn(choiceClass(playWager === w), "font-mono")}
             >
               {w}
@@ -258,10 +274,11 @@ export const CoinFlipPlayPanel: React.FC<CoinFlipPlayPanelProps> = ({
           className="w-full"
           onClick={handleExecutePlay}
           disabled={isExecutingPlay}
+          aria-busy={isExecutingPlay}
           data-testid={`btn-confirm-bet${testIdSuffix}`}
         >
           {isExecutingPlay
-            ? "🎲 Placing bet on Soroban..."
+            ? "­ƒÄ▓ Placing bet on Soroban..."
             : !wallet.capabilities.isConnected
               ? "Connect Wallet & Play"
               : `Place ${playWager} XLM Bet`}
