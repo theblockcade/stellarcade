@@ -1,13 +1,13 @@
 //! Stellarcade Dice Roll Contract
 //!
 //! A dice betting game integrated with the Random Generator contract.
-//! Players predict a face (1–6), place a wager, and an oracle resolves
+//! Players predict a face (1���6), place a wager, and an oracle resolves
 //! the outcome via the RNG contract's request/fulfill model.
 //!
 //! ## Game Flow
-//! 1. Player calls `roll` → tokens transfer in, RNG requested, game stored.
+//! 1. Player calls `roll` ��� tokens transfer in, RNG requested, game stored.
 //! 2. Oracle fulfills randomness on the RNG contract (off-chain step).
-//! 3. Anyone calls `resolve_roll` → reads RNG result, settles payout.
+//! 3. Anyone calls `resolve_roll` ��� reads RNG result, settles payout.
 //!
 //! ## Payout
 //! A correct prediction pays `6 * wager - fee`, where the fee is
@@ -35,10 +35,10 @@ use stellarcade_random_generator::RandomGeneratorClient;
 pub const PERSISTENT_BUMP_LEDGERS: u32 = 518_400;
 const BASIS_POINTS_DIVISOR: i128 = 10_000;
 
-/// Die faces: 1–6. RNG result is 0–5, mapped to face by adding 1.
+/// Die faces: 1���6. RNG result is 0���5, mapped to face by adding 1.
 pub const MIN_FACE: u32 = 1;
 pub const MAX_FACE: u32 = 6;
-/// Number of sides on the die — used as the RNG max bound.
+/// Number of sides on the die ��� used as the RNG max bound.
 pub const DIE_SIDES: u64 = 6;
 /// Payout multiplier (before house edge deduction).
 const PAYOUT_MULTIPLIER: i128 = 6;
@@ -68,6 +68,7 @@ pub enum Error {
     WagerTooHigh = 11,
     Overflow = 12,
     InvalidWagerRange = 13,
+    InsufficientBankroll = 14,
 }
 
 // ---------------------------------------------------------------------------
@@ -88,6 +89,8 @@ pub enum DataKey {
     ResolvedHistory,
     /// Ledger timestamp of last roll per player, for cooldown tracking.
     LastRollAt(Address),
+    /// House bankroll reserved to cover worst-case payouts.
+    Bankroll,
 }
 
 /// Snapshot of recent rolling history.
@@ -193,10 +196,37 @@ impl DiceRoll {
         Ok(())
     }
 
+    /// Transfers tokens from under into the contract and credits the
+    /// house bankroll used to cover worst-case payouts.
+    pub fn fund_house(env: Env, funder: Address, amount: i128) -> Result<(), Error> {
+        require_initialized(&env)?;
+        funder.require_auth();
+        if amount <= 0 {
+            return Err(Error::InvalidAmount);
+        }
+        let token = get_token(&env);
+        TokenClient::new(&env, &token).transfer(&funder, env.current_contract_address(), &amount);
+        let bankroll: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::Bankroll)
+            .unwrap_or(0);
+        env.storage().instance().set(
+            &DataKey::Bankroll,
+            &(bankroll.checked_add(amount).ok_or(Error::Overflow)?),
+        );
+        Ok(())
+    }
+
+    /// Current house bankroll available to cover payouts.
+    pub fn get_bankroll(env: Env) -> i128 {
+        env.storage().instance().get(&DataKey::Bankroll).unwrap_or(0)
+    }
+
     /// Player places a dice roll bet. Tokens are transferred into the contract.
     /// A randomness request is submitted to the RNG contract.
     ///
-    /// `prediction`: the die face the player predicts (1–6).
+    /// `prediction`: the die face the player predicts (1���6).
     pub fn roll(
         env: Env,
         player: Address,
@@ -223,6 +253,27 @@ impl DiceRoll {
             return Err(Error::WagerTooHigh);
         }
 
+        // Bankroll guard: the house must cover the worst-case payout
+        // (wager * PAYOUT_MULTIPLIER) before the roll is accepted.
+        let max_payout = wager
+            .checked_mul(PAYOUT_MULTIPLIER)
+            .ok_or(Error::Overflow)?;
+        // Enforcement activates once the house has funded the bankroll;
+        // before that, behaviour matches the pre-existing contract.
+        if env.storage().instance().has(&DataKey::Bankroll) {
+            let bankroll: i128 = env
+                .storage()
+                .instance()
+                .get(&DataKey::Bankroll)
+                .unwrap();
+            if bankroll < max_payout {
+                return Err(Error::InsufficientBankroll);
+            }
+            env.storage()
+                .instance()
+                .set(&DataKey::Bankroll, &(bankroll - max_payout));
+        }
+
         let game_key = DataKey::Game(game_id);
         if env.storage().persistent().has(&game_key) {
             return Err(Error::GameAlreadyExists);
@@ -232,7 +283,7 @@ impl DiceRoll {
         let token = get_token(&env);
         TokenClient::new(&env, &token).transfer(&player, env.current_contract_address(), &wager);
 
-        // Request randomness: max=6 gives result 0–5
+        // Request randomness: max=6 gives result 0���5
         let rng_addr: Address = env.storage().instance().get(&DataKey::RngContract).unwrap();
         RandomGeneratorClient::new(&env, &rng_addr).request_random(
             &env.current_contract_address(),
@@ -279,7 +330,7 @@ impl DiceRoll {
     }
 
     /// Resolve a game after the oracle has fulfilled the RNG request.
-    /// Anyone can call this — no auth needed since the outcome is deterministic.
+    /// Anyone can call this ��� no auth needed since the outcome is deterministic.
     pub fn resolve_roll(env: Env, game_id: u64) -> Result<(), Error> {
         require_initialized(&env)?;
 
@@ -303,9 +354,13 @@ impl DiceRoll {
             _ => return Err(Error::RngNotFulfilled),
         };
 
-        // RNG result is 0–5; die face is 1–6
+        // RNG result is 0���5; die face is 1���6
         let die_face = (entry.result as u32) + 1;
         let won = die_face == roll.prediction;
+        let reserved = roll
+            .wager
+            .checked_mul(PAYOUT_MULTIPLIER)
+            .ok_or(Error::Overflow)?;
 
         let mut payout = 0i128;
         if won {
@@ -359,6 +414,21 @@ impl DiceRoll {
                 &game_key,
                 PERSISTENT_BUMP_LEDGERS,
                 PERSISTENT_BUMP_LEDGERS,
+            );
+        }
+
+        // Release the bankroll reservation: return the unused portion
+        // (reserved max payout minus the actual payout) to the house.
+        if env.storage().instance().has(&DataKey::Bankroll) {
+            let release = reserved.checked_sub(payout).ok_or(Error::Overflow)?;
+            let bankroll: i128 = env
+                .storage()
+                .instance()
+                .get(&DataKey::Bankroll)
+                .unwrap();
+            env.storage().instance().set(
+                &DataKey::Bankroll,
+                &(bankroll.checked_add(release).ok_or(Error::Overflow)?),
             );
         }
 
