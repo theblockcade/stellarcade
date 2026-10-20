@@ -27,7 +27,7 @@ const symbolTopic = (name) => StellarSdk.xdr.ScVal.scvSymbol(name).toXDR('base64
 
 /**
  * Converts an integer stroop amount to an exact decimal string in token units
- * (e.g. 25000000n → "2.5000000"). No floating point is involved.
+ * (e.g. 25000000n ÔåÆ "2.5000000"). No floating point is involved.
  *
  * @param {bigint|number|string} stroops
  * @returns {string}
@@ -97,6 +97,19 @@ const resolveConfig = (options = {}) => {
  * Creates the indexer's operations. `db`, `soroban`, `GameModel`, `UserModel`
  * and `QuestModel` are injectable for tests; they default to the real modules.
  */
+// RPC event retention: the Soroban RPC keeps roughly the last day of
+// events (~24h at 5s ledgers). A cursor older than this window can never
+// advance because getEvents silently returns nothing.
+const EVENT_RETENTION_LEDGERS = 24 * 60 * 60 / 5; // ~17_280
+
+/**
+ * Extracts the ledger sequence from a cursor string ("123-0000000001-...").
+ * Returns null when the cursor does not start with a ledger number.
+ */
+const cursorLedgerOf = (cursor) => {
+  const ledger = Number.parseInt(String(cursor).split('-')[0], 10);
+  return Number.isFinite(ledger) ? ledger : null;
+};
 const createIndexer = (options = {}) => {
   const config = resolveConfig(options);
   const db = options.db || require('../config/database');
@@ -224,7 +237,26 @@ const createIndexer = (options = {}) => {
    * @returns {Promise<number>} number of events handled
    */
   const processEvents = async () => {
-    const cursor = await loadCursor(db, CURSOR_NAME);
+    let cursor = await loadCursor(db, CURSOR_NAME);
+    // Recover when the saved cursor predates the RPC event-retention
+    // window: getEvents would return nothing forever. Jump forward to the
+    // latest ledger (events before the window are gone regardless).
+    if (cursor) {
+      const cursorLedger = cursorLedgerOf(cursor);
+      const latestLedger = await soroban.getLatestLedger();
+      if (
+        cursorLedger !== null &&
+        Number.isFinite(latestLedger) &&
+        latestLedger - cursorLedger > EVENT_RETENTION_LEDGERS
+      ) {
+        logger.warn(
+          { cursorLedger, latestLedger },
+          'Indexer cursor older than RPC event retention; recovering from latest ledger',
+        );
+        cursor = String(latestLedger);
+        await saveCursor(db, CURSOR_NAME, cursor);
+      }
+    }
     const query = {
       contractIds: [contractId],
       topics: [
@@ -306,4 +338,6 @@ module.exports = {
   createIndexer,
   decodeCoinFlipEvent,
   stroopsToUnits,
+  cursorLedgerOf,
+  EVENT_RETENTION_LEDGERS,
 };
