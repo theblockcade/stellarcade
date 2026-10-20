@@ -10,6 +10,7 @@ soroban-sdk = "25.0.2"
 [dev-dependencies]
 soroban-sdk = { version = "25.0.2", features = ["testutils"] }
 stellarcade-random-generator = { path = "../random-generator" }
+proptest = "1.4"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
