@@ -256,3 +256,48 @@ describe('stroopsToUnits', () => {
     expect(stroopsToUnits(123456789012345678901n)).toBe('12345678901234.5678901');
   });
 });
+
+describe('stale cursor recovery (issue #1435)', () => {
+  it('resets a cursor older than the RPC event-retention window to the latest ledger', async () => {
+    const staleCursor = '100-0000000001-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const latestLedger = 100 + 20000;
+
+    await db('worker_cursors')
+      .insert({ name: 'indexer', cursor: staleCursor, updated_at: db.fn.now() })
+      .onConflict('name')
+      .merge({ cursor: staleCursor });
+
+    const getEvents = jest.fn().mockResolvedValue({ events: [], cursor: null });
+    const soroban = {
+      getLatestLedger: jest.fn().mockResolvedValue(latestLedger),
+      getEvents,
+    };
+
+    const indexer = createIndexer({ db, soroban, contractId: COIN_FLIP_ID });
+    await indexer.processEvents();
+
+    const row = await db('worker_cursors').where({ name: 'indexer' }).first();
+    expect(row.cursor).toBe(String(latestLedger));
+  });
+
+  it('keeps a cursor that is still inside the retention window', async () => {
+    const freshCursor = '500-0000000002-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    const latestLedger = 600;
+
+    await db('worker_cursors')
+      .insert({ name: 'indexer', cursor: freshCursor, updated_at: db.fn.now() })
+      .onConflict('name')
+      .merge({ cursor: freshCursor });
+
+    const soroban = {
+      getLatestLedger: jest.fn().mockResolvedValue(latestLedger),
+      getEvents: jest.fn().mockResolvedValue({ events: [], cursor: null }),
+    };
+
+    const indexer = createIndexer({ db, soroban, contractId: COIN_FLIP_ID });
+    await indexer.processEvents();
+
+    const row = await db('worker_cursors').where({ name: 'indexer' }).first();
+    expect(row.cursor).toBe(freshCursor);
+  });
+});
