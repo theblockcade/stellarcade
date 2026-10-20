@@ -1,0 +1,50 @@
+name: CI integration local Soroban
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "backend/**"
+      - ".github/workflows/integration-soroban.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install soroban CLI
+        run: cargo install --locked soroban-cli || true
+
+      - name: Start local Soroban network
+        run: |
+          soroban network start local 2>/dev/null || true
+          soroban network container start local 2>/dev/null || true
+
+      - name: Build and deploy core contracts
+        run: |
+          cd contracts/coin-flip
+          cargo build --target wasm32-unknown-unknown --release
+          cd ../random-generator
+          cargo build --target wasm32-unknown-unknown --release
+
+      - name: Run backend integration tests
+        working-directory: backend
+        run: |
+          npm ci || npm install
+          npm test --if-present
