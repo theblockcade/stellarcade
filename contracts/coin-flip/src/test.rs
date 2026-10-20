@@ -141,7 +141,7 @@ fn test_resolve_win() {
     // Place bet on Heads (0)
     s.flip_client.place_bet(&player, &HEADS, &100, &1u64);
 
-    // Fulfill RNG â€” we need to find a seed that gives result 0 (Heads)
+    // Fulfill RNG ÔÇö we need to find a seed that gives result 0 (Heads)
     // result = sha256(seed || request_id)[0..8] % 2
     // Try seeds until we get 0
     let mut winning_seed = seed(&env, 0);
@@ -290,7 +290,7 @@ fn test_resolve_before_rng_rejected() {
 
     s.flip_client.place_bet(&player, &HEADS, &100, &1u64);
 
-    // Don't fulfill RNG â€” try to resolve
+    // Don't fulfill RNG ÔÇö try to resolve
     let result = s.flip_client.try_resolve_bet(&1u64);
     assert!(result.is_err());
 }
@@ -1046,4 +1046,17 @@ fn test_resolve_and_cancel_work_while_paused() {
     assert!(s.flip_client.try_cancel_stale_bet(&player2, &2u64).is_ok());
     let g2 = s.flip_client.get_game(&2u64);
     assert!(g2.refunded);
+}
+
+#[test]
+fn test_property_payout_liability_invariants() {
+    proptest::proptest!(|(wager in 100i128..10000i128)| {
+        let env = Env::default();
+        let s = setup(&env);
+        assert_eq!(s.flip_client.get_house_exposure(), 0);
+        let player = Address::generate(&env);
+        s.token_sac.mint(&player, &wager);
+        let _game_id = s.flip_client.place_bet(&player, &HEADS, &wager, &1u64);
+        assert!(s.flip_client.get_house_exposure() >= 0);
+    });
 }
