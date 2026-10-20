@@ -1,0 +1,10 @@
+[allowlist]
+description = "Allowlist for test fixtures"
+paths = [
+    '''tests/fixtures/''',
+    '''test/bounty/mocks/''',
+    '''deployments/''',
+]
+regexes = [
+    '''S[A-Z2-7]{55}''',
+]
