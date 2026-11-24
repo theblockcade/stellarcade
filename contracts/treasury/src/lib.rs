@@ -706,4 +706,34 @@ mod test {
         let bad_unpause = client.try_unpause(&outsider);
         assert!(bad_unpause.is_err());
     }
+
+    #[test]
+    fn test_withdrawals_preserve_liabilities_and_reject_excess() {
+        let env = Env::default();
+        let (client, _, funder, token_addr, treasury_addr) = setup(&env);
+        env.mock_all_auths();
+
+        let recipient = Address::generate(&env);
+        client.deposit(&funder, &1_000, &symbol_short!("dep1"));
+
+        // Allocate 400
+        client.allocate(&recipient, &400, &symbol_short!("alloc1"));
+        let state1 = client.treasury_state();
+        assert_eq!(state1.available_balance, 600);
+        assert_eq!(state1.total_allocated, 400);
+
+        // Attempting to release more than remaining available balance must fail
+        let excess_release = client.try_release(&recipient, &700, &symbol_short!("rel_bad"));
+        assert!(excess_release.is_err());
+
+        // Releasing 300 succeeds and preserves liability consistency
+        client.release(&recipient, &300, &symbol_short!("rel_ok"));
+        let state2 = client.treasury_state();
+        assert_eq!(state2.available_balance, 300);
+        assert_eq!(state2.total_released, 300);
+
+        // Verify token contract balance matches treasury state
+        let token_client = token_client(&env, &token_addr);
+        assert_eq!(token_client.balance(&treasury_addr), 300);
+    }
 }
