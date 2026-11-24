@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use soroban_sdk::{testutils::Ledger as _, Env, Symbol};
 
 use super::*;

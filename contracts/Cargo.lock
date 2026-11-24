@@ -2326,6 +2326,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellarcade-merch-redemption"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "stellarcade-minesweeper-escrow"
 version = "0.1.0"
 dependencies = [

@@ -145,11 +145,11 @@ members = [
     "quest-ledger-v2",
     "queue-rewards",
     "ladder-seasons",
+    "merch-redemption",
 ]
 
 exclude = [
     "higher-lower",
-    "merch-redemption",
     # The crates below fail `cargo clippy --workspace -D warnings` (mostly
     # unused imports/dead code in unfinished stubs) or don't compile at all
     # under the wasm32v1-none target, surfaced when CI moved from a curated
